@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="fonts/fonts.css" rel="stylesheet">
+</helmet>
+<div ref="{{ rootRef }}" style="position:relative;z-index:20;font-family:Inter,sans-serif;color:#17142E;">
+  <a href="#main" style="position:absolute;left:-9999px;top:12px;z-index:30;height:44px;padding:0 18px;border-radius:999px;background:#17142E;color:#F6F3EC;font-weight:600;font-size:15px;display:flex;align-items:center;text-decoration:none;" style-focus="left:16px;">Skip to content</a>
+  <header style="max-width:1440px;margin:0 auto;height:88px;padding:0 clamp(20px,4.5vw,64px);display:flex;align-items:center;justify-content:space-between;gap:20px;box-sizing:border-box;">
+    <a href="Home.dc.html" aria-label="Sidekick home" style="display:flex;align-items:center;gap:10px;color:#17142E;text-decoration:none;min-height:44px;">
+      <img src="LOGOS/head_logo.png" alt="" style="width:48px;height:24px;object-fit:contain;">
+      <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.03em;">Sidekick</span>
+    </a>
+    <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+      <nav aria-label="Main" style="display:flex;gap:clamp(18px,2.4vw,36px);font-size:16px;font-weight:500;">
+        <sc-for list="{{ links }}" as="l" hint-placeholder-count="5">
+          <a href="{{ l.href }}" aria-current="{{ l.current }}" style="color:{{ l.color }};text-decoration:none;min-height:44px;display:flex;align-items:center;border-bottom:{{ l.border }};" style-hover="color:#17142E;">{{ l.label }}</a>
+        </sc-for>
+      </nav>
+    </sc-if>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <a href="Get Sidekick.dc.html" style="height:46px;padding:0 22px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:15px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;white-space:nowrap;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Get Sidekick</a>
+      <sc-if value="{{ narrow }}">
+        <button type="button" aria-label="Menu" aria-expanded="{{ menuOpen }}" aria-controls="sk-menu" onClick="{{ toggleMenu }}" style="width:46px;height:46px;border-radius:999px;border:1px solid rgba(23,20,46,0.15);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:0;">
+          <span style="width:16px;height:1.5px;background:#17142E;"></span><span style="width:16px;height:1.5px;background:#17142E;"></span>
+        </button>
+      </sc-if>
+    </div>
+  </header>
+  <sc-if value="{{ showMenu }}">
+    <nav id="sk-menu" aria-label="Main" style="position:absolute;left:12px;right:12px;top:80px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);border-radius:24px;padding:10px;display:flex;flex-direction:column;box-shadow:0 24px 40px -24px rgba(23,20,46,0.35);">
+      <sc-for list="{{ links }}" as="l" hint-placeholder-count="5">
+        <a href="{{ l.href }}" onClick="{{ closeMenu }}" style="min-height:52px;padding:0 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;color:#17142E;text-decoration:none;font-size:18px;font-weight:600;" style-hover="background:#F6F3EC;">{{ l.label }}<span style="font-family:'Material Symbols Rounded';font-size:20px;color:#55526B;font-weight:300;">chevron_right</span></a>
+      </sc-for>
+    </nav>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:100},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;features&quot;,&quot;how&quot;,&quot;next&quot;,&quot;privacy&quot;,&quot;faq&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, menuOpen: false };
+  rootRef = React.createRef();
+  componentDidMount() {
+    this.onResize = () => this.setState({ w: window.innerWidth });
+    this.onKey = (e) => { if (e.key === 'Escape' && this.state.menuOpen) this.setState({ menuOpen: false }); };
+    window.addEventListener('resize', this.onResize);
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); window.removeEventListener('keydown', this.onKey); }
+  renderVals() {
+    const active = this.props.active ?? '';
+    const wide = this.state.w >= 960;
+    const links = [
+      ['features','Features','Home.dc.html#features'],['how','How it works','Home.dc.html#how'],['next',"What's next",'Roadmap.dc.html'],
+      ['privacy','Privacy','Support.dc.html#privacy'],['faq','FAQ','Home.dc.html#faq']
+    ].map(([id,label,href]) => ({ label, href, current: id === active ? 'page' : undefined, color: id === active ? '#17142E' : '#55526B', border: id === active ? '2px solid #C6FF33' : '2px solid transparent' }));
+    return {
+      rootRef: this.rootRef, wide, narrow: !wide, links,
+      menuOpen: this.state.menuOpen ? 'true' : 'false',
+      showMenu: !wide && this.state.menuOpen,
+      toggleMenu: () => this.setState(s => ({ menuOpen: !s.menuOpen })),
+      closeMenu: () => this.setState({ menuOpen: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

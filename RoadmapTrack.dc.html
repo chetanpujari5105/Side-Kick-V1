@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="data/site-config.js"></script>
+<script src="data/roadmap-data.js"></script>
+<script src="data/mock-api.js"></script>
+</helmet>
+<div ref="{{ rootRef }}" style="font-family:Inter,sans-serif;color:#17142E;display:flex;flex-direction:column;gap:36px;">
+  <div role="group" aria-label="Filter roadmap by area" style="display:flex;flex-wrap:wrap;gap:8px;">
+    <sc-for list="{{ chips }}" as="c" hint-placeholder-count="7">
+      <button type="button" aria-pressed="{{ c.pressed }}" onClick="{{ c.onClick }}" style="min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid {{ c.border }};background:{{ c.bg }};color:{{ c.color }};font:600 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;" style-hover="border-color:#17142E;">{{ c.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;opacity:0.75;">{{ c.count }}</span></button>
+    </sc-for>
+  </div>
+
+  <div style="position:relative;display:grid;grid-template-columns:{{ cols }};gap:{{ gap }};">
+    <sc-if value="{{ horizontal }}" hint-placeholder-val="{{ true }}">
+      <span aria-hidden="true" style="position:absolute;left:18px;right:18px;top:17px;height:2px;background:#17142E;border-radius:2px;"></span>
+    </sc-if>
+    <sc-if value="{{ vertical }}">
+      <span aria-hidden="true" style="position:absolute;left:17px;top:18px;bottom:18px;width:2px;background:#17142E;border-radius:2px;"></span>
+    </sc-if>
+    <sc-for list="{{ phases }}" as="p" hint-placeholder-count="4">
+      <section aria-labelledby="{{ p.hid }}" style="position:relative;display:flex;flex-direction:{{ p.dir }};gap:{{ p.innerGap }};min-width:0;">
+        <div style="position:relative;width:36px;height:36px;flex:none;">
+          <sc-if value="{{ p.isFirst }}"><span data-anim="pulse" style="position:absolute;inset:0;border-radius:50%;background:#C6FF33;"></span></sc-if>
+          <span style="position:absolute;inset:0;border-radius:50%;background:{{ p.stopBg }};border:2px solid #17142E;color:{{ p.stopFg }};display:flex;align-items:center;justify-content:center;font:600 14px 'JetBrains Mono',monospace;box-sizing:border-box;">{{ p.id }}</span>
+        </div>
+        <div style="flex:1;min-width:0;border-radius:24px;background:{{ p.panelBg }};border:{{ p.panelBorder }};padding:22px 20px 14px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box;">
+          <span style="align-self:flex-start;height:30px;padding:0 12px;border-radius:999px;background:{{ p.chipBg }};color:{{ p.chipFg }};border:{{ p.chipBorder }};font:600 13px Inter,sans-serif;display:flex;align-items:center;box-sizing:border-box;">{{ p.label }}</span>
+          <h3 id="{{ p.hid }}" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:26px;line-height:1.02;font-weight:700;letter-spacing:-0.03em;text-wrap:balance;">{{ p.title }}</h3>
+          <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;">
+            <sc-for list="{{ p.items }}" as="it" hint-placeholder-count="3">
+              <li style="border-top:1px solid rgba(23,20,46,0.10);">
+                <button type="button" aria-expanded="{{ it.expanded }}" aria-controls="{{ it.panelId }}" onClick="{{ it.toggle }}" style="width:100%;min-height:52px;padding:10px 0;background:transparent;border:0;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;color:#17142E;font:600 16px/1.3 Inter,sans-serif;">
+                  <span style="flex:1;">{{ it.title }}</span>
+                  <span style="font-family:'Material Symbols Rounded';font-size:22px;font-weight:300;color:#55526B;transform:{{ it.rot }};transition:transform .2s;">expand_more</span>
+                </button>
+                <sc-if value="{{ it.isOpen }}">
+                  <div id="{{ it.panelId }}" style="padding:0 0 16px;display:flex;flex-direction:column;gap:12px;">
+                    <p style="margin:0;font-size:16px;line-height:1.55;color:#17142E;">{{ it.benefit }}</p>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                      <span style="height:26px;padding:0 10px;border-radius:999px;background:{{ p.chipBg }};color:{{ p.chipFg }};border:{{ p.chipBorder }};font:600 12px Inter,sans-serif;display:flex;align-items:center;box-sizing:border-box;">{{ p.label }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#55526B;">{{ it.category }}</span>
+                    </div>
+                    <sc-if value="{{ it.note }}"><p style="margin:0;font-size:14.5px;line-height:1.5;color:#55526B;">Caveat: {{ it.note }}</p></sc-if>
+                    <sc-if value="{{ showNotify }}">
+                      <sc-if value="{{ it.sent }}">
+                        <p role="status" style="margin:0;font-size:14.5px;line-height:1.5;color:#17142E;display:flex;gap:8px;align-items:flex-start;"><span style="width:10px;height:10px;margin-top:5px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;flex:none;"></span>Check your inbox and confirm. We'll send one email when this ships.</p>
+                      </sc-if>
+                      <sc-if value="{{ it.notSent }}">
+                        <form onSubmit="{{ it.submit }}" noValidate="{{ true }}" style="display:flex;flex-direction:column;gap:6px;">
+                          <label for="{{ it.inputId }}" style="font-size:14px;font-weight:600;">Notify me when this ships</label>
+                          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <input id="{{ it.inputId }}" type="email" autoComplete="email" placeholder="you@example.com" value="{{ it.email }}" onChange="{{ it.onEmail }}" aria-invalid="{{ it.invalid }}" aria-describedby="{{ it.errId }}" style="flex:1;min-width:160px;height:44px;padding:0 14px;border-radius:12px;border:1.5px solid {{ it.inputBorder }};background:#FFFFFF;font:400 16px Inter,sans-serif;color:#17142E;box-sizing:border-box;" style-focus="outline:2px solid #5B3DF5;outline-offset:2px;">
+                            <button type="submit" style="height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;cursor:pointer;" style-hover="background:#C6FF33;">{{ it.btn }}</button>
+                          </div>
+                          <sc-if value="{{ it.error }}"><span id="{{ it.errId }}" style="font-size:14px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:16px;">error</span>{{ it.error }}</span></sc-if>
+                        </form>
+                      </sc-if>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </li>
+            </sc-for>
+          </ul>
+          <sc-if value="{{ p.empty }}"><p style="margin:0;padding:8px 0;font-size:15px;color:#55526B;border-top:1px solid rgba(23,20,46,0.10);">Nothing in this phase for {{ filterName }}.</p></sc-if>
+          <sc-if value="{{ p.more }}"><a href="Roadmap.dc.html" style="font-size:15px;font-weight:600;color:#5B3DF5;text-underline-offset:5px;min-height:44px;display:flex;align-items:center;" style-hover="color:#3A22B8;">{{ p.more }}</a></sc-if>
+        </div>
+      </section>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1300,&quot;height&quot;:900},&quot;limit&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;min&quot;:0,&quot;max&quot;:10,&quot;tsType&quot;:&quot;number&quot;},&quot;showNotify&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { filter: 'All', open: null, w: 1200, notify: {} };
+  rootRef = React.createRef();
+  componentDidMount() {
+    const el = this.rootRef.current;
+    if (el && window.ResizeObserver) { this.ro = new ResizeObserver(([e]) => this.setState({ w: e.contentRect.width })); this.ro.observe(el); }
+    if (!window.SK_ROADMAP) { this.t = setInterval(() => { if (window.SK_ROADMAP) { clearInterval(this.t); this.forceUpdate(); } }, 60); }
+    if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      setTimeout(() => el && el.querySelectorAll('[data-anim="pulse"]').forEach(d => d.animate([{transform:'scale(1)',opacity:0.6},{transform:'scale(2.8)',opacity:0}],{duration:2400,iterations:Infinity,easing:'ease-out'})), 300);
+    }
+  }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); clearInterval(this.t); }
+  setN(id, patch) { this.setState(s => ({ notify: { ...s.notify, [id]: { ...(s.notify[id] || {}), ...patch } } })); }
+  async submit(e, id) {
+    e.preventDefault();
+    const n = this.state.notify[id] || {};
+    const email = (n.email || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.setN(id, { error: 'Enter an email address like name@example.com.' }); return; }
+    this.setN(id, { error: '', sending: true });
+    try {
+      const r = await window.SK_API.roadmapNotify(email, id);
+      if (r && r.ok) this.setN(id, { sending: false, sent: true });
+      else this.setN(id, { sending: false, error: "That didn't go through. Try again in a moment." });
+    } catch (err) { this.setN(id, { sending: false, error: "That didn't go through. Try again in a moment." }); }
+  }
+  renderVals() {
+    const R = window.SK_ROADMAP || { phases: [], items: [], categories: [] };
+    const limit = this.props.limit ?? 0;
+    const showNotify = this.props.showNotify ?? true;
+    const horizontal = this.state.w >= 880;
+    const f = this.state.filter;
+    const chips = ['All', ...R.categories].map(c => {
+      const on = c === f;
+      return { label: c, count: c === 'All' ? R.items.length : R.items.filter(i => i.category === c).length, pressed: on ? 'true' : 'false',
+        bg: on ? '#17142E' : 'transparent', color: on ? '#F6F3EC' : '#17142E', border: on ? '#17142E' : 'rgba(23,20,46,0.18)',
+        onClick: () => this.setState({ filter: c, open: null }) };
+    });
+    const look = {
+      next:      { stopBg: '#C6FF33', stopFg: '#17142E', panelBg: '#FFFFFF', panelBorder: '1px solid rgba(23,20,46,0.10)', chipBg: '#C6FF33', chipFg: '#17142E', chipBorder: '1.5px solid #17142E' },
+      design:    { stopBg: '#5B3DF5', stopFg: '#FFFFFF', panelBg: '#E8E2FF', panelBorder: '1px solid transparent', chipBg: '#5B3DF5', chipFg: '#FFFFFF', chipBorder: '1.5px solid #5B3DF5' },
+      exploring: { stopBg: '#E8E2FF', stopFg: '#17142E', panelBg: '#EDE9DF', panelBorder: '1px solid transparent', chipBg: '#E8E2FF', chipFg: '#17142E', chipBorder: '1.5px solid #E8E2FF' },
+      later:     { stopBg: '#F6F3EC', stopFg: '#17142E', panelBg: 'transparent', panelBorder: '1.5px dashed rgba(23,20,46,0.28)', chipBg: 'transparent', chipFg: '#17142E', chipBorder: '1.5px solid #17142E' }
+    };
+    const phases = R.phases.map((p, pi) => {
+      const all = R.items.filter(i => i.phase === p.id && (f === 'All' || i.category === f));
+      const shown = limit ? all.slice(0, limit) : all;
+      const rest = all.length - shown.length;
+      return { ...p, ...look[p.status], hid: 'rm-phase-' + p.id, isFirst: pi === 0,
+        label: p.label, dir: horizontal ? 'column' : 'row', innerGap: horizontal ? '18px' : '16px',
+        empty: all.length === 0, more: rest > 0 ? `+ ${rest} more in this phase` : '',
+        items: shown.map(it => {
+          const isOpen = this.state.open === it.id; const n = this.state.notify[it.id] || {};
+          return { ...it, isOpen, expanded: isOpen ? 'true' : 'false', rot: isOpen ? 'rotate(180deg)' : 'none', panelId: 'rm-' + it.id, inputId: 'rm-email-' + it.id, errId: n.error ? 'rm-err-' + it.id : undefined,
+            note: it.note || '', email: n.email || '', error: n.error || '', invalid: n.error ? 'true' : 'false', inputBorder: n.error ? '#D9432F' : 'rgba(23,20,46,0.22)',
+            sent: !!n.sent, notSent: !n.sent, btn: n.sending ? 'Sending…' : 'Notify me',
+            toggle: () => this.setState(s => ({ open: s.open === it.id ? null : it.id })),
+            onEmail: (e) => this.setN(it.id, { email: e.target.value, error: '' }),
+            submit: (e) => this.submit(e, it.id) };
+        }) };
+    });
+    return { rootRef: this.rootRef, chips, phases, horizontal, vertical: !horizontal, showNotify, filterName: f,
+      cols: horizontal ? 'repeat(4, minmax(0,1fr))' : 'minmax(0,1fr)', gap: horizontal ? '20px' : '28px' };
+  }
+}
+</script>
+</body>
+</html>

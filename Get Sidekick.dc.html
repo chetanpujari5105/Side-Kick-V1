@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Get Sidekick</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="data/site-config.js"></script>
+<script src="data/mock-api.js"></script>
+<style>
+body{margin:0;background:#F6F3EC;color:#17142E;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+a{color:#5B3DF5;}
+a:hover{color:#3A22B8;}
+:focus-visible{outline:2px solid #5B3DF5;outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important;}}
+</style>
+</helmet>
+<dc-import name="SiteHeader" active="" hint-size="100%,88px"></dc-import>
+<main id="main" style="max-width:1440px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;display:grid;grid-template-columns:{{ cols }};gap:clamp(32px,5vw,80px);align-items:start;">
+  <div style="display:flex;flex-direction:column;gap:28px;padding-top:{{ leftPad }};">
+    <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">Almost <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">there</span></span>.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:460px;">Tell us who you are and which Mac you have. Next you'll see the downloads for both apps and a short install guide.</p>
+    <svg width="320" height="96" viewBox="0 0 320 96" aria-hidden="true" style="max-width:100%;">
+      <rect x="4" y="12" width="40" height="72" rx="9" fill="#FFFFFF" stroke="#17142E" stroke-width="2"></rect>
+      <path data-anim="draw" d="M 44 48 L 220 48" stroke="#17142E" stroke-width="2" stroke-linecap="round" fill="none"></path>
+      <circle data-anim="pulse" cx="132" cy="48" r="9" fill="#C6FF33" style="transform-box:fill-box;transform-origin:center;"></circle>
+      <circle cx="132" cy="48" r="9" fill="#C6FF33" stroke="#17142E" stroke-width="2"></circle>
+      <rect x="222" y="22" width="84" height="54" rx="6" fill="#E8E2FF" stroke="#17142E" stroke-width="2"></rect>
+      <line x1="212" y1="84" x2="316" y2="84" stroke="#17142E" stroke-width="2" stroke-linecap="round"></line>
+    </svg>
+    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;max-width:460px;">
+      <sc-for list="{{ reassure }}" as="r" hint-placeholder-count="3">
+        <li style="display:flex;gap:14px;align-items:flex-start;font-size:17px;line-height:1.5;"><span style="width:10px;height:10px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;flex:none;margin-top:7px;"></span><span>{{ r }}</span></li>
+      </sc-for>
+    </ul>
+  </div>
+
+  <div style="background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);border-radius:28px;padding:clamp(24px,3.5vw,44px);box-sizing:border-box;box-shadow:0 30px 60px -48px rgba(23,20,46,0.5);">
+    <sc-if value="{{ isSuccess }}">
+      <div role="status" style="display:flex;flex-direction:column;gap:18px;align-items:flex-start;padding:24px 0;">
+        <span style="width:56px;height:56px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:30px;">check</span>
+        <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:36px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Saved. Taking you to your download…</h2>
+        <p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">If nothing happens, <a href="Download.dc.html" style="color:#5B3DF5;font-weight:600;">open the Download page</a>.</p>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showForm }}" hint-placeholder-val="{{ true }}">
+    <form onSubmit="{{ submit }}" noValidate="{{ true }}" aria-busy="{{ busy }}" aria-labelledby="form-h" style="display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <h2 id="form-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:34px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Get Sidekick</h2>
+        <p style="margin:0;font-size:15.5px;line-height:1.5;color:#55526B;">{{ purpose }}</p>
+      </div>
+
+      <sc-if value="{{ bannerServer }}">
+        <div role="alert" style="border-radius:16px;background:#FCEBE7;border:1.5px solid #D9432F;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;">
+          <span style="font-family:'Material Symbols Rounded';font-size:22px;color:#B3341F;">error</span>
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px;"><span style="font-size:16px;font-weight:600;">We couldn't save your details.</span><span style="font-size:15px;line-height:1.5;color:#4A2A24;">Nothing was sent and you haven't been signed up. Your answers are still here — try again.</span>
+          <button type="button" onClick="{{ submit }}" style="align-self:flex-start;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:18px;">refresh</span>Try again</button></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ bannerRate }}">
+        <div role="alert" style="border-radius:16px;background:#FDF3DC;border:1.5px solid #E8A317;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;">
+          <span style="font-family:'Material Symbols Rounded';font-size:22px;color:#8A5A00;">schedule</span>
+          <div style="display:flex;flex-direction:column;gap:4px;"><span style="font-size:16px;font-weight:600;">Too many tries in a short time.</span><span style="font-size:15px;line-height:1.5;color:#4D3A10;">Please wait about 10 minutes and send the form again. Your answers are still here.</span></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ hasSummary }}">
+        <div role="alert" tabIndex="-1" id="err-summary" style="border-radius:16px;background:#FCEBE7;border:1.5px solid #D9432F;padding:16px 18px;display:flex;flex-direction:column;gap:8px;">
+          <span style="font-size:16px;font-weight:600;">Please fix {{ errCount }} before continuing:</span>
+          <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;">
+            <sc-for list="{{ summary }}" as="s" hint-placeholder-count="2"><li><a href="{{ s.href }}" onClick="{{ s.go }}" style="color:#B3341F;font-size:15px;font-weight:500;text-underline-offset:3px;">{{ s.msg }}</a></li></sc-for>
+          </ul>
+        </div>
+      </sc-if>
+
+      <div style="display:grid;grid-template-columns:{{ pairCols }};gap:20px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label for="f-name" style="font-size:15px;font-weight:600;">Name</label>
+          <input id="f-name" name="name" type="text" autoComplete="name" value="{{ v.name }}" onChange="{{ on.name }}" onBlur="{{ blur.name }}" disabled="{{ busyBool }}" aria-invalid="{{ inv.name }}" aria-describedby="{{ desc.name }}" style="height:54px;padding:0 16px;border-radius:14px;border:1.5px solid {{ bd.name }};background:{{ bg.name }};font:400 17px Inter,sans-serif;color:#17142E;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;">
+          <sc-if value="{{ e.name }}"><span id="e-name" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.name }}</span></sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label for="f-email" style="font-size:15px;font-weight:600;">Email</label>
+          <input id="f-email" name="email" type="email" autoComplete="email" inputMode="email" value="{{ v.email }}" onChange="{{ on.email }}" onBlur="{{ blur.email }}" disabled="{{ busyBool }}" aria-invalid="{{ inv.email }}" aria-describedby="{{ desc.email }}" style="height:54px;padding:0 16px;border-radius:14px;border:1.5px solid {{ bd.email }};background:{{ bg.email }};font:400 17px Inter,sans-serif;color:#17142E;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;">
+          <sc-if value="{{ e.email }}"><span id="e-email" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.email }}</span></sc-if>
+        </div>
+      </div>
+
+      <fieldset id="f-chip" aria-describedby="{{ desc.chip }}" style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;">
+        <legend style="font-size:15px;font-weight:600;padding:0 0 10px;">Your Mac's chip</legend>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+            <label style="min-height:48px;padding:0 18px;border-radius:999px;border:1.5px solid {{ c.border }};background:{{ c.bg }};display:flex;align-items:center;gap:10px;cursor:pointer;font-size:16px;font-weight:500;">
+              <input type="radio" name="macChip" value="{{ c.value }}" checked="{{ c.checked }}" onChange="{{ c.pick }}" disabled="{{ busyBool }}" style="width:18px;height:18px;margin:0;accent-color:#5B3DF5;">{{ c.label }}
+            </label>
+          </sc-for>
+        </div>
+        <span id="h-chip" style="font-size:14.5px;line-height:1.5;color:#55526B;">Apple menu › About This Mac shows “Chip” on Apple silicon and “Processor” on Intel.</span>
+        <sc-if value="{{ e.chip }}"><span id="e-chip" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.chip }}</span></sc-if>
+      </fieldset>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label for="f-phone" style="font-size:15px;font-weight:600;">Android phone model</label>
+        <input id="f-phone" name="phoneModel" type="text" autoComplete="off" value="{{ v.phone }}" onChange="{{ on.phone }}" onBlur="{{ blur.phone }}" disabled="{{ busyBool }}" aria-invalid="{{ inv.phone }}" aria-describedby="{{ desc.phone }}" style="height:54px;padding:0 16px;border-radius:14px;border:1.5px solid {{ bd.phone }};background:{{ bg.phone }};font:400 17px Inter,sans-serif;color:#17142E;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;">
+        <span id="h-phone" style="font-size:14.5px;color:#55526B;">Settings › About phone shows the model name.</span>
+        <sc-if value="{{ e.phone }}"><span id="e-phone" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.phone }}</span></sc-if>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;padding-top:4px;">
+        <label style="display:flex;gap:12px;align-items:flex-start;font-size:16px;line-height:1.5;cursor:pointer;min-height:44px;">
+          <input id="f-privacy" type="checkbox" checked="{{ v.privacy }}" onChange="{{ on.privacy }}" disabled="{{ busyBool }}" aria-invalid="{{ inv.privacy }}" aria-describedby="{{ desc.privacy }}" style="width:22px;height:22px;margin:1px 0 0;accent-color:#5B3DF5;flex:none;">
+          <span>I've read the <a href="Support.dc.html#privacy" target="_blank" rel="noopener" style="color:#5B3DF5;font-weight:600;text-underline-offset:3px;">Privacy Policy</a>. <span style="color:#55526B;">(required)</span></span>
+        </label>
+        <sc-if value="{{ e.privacy }}"><span id="e-privacy" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;margin-top:-6px;padding-left:34px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.privacy }}</span></sc-if>
+        <label style="display:flex;gap:12px;align-items:flex-start;font-size:16px;line-height:1.5;cursor:pointer;min-height:44px;">
+          <input type="checkbox" checked="{{ v.updates }}" onChange="{{ on.updates }}" disabled="{{ busyBool }}" style="width:22px;height:22px;margin:1px 0 0;accent-color:#5B3DF5;flex:none;">
+          <span>Email me Sidekick updates. <span style="color:#55526B;">(optional — we'll ask you to confirm)</span></span>
+        </label>
+      </div>
+
+      <div aria-label="Human check" style="height:66px;border-radius:12px;border:1.5px dashed rgba(23,20,46,0.25);background:repeating-linear-gradient(-45deg,#F6F3EC 0 10px,#EFEBE2 10px 20px);display:flex;align-items:center;justify-content:center;font:500 13px 'JetBrains Mono',monospace;color:#55526B;">[Turnstile / hCaptcha widget — mock]</div>
+
+      <button type="submit" disabled="{{ busyBool }}" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:{{ cursor }};opacity:{{ btnOpacity }};transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">
+        <sc-if value="{{ busyBool }}"><span aria-hidden="true" ref="{{ spinRef }}" style="width:18px;height:18px;border-radius:50%;border:2.5px solid #17142E;border-right-color:transparent;box-sizing:border-box;"></span></sc-if>
+        {{ btnLabel }}
+      </button>
+      <p style="margin:0;font-size:14.5px;line-height:1.5;color:#55526B;">{{ purpose2 }}</p>
+    </form>
+    </sc-if>
+  </div>
+</main>
+
+<sc-if value="{{ showReview }}">
+<aside aria-label="Design review only" style="max-width:1440px;margin:0 auto clamp(48px,6vw,80px);padding:0 clamp(20px,4.5vw,64px);box-sizing:border-box;">
+  <div style="border-radius:20px;border:1.5px dashed rgba(23,20,46,0.3);padding:18px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+    <span style="font:500 13px 'JetBrains Mono',monospace;color:#55526B;margin-right:6px;">DESIGN REVIEW · states (remove in production)</span>
+    <sc-for list="{{ reviewStates }}" as="r" hint-placeholder-count="7">
+      <button type="button" onClick="{{ r.go }}" aria-pressed="{{ r.on }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid {{ r.border }};background:{{ r.bg }};color:{{ r.color }};font:600 14px Inter,sans-serif;cursor:pointer;">{{ r.label }}</button>
+    </sc-for>
+  </div>
+</aside>
+</sc-if>
+<dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mockOutcome&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;success&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;invalid&quot;],&quot;default&quot;:&quot;success&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Mock API&quot;},&quot;previewState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;live&quot;,&quot;empty&quot;,&quot;focus&quot;,&quot;errors&quot;,&quot;submitting&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;success&quot;],&quot;default&quot;:&quot;live&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Design review&quot;},&quot;showReview&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Design review&quot;}}">
+class Component extends DCLogic {
+  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440,
+    v: { name: '', email: '', chip: '', phone: '', privacy: false, updates: false },
+    touched: {}, submitted: false, status: 'idle', serverErr: {}, review: 'live' };
+  spinRef = React.createRef();
+  componentDidMount() {
+    this.onResize = () => this.setState({ w: window.innerWidth });
+    window.addEventListener('resize', this.onResize);
+    const p = this.props.previewState; if (p && p !== 'live') this.applyReview(p);
+    if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      const ease = 'cubic-bezier(.22,1,.36,1)';
+      document.querySelectorAll('main [data-anim="draw"]').forEach(el => { const L = el.getTotalLength(); el.style.strokeDasharray = L; el.animate([{strokeDashoffset:L},{strokeDashoffset:0}],{duration:900,delay:650,easing:ease,fill:'backwards'}); });
+      document.querySelectorAll('main [data-anim="pulse"]').forEach(el => el.animate([{transform:'scale(1)',opacity:0.6},{transform:'scale(2.8)',opacity:0}],{duration:2400,delay:1500,iterations:Infinity,easing:'ease-out',fill:'backwards'}));
+    }
+  }
+  componentDidUpdate() {
+    const s = this.spinRef.current;
+    if (s && !s._spin && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) { s._spin = s.animate([{transform:'rotate(0)'},{transform:'rotate(360deg)'}],{duration:800,iterations:Infinity}); }
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearTimeout(this.redir); }
+  validate(v) {
+    const e = {};
+    if (!v.name.trim()) e.name = 'Enter your name.';
+    if (!v.email.trim()) e.email = 'Enter your email address.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) e.email = 'Enter an email address like name@example.com.';
+    if (!v.chip) e.chip = "Choose your Mac's chip, or Not sure.";
+    if (!v.phone.trim()) e.phone = 'Enter your phone model, for example the name in Settings › About phone.';
+    if (!v.privacy) e.privacy = "Confirm you've read the Privacy Policy to continue.";
+    return e;
+  }
+  applyReview(r) {
+    clearTimeout(this.redir);
+    const filled = { name: 'Alex Rivera', email: 'alex@example.com', chip: 'apple', phone: 'Pixel 8', privacy: true, updates: false };
+    const empty = { name: '', email: '', chip: '', phone: '', privacy: false, updates: false };
+    const map = {
+      live: { v: empty, touched: {}, submitted: false, status: 'idle', serverErr: {} },
+      empty: { v: empty, touched: {}, submitted: false, status: 'idle', serverErr: {} },
+      focus: { v: { ...empty, name: 'Alex' }, touched: {}, submitted: false, status: 'idle', serverErr: {} },
+      errors: { v: { ...empty, name: 'Alex Rivera', email: 'alex@example' }, touched: {}, submitted: true, status: 'idle', serverErr: {} },
+      submitting: { v: filled, touched: {}, submitted: true, status: 'submitting', serverErr: {} },
+      server_error: { v: filled, touched: {}, submitted: true, status: 'server_error', serverErr: {} },
+      rate_limited: { v: filled, touched: {}, submitted: true, status: 'rate_limited', serverErr: {} },
+      success: { v: filled, touched: {}, submitted: true, status: 'success_preview', serverErr: {} }
+    };
+    this.setState({ ...map[r], review: r }, () => { if (r === 'focus') { const el = document.getElementById('f-name'); el && el.focus(); } });
+  }
+  async submit(e) {
+    e && e.preventDefault && e.preventDefault();
+    if (this.state.status === 'submitting') return;
+    const errs = this.validate(this.state.v);
+    if (Object.keys(errs).length) {
+      this.setState({ submitted: true, status: 'idle', serverErr: {} }, () => { const s = document.getElementById('err-summary'); s && s.focus(); });
+      return;
+    }
+    if (this.props.mockOutcome) sessionStorage.setItem('sk_mock_outcome', this.props.mockOutcome);
+    this.setState({ submitted: true, status: 'submitting', serverErr: {} });
+    const v = this.state.v;
+    try {
+      const r = await window.SK_API.getSidekick({ name: v.name.trim(), email: v.email.trim(), macChip: v.chip, phoneModel: v.phone.trim(), privacyAccepted: v.privacy, marketingOptIn: v.updates });
+      if (r && r.ok && r.status === 200) {
+        this.setState({ status: 'success' });
+        this.redir = setTimeout(() => { window.location.href = 'Download.dc.html'; }, 1200);
+      } else if (r && r.status === 429) this.setState({ status: 'rate_limited' });
+      else if (r && r.status === 400 && r.fieldErrors) this.setState({ status: 'idle', serverErr: r.fieldErrors });
+      else this.setState({ status: 'server_error' });
+    } catch (err) { this.setState({ status: 'server_error' }); }
+  }
+  renderVals() {
+    const { v, touched, submitted, status, serverErr } = this.state;
+    const wide = this.state.w >= 1000;
+    const all = { ...this.validate(v), ...serverErr };
+    const show = k => (submitted || touched[k]) ? (all[k] || '') : '';
+    const e = { name: show('name'), email: show('email'), chip: show('chip'), phone: show('phone'), privacy: show('privacy') };
+    const keys = ['name','email','chip','phone','privacy'];
+    const set = k => ev => { const val = ev.target.type === 'checkbox' ? ev.target.checked : ev.target.value; this.setState(s => ({ v: { ...s.v, [k]: val }, serverErr: { ...s.serverErr, [k]: undefined } })); };
+    const busy = status === 'submitting';
+    const tokenReq = !window.SK_CONFIG || window.SK_CONFIG.tokenRequired;
+    const ids = { name: 'f-name', email: 'f-email', chip: 'f-chip', phone: 'f-phone', privacy: 'f-privacy' };
+    const summary = submitted && status === 'idle' ? keys.filter(k => e[k]).map(k => ({ msg: e[k], href: '#' + ids[k], go: (ev) => { ev.preventDefault(); const el = document.getElementById(ids[k]); if (el) { (el.querySelector && el.querySelector('input') || el).focus(); } } })) : [];
+    const chipOpts = [['apple','Apple silicon'],['intel','Intel'],['unsure','Not sure']];
+    const review = ['empty','focus','errors','submitting','server_error','rate_limited','success'];
+    return {
+      cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',
+      reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? 'Your access token for the Mac app arrives by email.' : 'You can unsubscribe from updates in one click.'],
+      purpose: 'Five short questions, then your downloads.',
+      purpose2: 'We use these details only to send your download' + (tokenReq ? ' and access token' : '') + ' and to know which builds people need. Ask us any time and we\'ll delete them.',
+      v, on: { name: set('name'), email: set('email'), phone: set('phone'), privacy: set('privacy'), updates: set('updates') },
+      blur: Object.fromEntries(['name','email','phone'].map(k => [k, () => this.setState(s => ({ touched: { ...s.touched, [k]: true } }))])),
+      e, inv: Object.fromEntries(keys.map(k => [k, e[k] ? 'true' : 'false'])),
+      desc: { name: e.name ? 'e-name' : undefined, email: e.email ? 'e-email' : undefined, chip: e.chip ? 'h-chip e-chip' : 'h-chip', phone: e.phone ? 'h-phone e-phone' : 'h-phone', privacy: e.privacy ? 'e-privacy' : undefined },
+      bd: Object.fromEntries(keys.map(k => [k, e[k] ? '#D9432F' : 'rgba(23,20,46,0.22)'])),
+      bg: Object.fromEntries(keys.map(k => [k, e[k] ? '#FFF8F6' : '#FFFFFF'])),
+      chips: chipOpts.map(([value, label]) => ({ value, label, checked: v.chip === value,
+        border: v.chip === value ? '#5B3DF5' : (e.chip ? '#D9432F' : 'rgba(23,20,46,0.22)'), bg: v.chip === value ? '#E8E2FF' : '#FFFFFF',
+        pick: () => this.setState(s => ({ v: { ...s.v, chip: value } })) })),
+      busy: busy ? 'true' : 'false', busyBool: busy, cursor: busy ? 'progress' : 'pointer', btnOpacity: busy ? 0.85 : 1,
+      btnLabel: busy ? 'Sending…' : 'Continue to download',
+      isSuccess: status === 'success' || status === 'success_preview', showForm: !(status === 'success' || status === 'success_preview'),
+      bannerServer: status === 'server_error', bannerRate: status === 'rate_limited',
+      hasSummary: summary.length > 0, summary, errCount: summary.length === 1 ? '1 thing' : summary.length + ' things',
+      submit: (ev) => this.submit(ev),
+      showReview: this.props.showReview ?? true,
+      reviewStates: review.map(r => ({ label: r.replace('_', ' '), on: this.state.review === r ? 'true' : 'false',
+        bg: this.state.review === r ? '#17142E' : 'transparent', color: this.state.review === r ? '#F6F3EC' : '#17142E', border: this.state.review === r ? '#17142E' : 'rgba(23,20,46,0.2)',
+        go: () => this.applyReview(r) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

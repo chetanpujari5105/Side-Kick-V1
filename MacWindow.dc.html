@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="fonts/fonts.css" rel="stylesheet">
+</helmet>
+<div role="img" aria-label="{{ ariaLabel }}" style="width:1200px;height:760px;background:#0A0A0A;border-radius:20px;border:1px solid rgba(255,255,255,0.10);display:flex;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#F2F3F5;-webkit-font-smoothing:antialiased;text-align:left;line-height:1.3;">
+  <aside style="width:220px;flex:none;background:#0F0F0F;border-right:1px solid rgba(255,255,255,0.08);padding:16px 12px;display:flex;flex-direction:column;gap:4px;">
+    <div style="display:flex;gap:8px;padding:2px 6px 18px;">
+      <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57;"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E;"></span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#28C840;"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px 14px;">
+      <img src="LOGOS/head_logo.png" alt="" style="width:40px;height:20px;object-fit:contain;">
+      <span style="font-size:17px;font-weight:600;letter-spacing:-0.015em;">Sidekick</span>
+    </div>
+    <div style="font-size:10px;font-weight:500;letter-spacing:0.06em;color:#6B6E7A;padding:8px 10px 6px;">MENU</div>
+    <sc-for list="{{ menu }}" as="n" hint-placeholder-count="9">
+      <div style="height:34px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:10px;background:{{ n.bg }};color:{{ n.color }};font-size:13.5px;font-weight:{{ n.weight }};">
+        <span style="font-family:'Material Symbols Rounded';font-size:17px;width:17px;overflow:hidden;line-height:1;">{{ n.icon }}</span>
+        <span style="flex:1;">{{ n.label }}</span>
+        <sc-if value="{{ n.badge }}"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9A9CA8;">{{ n.badge }}</span></sc-if>
+      </div>
+    </sc-for>
+    <div style="font-size:10px;font-weight:500;letter-spacing:0.06em;color:#6B6E7A;padding:14px 10px 6px;">SYSTEM</div>
+    <sc-for list="{{ system }}" as="n" hint-placeholder-count="2">
+      <div style="height:34px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:10px;color:#9A9CA8;font-size:13.5px;">
+        <span style="font-family:'Material Symbols Rounded';font-size:17px;width:17px;overflow:hidden;line-height:1;">{{ n.icon }}</span>
+        <span>{{ n.label }}</span>
+      </div>
+    </sc-for>
+  </aside>
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;">
+    <header style="height:68px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:24px;font-weight:600;letter-spacing:-0.02em;width:200px;">{{ title }}</div>
+      <div style="display:flex;align-items:center;gap:8px;height:28px;padding:0 12px;border-radius:999px;background:rgba(198,255,51,0.10);border:1px solid rgba(198,255,51,0.22);font-size:12px;font-weight:500;color:#C6FF33;">
+        <span style="width:7px;height:7px;border-radius:50%;background:#C6FF33;"></span>Connected · Maya's Pixel
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:999px;background:#1A1A1A;border:1px solid rgba(255,255,255,0.08);font-size:12.5px;color:#9A9CA8;width:200px;box-sizing:border-box;">
+        <span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;line-height:1;">search</span>
+        <span style="flex:1;">Search</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6E7A;">⌘K</span>
+      </div>
+    </header>
+
+    <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;padding:24px 28px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-content:start;">
+      <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+        <section style="height:290px;border-radius:20px;border:1px solid rgba(255,255,255,0.07);background:radial-gradient(circle at 16% 78%, rgba(198,255,51,0.16), rgba(198,255,51,0) 52%), #0A0E0B;padding:22px;display:flex;gap:28px;box-sizing:border-box;">
+          <div style="width:128px;height:244px;flex:none;border-radius:24px;border:2px solid #2A2D2A;background:#0D120B;position:relative;padding:5px;box-sizing:border-box;">
+            <div style="width:100%;height:100%;border-radius:19px;background:radial-gradient(circle at 50% 85%, rgba(198,255,51,0.35), rgba(198,255,51,0) 60%), linear-gradient(#141A10,#0B0F08);position:relative;">
+              <span style="position:absolute;top:8px;left:50%;margin-left:-4px;width:8px;height:8px;border-radius:50%;background:#000;"></span>
+              <span style="position:absolute;bottom:7px;left:50%;margin-left:-20px;width:40px;height:4px;border-radius:4px;background:rgba(255,255,255,0.35);"></span>
+            </div>
+          </div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;padding-top:4px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="font-size:21px;font-weight:600;letter-spacing:-0.015em;">Maya's Pixel</div>
+              <div style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;background:rgba(198,255,51,0.10);font-size:11.5px;font-weight:500;color:#C6FF33;"><span style="width:6px;height:6px;border-radius:50%;background:#C6FF33;"></span>Connected</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
+              <sc-for list="{{ details }}" as="d" hint-placeholder-count="4">
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <span style="width:30px;height:30px;border-radius:9px;background:#1A1A1A;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:16px;color:#9A9CA8;overflow:hidden;">{{ d.icon }}</span>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                    <span style="font-size:11px;color:#6B6E7A;font-weight:500;">{{ d.label }}</span>
+                    <span style="font-size:13px;color:#F2F3F5;font-family:{{ d.font }};white-space:nowrap;">{{ d.value }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:auto;">
+              <span style="height:34px;padding:0 16px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;">screen_share</span>Start mirroring</span>
+              <span style="height:34px;padding:0 16px;border-radius:999px;background:#1A1A1A;border:1px solid rgba(255,255,255,0.10);color:#F2F3F5;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;">upload_file</span>Send files</span>
+            </div>
+          </div>
+        </section>
+        <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:16px 18px 6px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;">
+            <div style="font-size:15px;font-weight:600;">Recent activity</div>
+            <div style="font-size:12px;color:#9A9CA8;">View all →</div>
+          </div>
+          <sc-for list="{{ activity }}" as="a" hint-placeholder-count="4">
+            <div style="height:50px;display:flex;align-items:center;gap:14px;border-top:1px solid rgba(255,255,255,0.06);">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#6B6E7A;width:40px;">{{ a.time }}</span>
+              <span style="width:30px;height:30px;border-radius:9px;background:{{ a.badgeBg }};display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:16px;color:{{ a.badgeFg }};overflow:hidden;">{{ a.icon }}</span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;">
+                <span style="font-size:13px;font-weight:500;">{{ a.title }}</span>
+                <span style="font-size:11.5px;color:#9A9CA8;">{{ a.detail }}</span>
+              </div>
+              <span style="font-size:11.5px;color:#6B6E7A;font-family:'JetBrains Mono',monospace;">{{ a.meta }}</span>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:18px;display:flex;flex-direction:column;gap:14px;">
+          <div style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#6B6E7A;">NOW PLAYING</div>
+          <div style="display:flex;gap:14px;align-items:center;">
+            <div style="width:64px;height:64px;border-radius:12px;background:#1C1C1C;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:26px;color:#6B6E7A;overflow:hidden;">music_note</div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+              <span style="font-size:15px;font-weight:600;">Low Tide</span>
+              <span style="font-size:12px;color:#9A9CA8;">Harbour Lights — Coastlines</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#9A9CA8;margin-top:3px;"><span style="width:6px;height:6px;border-radius:50%;background:#C6FF33;"></span>Music</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="height:4px;border-radius:4px;background:rgba(255,255,255,0.10);position:relative;"><div style="width:31%;height:4px;border-radius:4px;background:#C6FF33;"></div><span style="position:absolute;left:31%;top:-3px;margin-left:-5px;width:10px;height:10px;border-radius:50%;background:#F2F3F5;"></span></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6B6E7A;"><span>1:12</span><span>−2:45</span></div>
+          </div>
+          <div style="display:flex;justify-content:center;align-items:center;gap:18px;">
+            <span style="width:40px;height:40px;border-radius:50%;background:#1A1A1A;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:20px;overflow:hidden;">skip_previous</span>
+            <span style="width:54px;height:54px;border-radius:50%;background:#C6FF33;color:#0B1002;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:26px;overflow:hidden;">pause</span>
+            <span style="width:40px;height:40px;border-radius:50%;background:#1A1A1A;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:20px;overflow:hidden;">skip_next</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;color:#9A9CA8;">
+            <span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;">volume_up</span>
+            <div style="flex:1;height:4px;border-radius:4px;background:rgba(255,255,255,0.10);"><div style="width:60%;height:4px;border-radius:4px;background:#6B6E7A;"></div></div>
+            <span style="font-family:'JetBrains Mono',monospace;">60%</span>
+          </div>
+        </section>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="2">
+            <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:14px;display:flex;flex-direction:column;gap:6px;">
+              <span style="font-size:11.5px;color:#9A9CA8;font-weight:500;">{{ m.label }}</span>
+              <span style="font-size:20px;font-family:'JetBrains Mono',monospace;font-weight:500;">{{ m.value }}</span>
+              <span style="font-size:11px;color:#6B6E7A;">{{ m.caption }}</span>
+              <div style="height:4px;border-radius:4px;background:rgba(255,255,255,0.10);margin-top:4px;"><div style="width:{{ m.pct }};height:4px;border-radius:4px;background:#C6FF33;"></div></div>
+            </section>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isMirror }}">
+    <div style="flex:1;padding:24px 28px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;min-height:0;">
+      <section style="border-radius:20px;border:1px solid rgba(255,255,255,0.07);background:#111111;display:flex;align-items:center;justify-content:center;position:relative;">
+        <span style="position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:rgba(198,255,51,0.10);font-size:11.5px;font-weight:500;color:#C6FF33;"><span style="width:6px;height:6px;border-radius:50%;background:#C6FF33;"></span>Mirroring</span>
+        <div style="width:280px;height:580px;border-radius:30px;background:#F4F1EA;overflow:hidden;display:flex;flex-direction:column;color:#1B1B1F;border:6px solid #1B1B1D;">
+          <div style="height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:11px;font-weight:600;"><span>10:24</span><span style="font-family:'Material Symbols Rounded';font-size:13px;font-weight:400;overflow:hidden;height:13px;">wifi battery_full</span></div>
+          <div style="padding:14px 18px 8px;font-size:22px;font-weight:700;letter-spacing:-0.02em;">Weekend list</div>
+          <div style="padding:0 18px;font-size:11px;color:#6A6872;">Notes · edited just now</div>
+          <div style="display:flex;flex-direction:column;gap:2px;padding:14px 12px;">
+            <sc-for list="{{ notes }}" as="t" hint-placeholder-count="6">
+              <div style="height:40px;display:flex;align-items:center;gap:10px;padding:0 8px;border-radius:10px;background:{{ t.bg }};font-size:13px;">
+                <span style="width:18px;height:18px;border-radius:5px;border:1.5px solid {{ t.box }};background:{{ t.fill }};"></span><span style="text-decoration:{{ t.strike }};color:{{ t.color }};">{{ t.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top:auto;padding:14px;display:flex;justify-content:flex-end;"><span style="width:48px;height:48px;border-radius:16px;background:#2E2A4A;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:24px;overflow:hidden;">add</span></div>
+          <div style="height:20px;display:flex;justify-content:center;align-items:center;"><span style="width:90px;height:4px;border-radius:4px;background:#1B1B1F;opacity:0.5;"></span></div>
+        </div>
+      </section>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:15px;font-weight:600;">Session</div>
+          <div style="font-size:12px;color:#9A9CA8;line-height:1.45;">Started with a tap on the phone. Clicks and typing here go to the phone.</div>
+          <span style="height:34px;border-radius:999px;background:#1A1A1A;border:1px solid rgba(255,255,255,0.10);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;">close</span>Stop mirroring</span>
+        </section>
+        <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:16px;display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:15px;font-weight:600;padding-bottom:4px;">Quality</div>
+          <sc-for list="{{ presets }}" as="p" hint-placeholder-count="3">
+            <div style="height:44px;border-radius:12px;border:1px solid {{ p.border }};background:{{ p.bg }};display:flex;align-items:center;justify-content:space-between;padding:0 12px;">
+              <div style="display:flex;flex-direction:column;"><span style="font-size:12.5px;font-weight:500;font-family:'JetBrains Mono',monospace;">{{ p.name }}</span><span style="font-size:11px;color:#6B6E7A;">{{ p.note }}</span></div>
+              <span style="width:8px;height:8px;border-radius:50%;background:{{ p.dot }};"></span>
+            </div>
+          </sc-for>
+        </section>
+        <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <sc-for list="{{ tools }}" as="t" hint-placeholder-count="3">
+            <div style="height:58px;border-radius:12px;background:#1A1A1A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;color:#9A9CA8;"><span style="font-family:'Material Symbols Rounded';font-size:18px;overflow:hidden;height:18px;">{{ t.icon }}</span>{{ t.label }}</div>
+          </sc-for>
+        </section>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isNotifications }}">
+    <div style="flex:1;padding:24px 28px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;min-height:0;">
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:8px 0;display:flex;flex-direction:column;">
+        <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="6">
+          <div style="height:72px;display:flex;align-items:center;gap:14px;padding:0 18px;background:{{ n.bg }};border-bottom:1px solid rgba(255,255,255,0.05);">
+            <span style="width:36px;height:36px;border-radius:10px;background:#1C1C1C;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px;color:#9A9CA8;overflow:hidden;flex:none;">{{ n.icon }}</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+              <div style="display:flex;gap:8px;align-items:baseline;"><span style="font-size:11.5px;color:#9A9CA8;">{{ n.app }}</span><span style="font-size:11px;color:#6B6E7A;font-family:'JetBrains Mono',monospace;">{{ n.time }}</span></div>
+              <span style="font-size:13.5px;font-weight:600;">{{ n.title }}</span>
+              <span style="font-size:12.5px;color:#9A9CA8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ n.body }}</span>
+            </div>
+            <sc-if value="{{ n.canReply }}"><span style="height:28px;padding:0 12px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;"><span style="font-family:'Material Symbols Rounded';font-size:15px;width:15px;overflow:hidden;">reply</span>Reply</span></sc-if>
+          </div>
+        </sc-for>
+      </section>
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:18px;display:flex;flex-direction:column;gap:14px;">
+        <div style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#6B6E7A;">MESSAGES · 10:21</div>
+        <div style="font-size:18px;font-weight:600;">Sam Okafor</div>
+        <div style="font-size:13.5px;color:#C9CBD3;line-height:1.5;">Are we still on for the market on Saturday? I can bring the big bags.</div>
+        <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px;">
+          <div style="min-height:80px;border-radius:12px;background:#1A1A1A;border:1px solid rgba(198,255,51,0.35);padding:12px;font-size:13px;line-height:1.45;">Yes! 10am by the bakery stall?<span style="display:inline-block;width:1.5px;height:15px;background:#C6FF33;vertical-align:-3px;margin-left:2px;"></span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:#6B6E7A;">Replies through the phone's notification</span><span style="height:32px;padding:0 14px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:15px;width:15px;overflow:hidden;">send</span>Send</span></div>
+        </div>
+      </section>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isMessages }}">
+    <div style="flex:1;padding:24px 28px;display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;min-height:0;">
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:8px;display:flex;flex-direction:column;gap:2px;">
+        <sc-for list="{{ threads }}" as="t" hint-placeholder-count="5">
+          <div style="height:64px;border-radius:12px;background:{{ t.bg }};display:flex;align-items:center;gap:12px;padding:0 12px;">
+            <span style="width:36px;height:36px;border-radius:50%;background:#26262B;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#C9CBD3;flex:none;">{{ t.initials }}</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:13.5px;font-weight:600;">{{ t.name }}</span><span style="font-size:12px;color:#9A9CA8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ t.last }}</span></div>
+            <span style="font-size:11px;color:#6B6E7A;font-family:'JetBrains Mono',monospace;">{{ t.time }}</span>
+          </div>
+        </sc-for>
+      </section>
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;display:flex;flex-direction:column;">
+        <div style="height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid rgba(255,255,255,0.06);"><span style="font-size:15px;font-weight:600;">Lena Fischer</span><span style="font-size:11.5px;color:#6B6E7A;font-family:'JetBrains Mono',monospace;">SMS · +1 555 0142</span></div>
+        <div style="flex:1;padding:18px 20px;display:flex;flex-direction:column;gap:14px;">
+          <sc-for list="{{ transcript }}" as="m" hint-placeholder-count="4">
+            <div style="align-self:{{ m.align }};max-width:72%;display:flex;flex-direction:column;gap:5px;">
+              <div style="display:flex;gap:8px;font-size:11px;color:#6B6E7A;justify-content:{{ m.justify }};"><span style="font-weight:500;color:#9A9CA8;">{{ m.who }}</span><span style="font-family:'JetBrains Mono',monospace;">{{ m.time }}</span></div>
+              <div style="padding:10px 14px;border-radius:12px;background:{{ m.bg }};font-size:13.5px;line-height:1.45;">{{ m.text }}</div>
+            </div>
+          </sc-for>
+          <span style="align-self:flex-end;font-size:11px;color:#9A9CA8;">Sent</span>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:10px;align-items:center;">
+          <div style="flex:1;height:40px;border-radius:999px;background:#1A1A1A;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;padding:0 16px;font-size:13px;color:#6B6E7A;">Text message</div>
+          <span style="width:40px;height:40px;border-radius:50%;background:#C6FF33;color:#0B1002;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px;overflow:hidden;">send</span>
+        </div>
+      </section>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isFiles }}">
+    <div style="flex:1;padding:24px 28px;display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;min-height:0;">
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:10px;display:flex;flex-direction:column;gap:2px;">
+        <div style="font-size:10px;font-weight:500;letter-spacing:0.06em;color:#6B6E7A;padding:6px 8px;">SHARED FOLDERS</div>
+        <sc-for list="{{ roots }}" as="r" hint-placeholder-count="4">
+          <div style="height:34px;border-radius:10px;display:flex;align-items:center;gap:10px;padding:0 10px;background:{{ r.bg }};font-size:13px;color:{{ r.color }};"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;">folder</span>{{ r.name }}</div>
+        </sc-for>
+        <div style="margin-top:auto;border-radius:12px;background:#1A1A1A;padding:12px;font-size:11.5px;color:#9A9CA8;line-height:1.45;">Android doesn't let apps open the Download folder itself. Files you send land in <span style="font-family:'JetBrains Mono',monospace;color:#C9CBD3;">Download/Sidekick</span>.</div>
+      </section>
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;display:flex;flex-direction:column;">
+        <div style="height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid rgba(255,255,255,0.06);"><span style="font-size:13px;color:#9A9CA8;">DCIM <span style="color:#6B6E7A;">›</span> <span style="color:#F2F3F5;font-weight:500;">Camera</span></span><span style="height:30px;padding:0 12px;border-radius:999px;background:#1A1A1A;border:1px solid rgba(255,255,255,0.10);font-size:12px;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:15px;width:15px;overflow:hidden;">download</span>Save to Mac</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 140px 90px;padding:10px 18px;font-size:10px;letter-spacing:0.06em;color:#6B6E7A;font-weight:500;"><span>NAME</span><span>DATE MODIFIED</span><span style="text-align:right;">SIZE</span></div>
+        <sc-for list="{{ files }}" as="f" hint-placeholder-count="7">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 140px 90px;align-items:center;height:44px;padding:0 18px;border-top:1px solid rgba(255,255,255,0.05);background:{{ f.bg }};font-size:13px;">
+            <span style="display:flex;align-items:center;gap:10px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;width:17px;overflow:hidden;color:#9A9CA8;">{{ f.icon }}</span>{{ f.name }}</span>
+            <span style="font-size:12px;color:#9A9CA8;">{{ f.date }}</span>
+            <span style="font-size:12px;color:#9A9CA8;text-align:right;font-family:'JetBrains Mono',monospace;">{{ f.size }}</span>
+          </div>
+        </sc-for>
+        <div style="margin:auto 18px 14px;height:56px;border-radius:12px;border:1.5px dashed rgba(198,255,51,0.4);display:flex;align-items:center;justify-content:center;gap:8px;font-size:12.5px;color:#C9CBD3;"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden;color:#C6FF33;">upload_file</span>Drop files here to send them to the phone</div>
+      </section>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isClipboard }}">
+    <div style="flex:1;padding:24px 28px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;min-height:0;">
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;display:flex;flex-direction:column;">
+        <div style="display:flex;gap:6px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <span style="height:28px;padding:0 12px;border-radius:999px;background:rgba(198,255,51,0.12);color:#C6FF33;font-size:12px;font-weight:500;display:flex;align-items:center;">All 6</span>
+          <span style="height:28px;padding:0 12px;border-radius:999px;background:#1A1A1A;color:#9A9CA8;font-size:12px;display:flex;align-items:center;">From phone 4</span>
+          <span style="height:28px;padding:0 12px;border-radius:999px;background:#1A1A1A;color:#9A9CA8;font-size:12px;display:flex;align-items:center;">From this Mac 2</span>
+        </div>
+        <sc-for list="{{ clips }}" as="c" hint-placeholder-count="6">
+          <div style="height:62px;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.05);background:{{ c.bg }};">
+            <span style="width:42px;height:28px;border-radius:8px;background:#1C1C1C;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#9A9CA8;">{{ c.kind }}</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ c.text }}</span><span style="font-size:11px;color:#6B6E7A;font-family:'JetBrains Mono',monospace;">{{ c.time }}</span></div>
+            <span style="height:24px;padding:0 10px;border-radius:999px;background:#1A1A1A;font-size:11px;color:#9A9CA8;display:flex;align-items:center;gap:5px;"><span style="font-family:'Material Symbols Rounded';font-size:14px;width:14px;overflow:hidden;">{{ c.dirIcon }}</span>{{ c.dir }}</span>
+          </div>
+        </sc-for>
+        <div style="margin-top:auto;padding:12px 16px;font-size:11.5px;color:#6B6E7A;">6 of 20 entries, in memory only</div>
+      </section>
+      <section style="border-radius:16px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:18px;display:flex;flex-direction:column;gap:14px;">
+        <div style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#6B6E7A;">FROM PHONE · URL</div>
+        <div style="border-radius:12px;background:#1A1A1A;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.5;color:#C9CBD3;word-break:break-all;">https://harbourlights.example/tour/2026</div>
+        <div style="font-size:12px;color:#9A9CA8;line-height:1.5;">The phone read its clipboard at 10:18 while Sidekick was open on it.</div>
+        <span style="height:34px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-family:'Material Symbols Rounded';font-size:16px;width:16px;overflow:hidden;">content_copy</span>Copy on this Mac</span>
+      </section>
+    </div>
+    </sc-if>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:760},&quot;pane&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overview&quot;,&quot;mirror&quot;,&quot;notifications&quot;,&quot;messages&quot;,&quot;files&quot;,&quot;clipboard&quot;],&quot;default&quot;:&quot;overview&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const pane = this.props.pane ?? 'overview';
+    const items = [
+      ['grid_view','Overview','overview'],['screen_share','Mirror','mirror'],['folder','Files','files'],['image','Photos','photos'],
+      ['chat_bubble','Messages','messages'],['notifications','Notifications','notifications'],['content_paste','Clipboard','clipboard'],
+      ['call','Calls','calls'],['apps','Apps','apps']
+    ];
+    const menu = items.map(([icon,label,id]) => {
+      const on = id === pane;
+      return { icon, label, bg: on ? 'rgba(198,255,51,0.12)' : 'transparent', color: on ? '#C6FF33' : '#9A9CA8', weight: on ? 600 : 400, badge: id === 'notifications' ? '6' : '' };
+    });
+    const titles = { overview:'Overview', mirror:'Mirror', files:'Files', messages:'Messages', notifications:'Notifications', clipboard:'Clipboard' };
+    const mono = "'JetBrains Mono',monospace", sans = 'Inter,sans-serif';
+    const sel = (i, n) => i === n ? 'rgba(255,255,255,0.04)' : 'transparent';
+    return {
+      ariaLabel: `Sidekick for Mac, ${titles[pane] || 'Overview'} screen, with example data`,
+      menu,
+      system: [{icon:'monitor_heart',label:'Activity'},{icon:'settings',label:'Settings'}],
+      title: titles[pane] || 'Overview',
+      isOverview: pane === 'overview', isMirror: pane === 'mirror', isNotifications: pane === 'notifications',
+      isMessages: pane === 'messages', isFiles: pane === 'files', isClipboard: pane === 'clipboard',
+      details: [
+        {icon:'wifi',label:'Connection',value:'Local Wi-Fi',font:sans},
+        {icon:'lan',label:'Address',value:'192.168.1.24',font:mono},
+        {icon:'lock',label:'Security',value:'TLS 1.3 · pinned',font:sans},
+        {icon:'travel_explore',label:'Found by',value:'mDNS',font:sans}
+      ],
+      activity: [
+        {time:'09:42',icon:'image',title:'Photo saved to Mac',detail:'IMG_2041.jpg',meta:'3.1 MB',badgeBg:'#1C1C1C',badgeFg:'#9A9CA8'},
+        {time:'09:36',icon:'content_paste',title:'Link copied from phone',detail:'harbourlights.example/tour',meta:'Clipboard',badgeBg:'#1C1C1C',badgeFg:'#9A9CA8'},
+        {time:'09:31',icon:'chat_bubble',title:'Reply sent',detail:'Messages · Sam Okafor',meta:'Sent',badgeBg:'#1C1C1C',badgeFg:'#9A9CA8'},
+        {time:'09:12',icon:'link',title:'Connected',detail:'Local Wi-Fi · certificate matched',meta:'Pixel',badgeBg:'rgba(198,255,51,0.12)',badgeFg:'#C6FF33'}
+      ],
+      metrics: [
+        {label:'Battery',value:'64%',caption:'On battery',pct:'64%'},
+        {label:'Storage',value:'38.2 GB',caption:'free of 128 GB · 30%',pct:'30%'}
+      ],
+      notes: [['Oat milk',1],['Tomatoes, the good ones',1],['Basil',0],['Sourdough',0],['Flowers for Lena',0],['Batteries (AA)',0]].map(([text,done],i)=>({
+        text, bg: i===2 ? '#E9E5F7' : 'transparent', box: done ? '#2E2A4A' : '#8E8A99', fill: done ? '#2E2A4A' : 'transparent', strike: done ? 'line-through' : 'none', color: done ? '#8E8A99' : '#1B1B1F'
+      })),
+      presets: [['720p · 4 Mbps','For weak Wi-Fi',0],['1080p · 8 Mbps','Default',1],['1080p · 20 Mbps','For an excellent network',0]].map(([name,note,on])=>({
+        name, note, border: on ? 'rgba(198,255,51,0.35)' : 'rgba(255,255,255,0.06)', bg: on ? 'rgba(198,255,51,0.06)' : '#1A1A1A', dot: on ? '#C6FF33' : '#3A3C44'
+      })),
+      tools: [{icon:'image',label:'Capture'},{icon:'refresh',label:'Refresh'},{icon:'open_in_new',label:'Float'}],
+      notifs: [
+        {icon:'sms',app:'Messages',time:'10:21',title:'Sam Okafor',body:'Are we still on for the market on Saturday?',canReply:true},
+        {icon:'schedule',app:'Calendar',time:'10:15',title:'Design review',body:'In 15 minutes · Room 3',canReply:false},
+        {icon:'mail',app:'Mail',time:'09:58',title:'Priya Nair',body:'Invoice #2041 attached — thanks again!',canReply:true},
+        {icon:'local_shipping',app:'Deliveries',time:'09:40',title:'Out for delivery',body:'Your parcel arrives between 12:00 and 14:00',canReply:false},
+        {icon:'chat_bubble',app:'Chat',time:'09:12',title:'Book club',body:'Lena: chapter 9 was wild',canReply:true},
+        {icon:'battery_full',app:'System',time:'08:30',title:'Battery saver off',body:'Charged to 80%',canReply:false}
+      ].map((n,i)=>({...n, icon: n.icon === 'local_shipping' ? 'north_east' : n.icon, bg: sel(i,0)})),
+      threads: [
+        {initials:'LF',name:'Lena Fischer',last:'Perfect, see you there',time:'10:02'},
+        {initials:'SO',name:'Sam Okafor',last:'Are we still on for Saturday?',time:'09:21'},
+        {initials:'PN',name:'Priya Nair',last:'Invoice attached',time:'Mon'},
+        {initials:'H',name:'Home',last:'Dinner at 7?',time:'Sun'},
+        {initials:'#',name:'+1 555 0134',last:'Your code is 4821',time:'Sat'}
+      ].map((t,i)=>({...t, bg: i===0 ? 'rgba(255,255,255,0.05)' : 'transparent'})),
+      transcript: [
+        {who:'Lena Fischer',time:'09:54',text:'Are you around for coffee later?',mine:false},
+        {who:'You',time:'09:58',text:'Yes — 3pm at the corner place?',mine:true},
+        {who:'Lena Fischer',time:'10:01',text:'Perfect, see you there',mine:false},
+        {who:'You',time:'10:02',text:"I'll grab us a table by the window.",mine:true}
+      ].map(m=>({...m, align: m.mine ? 'flex-end' : 'flex-start', justify: m.mine ? 'flex-end' : 'flex-start', bg: m.mine ? '#23262B' : '#1C1C1C'})),
+      roots: [['Sidekick',0],['Camera',1],['Documents',0],['Screenshots',0]].map(([name,on])=>({name, bg: on ? 'rgba(198,255,51,0.12)' : 'transparent', color: on ? '#C6FF33' : '#9A9CA8'})),
+      files: [
+        ['image','IMG_2041.jpg','Today, 09:40','3.1 MB'],['image','IMG_2040.jpg','Today, 09:39','2.8 MB'],['videocam','VID_2039.mp4','Yesterday','48.2 MB'],
+        ['image','IMG_2038.jpg','Yesterday','3.4 MB'],['image','IMG_2037.jpg','12 Oct','2.9 MB'],['image','IMG_2036.jpg','12 Oct','3.0 MB'],['description','receipt-market.pdf','11 Oct','220 KB']
+      ].map(([icon,name,date,size],i)=>({icon,name,date,size,bg: sel(i,0)})),
+      clips: [
+        ['URL','https://harbourlights.example/tour/2026','10:18','From phone','phone_android'],
+        ['Aa','Flat 4B, 12 Canal Street','10:05','To phone','laptop_mac'],
+        ['Aa','Meeting notes: ship the menu-bar sketch','09:47','From phone','phone_android'],
+        ['URL','https://maps.example/bakery-stall','09:30','From phone','phone_android'],
+        ['LOCK','Sensitive — hidden','09:12','From phone','phone_android'],
+        ['Aa','Tracking 1Z 999 AA1 0123 4567 84','08:55','To phone','laptop_mac']
+      ].map(([kind,text,time,dir,dirIcon],i)=>({kind,text,time,dir,dirIcon,bg: sel(i,0)}))
+    };
+  }
+}
+</script>
+</body>
+</html>

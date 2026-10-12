@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>What's next — Sidekick roadmap</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="data/site-config.js"></script>
+<script src="data/mock-api.js"></script>
+<style>
+body{margin:0;background:#F6F3EC;color:#17142E;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+a{color:#5B3DF5;}
+a:hover{color:#3A22B8;}
+:focus-visible{outline:2px solid #5B3DF5;outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+</style>
+</helmet>
+<dc-import name="SiteHeader" active="next" hint-size="100%,88px"></dc-import>
+<main id="main" style="max-width:1440px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(40px,5vw,64px);">
+  <section aria-labelledby="rm-h" style="position:relative;display:flex;flex-direction:column;gap:20px;max-width:880px;">
+    <span style="font:500 14px 'JetBrains Mono',monospace;color:#55526B;">Roadmap</span>
+    <h1 id="rm-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(46px,6.4vw,92px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">What we're building <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">next</span></span>.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;">Sidekick keeps growing. This is the direction — plans can change, and nothing here is promised until it ships.</p>
+    <p style="margin:0;font-size:16px;line-height:1.55;color:#55526B;max-width:640px;">Open any item to read what it's for. Leave your email on the ones you care about and we'll send one message when it ships.</p>
+  </section>
+
+  <dc-import name="RoadmapTrack" limit="{{ zero }}" show-notify="{{ true }}" hint-size="100%,1400px"></dc-import>
+  <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">Platform rules sometimes limit what's possible, so some features depend on your phone or Android version.</p>
+
+  <section id="suggest" aria-labelledby="sg-h" style="border-radius:28px;background:#E8E2FF;padding:clamp(28px,5vw,64px);display:grid;grid-template-columns:{{ cols }};gap:clamp(28px,4vw,64px);align-items:start;position:relative;overflow:hidden;scroll-margin-top:16px;">
+    <div style="position:absolute;right:-70px;top:-70px;width:200px;height:200px;border-radius:50%;background:#5B3DF5;"></div>
+    <div style="display:flex;flex-direction:column;gap:16px;position:relative;">
+      <h2 id="sg-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(36px,4vw,56px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;">Suggest a <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">feature</span></span>.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;max-width:440px;">What do you still pick up your phone for? Tell us. Your email is optional and only used to reply.</p>
+    </div>
+    <div style="background:#FFFFFF;border-radius:24px;padding:clamp(20px,3vw,32px);position:relative;">
+      <sc-if value="{{ sent }}">
+        <div role="status" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;">
+          <span style="width:48px;height:48px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:26px;">check</span>
+          <span style="font-size:20px;font-weight:600;">Thanks — we read every one.</span>
+          <button type="button" onClick="{{ again }}" style="min-height:44px;padding:0;background:none;border:0;color:#5B3DF5;font:600 16px Inter,sans-serif;text-decoration:underline;text-underline-offset:5px;cursor:pointer;">Send another</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ notSent }}" hint-placeholder-val="{{ true }}">
+      <form onSubmit="{{ submit }}" noValidate="{{ true }}" style="display:flex;flex-direction:column;gap:18px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label for="sg-msg" style="font-size:15px;font-weight:600;">Your idea</label>
+          <textarea id="sg-msg" rows="4" value="{{ msg }}" onChange="{{ onMsg }}" aria-invalid="{{ msgInv }}" aria-describedby="{{ msgDesc }}" style="padding:14px 16px;border-radius:14px;border:1.5px solid {{ msgBorder }};font:400 17px/1.5 Inter,sans-serif;color:#17142E;resize:vertical;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;"></textarea>
+          <sc-if value="{{ msgErr }}"><span id="sg-msg-e" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ msgErr }}</span></sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label for="sg-email" style="font-size:15px;font-weight:600;">Email <span style="font-weight:400;color:#55526B;">(optional)</span></label>
+          <input id="sg-email" type="email" autoComplete="email" value="{{ email }}" onChange="{{ onEmail }}" aria-invalid="{{ emInv }}" aria-describedby="{{ emDesc }}" style="height:54px;padding:0 16px;border-radius:14px;border:1.5px solid {{ emBorder }};font:400 17px Inter,sans-serif;color:#17142E;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;">
+          <sc-if value="{{ emErr }}"><span id="sg-em-e" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ emErr }}</span></sc-if>
+        </div>
+        <sc-if value="{{ failed }}"><p role="alert" style="margin:0;font-size:15px;line-height:1.5;color:#B3341F;">That didn't go through, and nothing was saved. Try again in a moment.</p></sc-if>
+        <button type="submit" disabled="{{ sending }}" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">{{ btn }}</button>
+      </form>
+      </sc-if>
+    </div>
+  </section>
+</main>
+<dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, msg: '', email: '', tried: false, status: 'idle' };
+  componentDidMount() { this.onResize = () => this.setState({ w: window.innerWidth }); window.addEventListener('resize', this.onResize); }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); }
+  errs() {
+    const e = {};
+    if (this.state.msg.trim().length < 3) e.msg = 'Write a few words about your idea.';
+    if (this.state.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.state.email.trim())) e.email = 'Enter an email address like name@example.com, or leave it empty.';
+    return e;
+  }
+  async submit(ev) {
+    ev.preventDefault();
+    const e = this.errs();
+    if (Object.keys(e).length) { this.setState({ tried: true }); return; }
+    this.setState({ status: 'sending' });
+    try { const r = await window.SK_API.feedback(this.state.msg.trim(), this.state.email.trim() || undefined); this.setState({ status: r && r.ok ? 'sent' : 'failed' }); }
+    catch (err) { this.setState({ status: 'failed' }); }
+  }
+  renderVals() {
+    const e = this.state.tried ? this.errs() : {};
+    return {
+      zero: 0, cols: this.state.w >= 900 ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)',
+      msg: this.state.msg, email: this.state.email,
+      onMsg: ev => this.setState({ msg: ev.target.value }), onEmail: ev => this.setState({ email: ev.target.value }),
+      msgErr: e.msg || '', emErr: e.email || '', msgInv: e.msg ? 'true' : 'false', emInv: e.email ? 'true' : 'false',
+      msgDesc: e.msg ? 'sg-msg-e' : undefined, emDesc: e.email ? 'sg-em-e' : undefined,
+      msgBorder: e.msg ? '#D9432F' : 'rgba(23,20,46,0.22)', emBorder: e.email ? '#D9432F' : 'rgba(23,20,46,0.22)',
+      sent: this.state.status === 'sent', notSent: this.state.status !== 'sent', failed: this.state.status === 'failed',
+      sending: this.state.status === 'sending', btn: this.state.status === 'sending' ? 'Sending…' : 'Send suggestion',
+      submit: ev => this.submit(ev), again: () => this.setState({ msg: '', email: '', tried: false, status: 'idle' })
+    };
+  }
+}
+</script>
+</body>
+</html>

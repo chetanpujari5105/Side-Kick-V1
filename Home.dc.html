@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Sidekick — Your Android phone, on your Mac</title>
+<meta name="description" content="Mirror your screen, answer notifications, move files and share your clipboard — over your own Wi-Fi. No cloud. No account.">
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="data/site-config.js"></script>
+<style>
+html{scroll-behavior:smooth;}
+body{margin:0;background:#F6F3EC;color:#17142E;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+a{color:#5B3DF5;}
+a:hover{color:#3A22B8;}
+:focus-visible{outline:2px solid #5B3DF5;outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto;}*{transition:none !important;}}
+</style>
+</helmet>
+<dc-import name="SiteHeader" active="" hint-size="100%,88px"></dc-import>
+<main id="main">
+
+<section aria-labelledby="hero-h" style="max-width:1440px;margin:0 auto;padding:clamp(24px,5vw,72px) clamp(20px,4.5vw,64px) clamp(56px,6vw,88px);box-sizing:border-box;display:grid;grid-template-columns:{{ heroCols }};gap:clamp(32px,4vw,56px);align-items:center;">
+  <div style="display:flex;flex-direction:column;gap:28px;max-width:600px;">
+    <h1 id="hero-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(46px,6.4vw,92px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;text-wrap:balance;">Your Android phone, on your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">Mac</span></span>.</h1>
+    <p style="margin:0;font-size:clamp(17px,1.4vw,19px);line-height:1.55;color:#55526B;max-width:520px;text-wrap:pretty;">Mirror your screen, answer notifications, move files and share your clipboard — over your own Wi-Fi. No cloud. No account.</p>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;">
+      <a href="Get Sidekick.dc.html" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:transform .15s, box-shadow .15s;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Get Sidekick</a>
+      <a href="#how" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;" style-hover="color:#3A22B8;">See how it works</a>
+    </div>
+    <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;padding-top:20px;border-top:1px solid rgba(23,20,46,0.1);">For macOS 11 or later and Android 10 or later. Both apps required.</p>
+  </div>
+  <div ref="{{ compRef }}" style="width:100%;max-width:740px;justify-self:center;position:relative;height:{{ compH }};">
+    <div style="position:absolute;left:0;top:0;width:740px;height:700px;transform:scale({{ compScale }});transform-origin:0 0;">
+      <div style="position:absolute;left:40px;top:20px;width:690px;height:640px;background:#E8E2FF;border-radius:46% 54% 40% 60% / 52% 44% 56% 48%;"></div>
+      <div style="position:absolute;left:588px;top:-8px;width:120px;height:120px;border-radius:50%;background:#5B3DF5;"></div>
+      <div data-anim="rise" style="position:absolute;left:64px;top:112px;width:672px;height:426px;border-radius:11px;box-shadow:0 44px 70px -34px rgba(23,20,46,0.55), 0 2px 6px rgba(23,20,46,0.12);">
+        <div style="width:1200px;height:760px;transform:scale(0.56);transform-origin:0 0;"><dc-import name="MacWindow" pane="overview" hint-size="1200px,760px"></dc-import></div>
+      </div>
+      <div data-anim="rise" data-delay="160" style="position:absolute;left:4px;top:290px;width:195px;height:410px;border-radius:28px;box-shadow:0 36px 50px -26px rgba(23,20,46,0.6);">
+        <div style="width:390px;height:820px;transform:scale(0.5);transform-origin:0 0;"><dc-import name="PhoneScreen" screen="devices" hint-size="390px,820px"></dc-import></div>
+      </div>
+      <svg width="740" height="700" viewBox="0 0 740 700" aria-hidden="true" style="position:absolute;left:0;top:0;pointer-events:none;overflow:visible;">
+        <path data-anim="draw" d="M 80 286 C 20 190, 80 56, 200 58 C 260 59, 286 82, 286 110" fill="none" stroke="#17142E" stroke-width="2" stroke-linecap="round"></path>
+        <circle cx="80" cy="288" r="5" fill="#17142E"></circle>
+        <circle cx="286" cy="110" r="5" fill="#17142E"></circle>
+        <circle data-anim="pulse" cx="200" cy="58" r="9" fill="#C6FF33" style="transform-box:fill-box;transform-origin:center;"></circle>
+        <circle cx="200" cy="58" r="9" fill="#C6FF33" stroke="#17142E" stroke-width="2"></circle>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section id="features" aria-labelledby="feat-h" style="background:#17142E;color:#F6F3EC;scroll-margin-top:12px;">
+  <div style="max-width:1440px;margin:0 auto;padding:clamp(64px,8vw,120px) clamp(20px,4.5vw,64px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(32px,4vw,56px);">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px;">
+      <h2 id="feat-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;max-width:820px;text-wrap:balance;">Do more without picking up your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;color:#F6F3EC;">phone</span></span>.</h2>
+      <p style="margin:0;font-size:18px;line-height:1.55;color:#C9C6DA;max-width:380px;">Five things you do on your phone every day, done from the keyboard you're already using.</p>
+    </div>
+    <div role="tablist" aria-label="Sidekick features" onKeyDown="{{ onTabKey }}" style="display:flex;gap:8px;overflow-x:auto;padding:4px;margin:-4px;scrollbar-width:none;">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+        <button type="button" role="tab" id="{{ t.tabId }}" aria-selected="{{ t.selected }}" aria-controls="feat-panel" tabIndex="{{ t.tabIndex }}" onClick="{{ t.onClick }}" style="flex:none;min-height:48px;padding:0 20px;border-radius:999px;border:1.5px solid {{ t.border }};background:{{ t.bg }};color:{{ t.color }};font:600 16px Inter,sans-serif;cursor:pointer;white-space:nowrap;transition:background .2s, color .2s;" style-hover="border-color:#C6FF33;">{{ t.label }}</button>
+      </sc-for>
+    </div>
+    <div id="feat-panel" role="tabpanel" aria-labelledby="{{ activeTabId }}" style="display:grid;grid-template-columns:{{ scCols }};gap:clamp(28px,4vw,64px);align-items:center;">
+      <div style="display:flex;flex-direction:column;gap:20px;min-height:{{ scTextMin }};">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#C6FF33;">{{ tab.kicker }}</span>
+        <h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:700;letter-spacing:-0.03em;">{{ tab.title }}</h3>
+        <p style="margin:0;font-size:18px;line-height:1.6;color:#C9C6DA;">{{ tab.body }}</p>
+        <ul style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;">
+          <sc-for list="{{ tab.chips }}" as="c" hint-placeholder-count="3"><li style="min-height:34px;padding:0 14px;border-radius:999px;border:1px solid rgba(246,243,236,0.22);font-size:14px;display:flex;align-items:center;color:#F6F3EC;">{{ c }}</li></sc-for>
+        </ul>
+      </div>
+      <div ref="{{ scRef }}" style="position:relative;width:100%;height:{{ scH }};">
+        <sc-for list="{{ panes }}" as="p" hint-placeholder-count="1">
+          <div aria-hidden="{{ p.hidden }}" style="position:absolute;left:0;top:0;width:1200px;height:760px;transform:scale({{ scScale }});transform-origin:0 0;opacity:{{ p.opacity }};transition:opacity .2s ease;border-radius:20px;box-shadow:0 40px 80px -40px rgba(0,0,0,0.7);">
+            <dc-import name="MacWindow" pane="{{ p.pane }}" hint-size="1200px,760px"></dc-import>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" aria-labelledby="how-h" style="background:#5B3DF5;color:#FFFFFF;scroll-margin-top:12px;">
+  <div style="max-width:1440px;margin:0 auto;padding:clamp(64px,8vw,120px) clamp(20px,4.5vw,64px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(40px,5vw,72px);">
+    <div style="display:flex;flex-direction:column;gap:18px;max-width:820px;">
+      <h2 id="how-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;text-wrap:balance;">Two apps. One <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">local</span></span> connection.</h2>
+      <p style="margin:0;font-size:19px;line-height:1.55;color:#ECE8FF;max-width:640px;">The phone and the Mac talk to each other directly over your network. There's no server in the middle and nothing to sign in to.</p>
+    </div>
+    <div ref="{{ diagRef }}" role="img" aria-label="Diagram: your phone connects to your Mac through your own Wi-Fi, with no cloud server" style="border-radius:28px;background:#3A22B8;padding:clamp(28px,4vw,56px) clamp(20px,4vw,56px);display:flex;flex-direction:{{ diagDir }};align-items:center;justify-content:space-between;gap:0;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;flex:none;">
+        <span style="width:64px;height:110px;border-radius:16px;border:2.5px solid #FFFFFF;box-sizing:border-box;position:relative;display:block;"><span style="position:absolute;left:50%;margin-left:-12px;bottom:8px;width:24px;height:3px;border-radius:3px;background:#FFFFFF;"></span></span>
+        <span style="font-weight:600;font-size:17px;">Android phone</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#DCD5FF;">Sidekick for Android</span>
+      </div>
+      <svg width="{{ segW }}" height="{{ segH }}" viewBox="{{ segBox }}" aria-hidden="true" style="flex:1;min-width:40px;min-height:40px;">
+        <path data-scroll-draw="1" d="{{ segPath }}" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"></path>
+      </svg>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;flex:none;padding:8px 0;">
+        <span style="height:56px;padding:0 22px;border-radius:999px;background:#FFFFFF;color:#17142E;display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px;"><span style="width:14px;height:14px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;"></span>Your Wi-Fi</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#DCD5FF;">or your phone's hotspot</span>
+      </div>
+      <svg width="{{ segW }}" height="{{ segH }}" viewBox="{{ segBox }}" aria-hidden="true" style="flex:1;min-width:40px;min-height:40px;">
+        <path data-scroll-draw="2" d="{{ segPath }}" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none"></path>
+      </svg>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;flex:none;">
+        <span style="display:flex;flex-direction:column;align-items:center;"><span style="width:132px;height:84px;border-radius:8px;border:2.5px solid #FFFFFF;box-sizing:border-box;display:block;"></span><span style="width:160px;height:6px;border-radius:0 0 6px 6px;background:#FFFFFF;display:block;"></span></span>
+        <span style="font-weight:600;font-size:17px;">Mac</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#DCD5FF;">Sidekick for Mac</span>
+      </div>
+    </div>
+    <ol style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:20px;">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+        <li style="border-radius:24px;border:1.5px solid rgba(255,255,255,0.35);padding:28px;display:flex;flex-direction:column;gap:14px;">
+          <span style="width:44px;height:44px;border-radius:50%;background:#FFFFFF;color:#17142E;font:600 16px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;">{{ s.n }}</span>
+          <h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:28px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">{{ s.title }}</h3>
+          <p style="margin:0;font-size:17px;line-height:1.55;color:#ECE8FF;">{{ s.body }}</p>
+        </li>
+      </sc-for>
+    </ol>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding-top:8px;">
+      <sc-for list="{{ secFacts }}" as="f" hint-placeholder-count="4">
+        <span style="min-height:38px;padding:0 16px;border-radius:999px;background:#FFFFFF;color:#17142E;font:500 14px 'JetBrains Mono',monospace;display:flex;align-items:center;">{{ f }}</span>
+      </sc-for>
+      <p style="margin:0;flex-basis:100%;font-size:16px;line-height:1.55;color:#ECE8FF;max-width:760px;padding-top:8px;">After you pair, each device remembers the other's certificate and refuses any device that presents a different one. There's no unencrypted fallback.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="bento-h" style="max-width:1440px;margin:0 auto;padding:clamp(64px,8vw,120px) clamp(20px,4.5vw,64px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(32px,4vw,48px);">
+  <h2 id="bento-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;max-width:820px;">The small stuff, <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">handled</span></span>.</h2>
+  <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px;">
+    <article style="grid-column:{{ spanA }};border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3vw,36px);display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:480px;"><h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:30px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">Reply from your Mac</h3><p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">When a notification offers a reply, answer it from the keyboard. The reply goes back through the phone.</p></div>
+      <div aria-hidden="true" style="margin-top:auto;border-radius:18px;background:#0A0A0A;padding:16px;display:flex;flex-direction:column;gap:12px;color:#F2F3F5;font-family:Inter,sans-serif;">
+        <div style="display:flex;gap:12px;align-items:center;"><span style="width:36px;height:36px;border-radius:10px;background:#1C1C1C;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px;color:#9A9CA8;overflow:hidden;">sms</span><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:12px;color:#9A9CA8;">Messages · Sam Okafor</span><span style="font-size:14px;">Are we still on for Saturday?</span></div><span style="height:30px;padding:0 12px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:12.5px;font-weight:600;display:flex;align-items:center;">Reply</span></div>
+        <div style="height:42px;border-radius:12px;background:#1A1A1A;border:1px solid rgba(198,255,51,0.35);display:flex;align-items:center;padding:0 14px;font-size:14px;">Yes! 10am by the bakery stall?</div>
+      </div>
+    </article>
+    <article style="grid-column:{{ spanB }};border-radius:28px;background:#5B3DF5;color:#FFFFFF;padding:clamp(24px,3vw,36px);display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:10px;"><h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:30px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">Clipboard, both ways</h3><p style="margin:0;font-size:17px;line-height:1.55;color:#ECE8FF;">Copy on the Mac, paste on the phone. Copy on the phone while Sidekick is open, paste on the Mac.</p></div>
+      <div aria-hidden="true" style="margin-top:auto;display:flex;flex-direction:column;gap:8px;">
+        <div style="border-radius:14px;background:#3A22B8;padding:12px 14px;display:flex;justify-content:space-between;gap:10px;font-size:14px;"><span style="font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">harbourlights.example/tour</span><span style="flex:none;color:#DCD5FF;">From phone</span></div>
+        <div style="border-radius:14px;background:#3A22B8;padding:12px 14px;display:flex;justify-content:space-between;gap:10px;font-size:14px;"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Flat 4B, 12 Canal Street</span><span style="flex:none;color:#DCD5FF;">To phone</span></div>
+      </div>
+    </article>
+    <article style="grid-column:{{ spanC }};border-radius:28px;background:#C6FF33;border:1.5px solid #17142E;padding:clamp(24px,3vw,36px);display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:10px;"><h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:30px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">See who's calling</h3><p style="margin:0;font-size:17px;line-height:1.55;color:#17142E;">Incoming calls show on your Mac, and you can dial from the Mac's keypad. You talk on the phone.</p></div>
+      <div aria-hidden="true" style="margin-top:auto;border-radius:18px;background:#17142E;color:#F6F3EC;padding:14px 16px;display:flex;align-items:center;gap:12px;"><span style="width:38px;height:38px;border-radius:50%;background:#2B2745;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;">LF</span><div style="flex:1;display:flex;flex-direction:column;"><span style="font-size:14.5px;font-weight:600;">Lena Fischer</span><span style="font-size:12.5px;color:#C9C6DA;">Incoming call</span></div><span style="font-family:'Material Symbols Rounded';font-size:22px;color:#C6FF33;">call</span></div>
+    </article>
+    <article style="grid-column:{{ spanD }};border-radius:28px;background:#E8E2FF;padding:clamp(24px,3vw,36px);display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:10px;"><h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:30px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">Photos to Finder</h3><p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">Browse your phone's albums on the Mac and drag a photo out. No cable, no upload.</p></div>
+      <div aria-hidden="true" style="margin-top:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        <sc-for list="{{ swatches }}" as="c" hint-placeholder-count="8"><span style="aspect-ratio:1;border-radius:10px;background:{{ c }};"></span></sc-for>
+      </div>
+    </article>
+    <article style="grid-column:{{ spanE }};border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3vw,36px);display:flex;flex-direction:column;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:10px;"><h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:30px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">A remote for what's playing</h3><p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">Pause, skip and change the volume of music on your phone from the Mac.</p></div>
+      <div aria-hidden="true" style="margin-top:auto;border-radius:18px;background:#0A0A0A;color:#F2F3F5;padding:14px 16px;display:flex;flex-direction:column;gap:10px;"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;flex-direction:column;"><span style="font-size:14px;font-weight:600;">Low Tide</span><span style="font-size:12px;color:#9A9CA8;">Harbour Lights</span></div><span style="width:40px;height:40px;border-radius:50%;background:#C6FF33;color:#0B1002;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px;">pause</span></div><div style="height:4px;border-radius:4px;background:rgba(255,255,255,0.12);"><div style="width:38%;height:4px;border-radius:4px;background:#C6FF33;"></div></div></div>
+    </article>
+    <article style="grid-column:{{ spanF }};border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3vw,36px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;">
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:560px;"><h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:30px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">Ask the phone to open an app</h3><p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">Pick an app on the Mac and the phone shows a notification. Tap it and the app opens — Android doesn't let apps launch others silently.</p></div>
+      <div aria-hidden="true" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <sc-for list="{{ appTiles }}" as="a" hint-placeholder-count="5"><span style="width:64px;height:64px;border-radius:18px;background:#0A0A0A;color:#9A9CA8;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:26px;">{{ a }}</span></sc-for>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section aria-labelledby="honest-h" style="background:#EDE9DF;">
+  <div style="max-width:1440px;margin:0 auto;padding:clamp(64px,8vw,120px) clamp(20px,4.5vw,64px);box-sizing:border-box;display:grid;grid-template-columns:{{ honestCols }};gap:clamp(32px,5vw,80px);align-items:start;">
+    <div style="display:flex;flex-direction:column;gap:20px;position:{{ honestPos }};top:32px;">
+      <h2 id="honest-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;"><span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">Honest</span></span> by design.</h2>
+      <p style="margin:0;font-size:18px;line-height:1.6;color:#55526B;max-width:420px;">Some limits come from Android or your network, not from Sidekick. Here they are up front. When one applies, the app says so in a sentence instead of showing a blank screen.</p>
+    </div>
+    <ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;">
+      <sc-for list="{{ limits }}" as="l" hint-placeholder-count="7">
+        <li style="display:grid;grid-template-columns:{{ limitCols }};gap:8px 32px;padding:24px 0;border-top:1px solid rgba(23,20,46,0.14);">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#55526B;padding-top:4px;">{{ l.tag }}</span>
+          <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:19px;font-weight:600;line-height:1.35;">{{ l.title }}</span><span style="font-size:17px;line-height:1.55;color:#55526B;">{{ l.body }}</span></div>
+        </li>
+      </sc-for>
+    </ul>
+  </div>
+</section>
+
+<section id="next" aria-labelledby="next-h" style="max-width:1440px;margin:0 auto;padding:clamp(64px,8vw,120px) clamp(20px,4.5vw,64px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(28px,3vw,40px);scroll-margin-top:12px;">
+  <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px;">
+    <div style="display:flex;flex-direction:column;gap:16px;max-width:760px;">
+      <h2 id="next-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;">What we're building <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">next</span></span>.</h2>
+      <p style="margin:0;font-size:18px;line-height:1.55;color:#55526B;">Sidekick keeps growing. This is the direction — plans can change, and nothing here is promised until it ships.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 24px;">
+      <a href="Roadmap.dc.html" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">See the full roadmap</a>
+      <a href="Roadmap.dc.html#suggest" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Suggest a feature</a>
+    </div>
+  </div>
+  <dc-import name="RoadmapTrack" limit="{{ three }}" show-notify="{{ true }}" hint-size="100%,640px"></dc-import>
+  <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">Platform rules sometimes limit what's possible, so some features depend on your phone or Android version.</p>
+</section>
+
+<section id="faq" aria-labelledby="faq-h" style="max-width:1440px;margin:0 auto;padding:0 clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;display:grid;grid-template-columns:{{ honestCols }};gap:clamp(32px,5vw,80px);align-items:start;scroll-margin-top:12px;">
+  <h2 id="faq-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;">Questions, <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">answered</span></span>.</h2>
+  <div style="display:flex;flex-direction:column;border-bottom:1px solid rgba(23,20,46,0.14);">
+    <sc-for list="{{ faqs }}" as="q" hint-placeholder-count="8">
+      <div style="border-top:1px solid rgba(23,20,46,0.14);">
+        <h3 style="margin:0;">
+          <button type="button" id="{{ q.btnId }}" aria-expanded="{{ q.expanded }}" aria-controls="{{ q.panelId }}" onClick="{{ q.toggle }}" style="width:100%;min-height:72px;padding:18px 0;background:transparent;border:0;display:flex;align-items:center;justify-content:space-between;gap:20px;text-align:left;cursor:pointer;color:#17142E;font:600 clamp(18px,1.6vw,21px)/1.35 Inter,sans-serif;">
+            {{ q.q }}
+            <span style="flex:none;width:40px;height:40px;border-radius:50%;border:1.5px solid #17142E;background:{{ q.iconBg }};display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px;font-weight:300;transform:{{ q.rot }};transition:transform .2s, background .2s;">add</span>
+          </button>
+        </h3>
+        <sc-if value="{{ q.open }}">
+          <div id="{{ q.panelId }}" role="region" aria-labelledby="{{ q.btnId }}" style="padding:0 64px 24px 0;font-size:17px;line-height:1.6;color:#55526B;">{{ q.a }}</div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section aria-labelledby="cta-h" style="max-width:1440px;margin:0 auto;padding:0 clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;">
+  <div style="border-radius:28px;background:#E8E2FF;padding:clamp(36px,6vw,80px) clamp(24px,5vw,72px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:40px;position:relative;overflow:hidden;">
+    <div style="position:absolute;right:-60px;bottom:-90px;width:260px;height:260px;border-radius:50%;background:#5B3DF5;"></div>
+    <div style="display:flex;flex-direction:column;gap:24px;max-width:640px;position:relative;">
+      <h2 id="cta-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;">Get your phone onto your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">Mac</span></span>.</h2>
+      <p style="margin:0;font-size:18px;line-height:1.55;color:#55526B;">Tell us where to send the download. It takes a minute.</p>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;">
+        <a href="Get Sidekick.dc.html" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Get Sidekick</a>
+        <a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Read the setup guide</a>
+      </div>
+    </div>
+    <svg width="300" height="120" viewBox="0 0 300 120" aria-hidden="true" style="position:relative;max-width:100%;">
+      <rect x="4" y="20" width="44" height="80" rx="10" fill="#F6F3EC" stroke="#17142E" stroke-width="2.5"></rect>
+      <line x1="48" y1="60" x2="196" y2="60" stroke="#17142E" stroke-width="2.5" stroke-linecap="round"></line>
+      <circle cx="122" cy="60" r="10" fill="#C6FF33" stroke="#17142E" stroke-width="2.5"></circle>
+      <rect x="198" y="30" width="90" height="58" rx="6" fill="#F6F3EC" stroke="#17142E" stroke-width="2.5"></rect>
+      <line x1="188" y1="96" x2="298" y2="96" stroke="#17142E" stroke-width="2.5" stroke-linecap="round"></line>
+    </svg>
+  </div>
+</section>
+</main>
+<dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, compW: 740, scW: 900, tab: 0, faq: 0 };
+  compRef = React.createRef(); scRef = React.createRef(); diagRef = React.createRef();
+  componentDidMount() {
+    this.onResize = () => this.setState({ w: window.innerWidth });
+    window.addEventListener('resize', this.onResize);
+    if (window.ResizeObserver) {
+      this.ro = new ResizeObserver(entries => entries.forEach(e => {
+        if (e.target === this.compRef.current) this.setState({ compW: e.contentRect.width });
+        if (e.target === this.scRef.current) this.setState({ scW: e.contentRect.width });
+      }));
+      this.compRef.current && this.ro.observe(this.compRef.current);
+      this.scRef.current && this.ro.observe(this.scRef.current);
+    }
+    this.reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!this.reduce) setTimeout(() => this.playHero(), 200);
+    this.setupScrollDraw();
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); this.ro && this.ro.disconnect(); this.io && this.io.disconnect(); }
+  playHero() {
+    const ease = 'cubic-bezier(.22,1,.36,1)';
+    const root = this.compRef.current; if (!root) return;
+    root.querySelectorAll('[data-anim="rise"]').forEach(el => el.animate([{opacity:0,transform:'translateY(32px)'},{opacity:1,transform:'none'}],{duration:850,delay:+(el.dataset.delay||0),easing:ease,fill:'backwards'}));
+    root.querySelectorAll('[data-anim="draw"]').forEach(el => { const L = el.getTotalLength(); el.style.strokeDasharray = L; el.animate([{strokeDashoffset:L},{strokeDashoffset:0}],{duration:900,delay:650,easing:ease,fill:'backwards'}); });
+    root.querySelectorAll('[data-anim="pulse"]').forEach(el => el.animate([{transform:'scale(1)',opacity:0.6},{transform:'scale(2.8)',opacity:0}],{duration:2400,delay:1500,iterations:Infinity,easing:'ease-out',fill:'backwards'}));
+  }
+  setupScrollDraw() {
+    const d = this.diagRef.current; if (!d || this.reduce || !window.IntersectionObserver) return;
+    const paths = d.querySelectorAll('[data-scroll-draw]');
+    paths.forEach(p => { const L = p.getTotalLength() || 300; p.style.strokeDasharray = L; p.style.strokeDashoffset = L; });
+    this.io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      paths.forEach((p, i) => { const L = p.getTotalLength() || 300; p.animate([{strokeDashoffset:L},{strokeDashoffset:0}],{duration:900,delay:i*500,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'}); });
+      this.io.disconnect();
+    }, { threshold: 0.4 });
+    this.io.observe(d);
+  }
+  renderVals() {
+    const w = this.state.w;
+    const wide = w >= 1100, mid = w >= 760;
+    const compScale = Math.min(1, this.state.compW / 740);
+    const scScale = this.state.scW / 1200;
+    const TABS = [
+      { label: 'Mirror & control', pane: 'mirror', kicker: 'Mirror & control', title: "Your phone's screen, in a Mac window.", body: "Click, scroll and type on your Mac and it happens on the phone. Android asks you to allow screen sharing on the phone each time you start.", chips: ['Three quality presets', 'Floating window', 'Save a still'] },
+      { label: 'Notifications & replies', pane: 'notifications', kicker: 'Notifications & replies', title: 'Read it here. Reply here.', body: "Phone notifications arrive on your Mac. When the app offers a reply, answer from the keyboard and it goes back through the phone. Dismiss one on the Mac and it's dismissed on the phone.", chips: ['Reply where Android allows', 'Dismiss syncs back', 'You choose which apps'] },
+      { label: 'Messages', pane: 'messages', kicker: 'Messages', title: 'Your texts, at keyboard size.', body: 'Read your SMS and MMS conversations and send texts from the Mac. Each message shows what the phone reported: sending, sent or not sent.', chips: ['SMS & MMS threads', 'Send from the Mac', 'Honest send status'] },
+      { label: 'Files & photos', pane: 'files', kicker: 'Files & photos', title: 'Move files without a cable.', body: 'Browse the folders you share from the phone, save photos to the Mac and drop files to send them back. Every file is checked with SHA-256 when it arrives.', chips: ['Both directions', 'Photo albums', 'Checked on arrival'] },
+      { label: 'Clipboard', pane: 'clipboard', kicker: 'Clipboard', title: 'Copy on one. Paste on the other.', body: "Text you copy on the Mac is ready on the phone. Text you copy on the phone comes across while Sidekick is open on it — that part is Android's rule. History stays in memory.", chips: ['Mac → phone automatic', 'Phone → Mac while open', 'History in memory only'] }
+    ];
+    const tab = this.state.tab;
+    const tabs = TABS.map((t, i) => ({ label: t.label, tabId: 'feat-tab-' + i, selected: i === tab ? 'true' : 'false', tabIndex: i === tab ? 0 : -1,
+      bg: i === tab ? '#C6FF33' : 'transparent', color: i === tab ? '#17142E' : '#F6F3EC', border: i === tab ? '#C6FF33' : 'rgba(246,243,236,0.25)',
+      onClick: () => this.setState({ tab: i }) }));
+    const span = (d, t) => wide ? d : (mid ? t : '1 / -1');
+    const tokenReq = !window.SK_CONFIG || window.SK_CONFIG.tokenRequired;
+    const notarized = window.SK_CONFIG && window.SK_CONFIG.notarized;
+    const FAQ = [
+      ['What do I need?', 'A Mac with macOS 11 or later, an Android phone with Android 10 or later, and both Sidekick apps. The phone and the Mac need to be on the same Wi-Fi — or the Mac can join the phone\'s hotspot.'],
+      ['Do I need an account?', "No. There's nothing to sign in to in either app. The form on this website is only there to send you the download" + (tokenReq ? ' and your access token.' : '.')],
+      ['Does my data go through the cloud?', 'No. The phone and the Mac connect directly over your local network using TLS 1.3, and each remembers the other\'s certificate after pairing. There is no relay server, so Sidekick also doesn\'t work over the internet when you\'re away from that network.'],
+      ['Does it work with iPhone or Windows?', 'No. Sidekick is for an Android phone and a Mac. iOS doesn\'t let apps read notifications, messages or the call log, so an iPhone version of these features isn\'t possible.'],
+      ['Can I reply to chat apps like WhatsApp?', "You can reply to notifications from apps that offer a reply action, which includes many chat apps. That's replying to the notification — it isn't a full client for those apps."],
+      ['Why does my phone ask permission every time I mirror?', 'Android requires a fresh tap on the phone for every screen-sharing session, and no app can remember it. Tap Start now on the phone and mirroring begins.'],
+      ...(tokenReq ? [['What is the access token?', 'The Mac app asks for an access token the first time it opens. We email it to you after you fill in the form. Paste it into the first-launch screen, or later in Settings › About.']] : []),
+      ['Why does macOS say it can\'t verify the app?', notarized ? 'It shouldn\'t — the current build is notarized by Apple. If you see a warning, download it again from the Download page.' : "The current Mac build isn't notarized by Apple yet, so macOS warns you the first time. The Download page shows the two steps to open it with Open Anyway. You never need to turn off Gatekeeper."]
+    ];
+    const faqs = FAQ.map(([q, a], i) => { const open = this.state.faq === i; return { q, a, open, expanded: open ? 'true' : 'false', btnId: 'faq-b-' + i, panelId: 'faq-p-' + i,
+      rot: open ? 'rotate(45deg)' : 'none', iconBg: open ? '#C6FF33' : 'transparent', toggle: () => this.setState(s => ({ faq: s.faq === i ? -1 : i })) }; });
+    return {
+      compRef: this.compRef, scRef: this.scRef, diagRef: this.diagRef,
+      heroCols: wide ? 'minmax(0,1fr) minmax(0,740px)' : 'minmax(0,1fr)',
+      compScale, compH: Math.round(700 * compScale) + 'px',
+      tabs, tab: TABS[tab], activeTabId: 'feat-tab-' + tab,
+      onTabKey: (e) => {
+        const n = TABS.length; let i = tab;
+        if (e.key === 'ArrowRight') i = (tab + 1) % n; else if (e.key === 'ArrowLeft') i = (tab - 1 + n) % n; else if (e.key === 'Home') i = 0; else if (e.key === 'End') i = n - 1; else return;
+        e.preventDefault(); this.setState({ tab: i }); setTimeout(() => { const b = document.getElementById('feat-tab-' + i); b && b.focus(); }, 0);
+      },
+      panes: TABS.map((t, i) => ({ pane: t.pane, opacity: i === tab ? 1 : 0, hidden: i === tab ? 'false' : 'true' })),
+      scCols: wide ? '380px minmax(0,1fr)' : 'minmax(0,1fr)', scTextMin: wide ? '420px' : '0',
+      scScale, scH: Math.round(760 * scScale) + 'px',
+      diagDir: mid ? 'row' : 'column',
+      segW: mid ? '100%' : '40', segH: mid ? '40' : '64', segBox: mid ? '0 0 200 40' : '0 0 40 64', segPath: mid ? 'M 8 20 L 192 20' : 'M 20 6 L 20 58',
+      steps: [
+        { n: '1', title: 'Install both apps', body: 'Sidekick for Mac from a .dmg, Sidekick for Android from an .apk. The Download page walks you through both.' },
+        { n: '2', title: 'Scan the QR code once', body: 'The Mac shows a code; the phone scans it. Both check each other\'s certificate before anything is sent.' },
+        { n: '3', title: 'Use it', body: 'From then on the link comes back on its own when both devices are on the same network.' }
+      ],
+      secFacts: ['TLS 1.3', 'Certificate pinning', 'No cloud relay', 'No account'],
+      spanA: span('span 7', 'span 12'), spanB: span('span 5', 'span 12'), spanC: span('span 4', 'span 6'), spanD: span('span 4', 'span 6'), spanE: span('span 4', 'span 12'), spanF: '1 / -1',
+      swatches: ['#5B3DF5','#C9BEFF','#17142E','#E8A317','#3A22B8','#F6F3EC','#1F9D6B','#9C8CF8'],
+      appTiles: ['schedule','mail','music_note','photo_camera','apps'],
+      honestCols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', honestPos: wide ? 'sticky' : 'static',
+      limitCols: mid ? '170px minmax(0,1fr)' : 'minmax(0,1fr)',
+      limits: [
+        { tag: 'MIRRORING', title: 'Your phone asks each time.', body: 'Android needs a tap on the phone to start every mirroring session. No app can remember it for you.' },
+        { tag: 'SECURE SCREENS', title: 'Some screens show as blank.', body: 'Banking apps, protected video and the lock screen are blanked by Android while mirroring. Sidekick tells you when that happens.' },
+        { tag: 'CALLS', title: 'Call audio stays on the phone.', body: "Sidekick shows calls and lets you dial, but it doesn't stream call audio to the Mac. You talk on the phone." },
+        { tag: 'CLIPBOARD', title: 'Phone → Mac works while the app is open.', body: "Android blocks apps from reading the clipboard in the background, so copy on the phone with Sidekick open. Mac → phone is automatic." },
+        { tag: 'FILES', title: 'Only the folders you share.', body: "File browsing covers folders you grant on the phone. Android keeps the Download folder itself off-limits, so files you send land in Download/Sidekick." },
+        { tag: 'NETWORK', title: 'Same network, no isolation.', body: "Both devices need to be on the same network. Routers with \"AP isolation\" turned on stop devices seeing each other; the phone's hotspot works instead." },
+        { tag: 'BATTERY', title: 'Some phones pause background apps.', body: 'Certain brands stop apps in the background to save battery. The setup guide shows where to let Sidekick keep running.' }
+      ],
+      three: 3,
+      faqs
+    };
+  }
+}
+</script>
+</body>
+</html>

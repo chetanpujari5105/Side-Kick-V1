@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="fonts/fonts.css" rel="stylesheet">
+</helmet>
+<div role="img" aria-label="{{ ariaLabel }}" style="width:390px;height:820px;border-radius:56px;background:#1B1B1D;padding:10px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-align:left;line-height:1.3;">
+  <div style="width:100%;height:100%;border-radius:47px;background:#0A0A0A;overflow:hidden;position:relative;color:#F2F3F5;display:flex;flex-direction:column;">
+    <div style="height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:14px;font-weight:600;position:relative;z-index:2;">
+      <span>9:41</span>
+      <span style="width:12px;height:12px;border-radius:50%;background:#000;position:absolute;left:50%;top:14px;margin-left:-6px;"></span>
+      <span style="display:flex;gap:4px;align-items:center;font-family:'Material Symbols Rounded';font-size:16px;font-weight:400;overflow:hidden;height:16px;">wifi signal_cellular_alt battery_full</span>
+    </div>
+
+    <sc-if value="{{ showBrandHeader }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 20px 0;">
+      <img src="LOGOS/head_logo.png" alt="" style="width:44px;height:22px;object-fit:contain;">
+      <div style="display:flex;flex-direction:column;flex:1;">
+        <span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;">Sidekick</span>
+        <span style="font-size:11px;color:#9A9CA8;">Your phone. More possible.</span>
+      </div>
+      <span style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.10);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px;color:#9A9CA8;overflow:hidden;">settings</span>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isDevices }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:18px 20px 12px;">
+      <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;">Devices</div>
+      <div style="font-size:13px;color:#9A9CA8;margin-top:2px;">1 device connected</div>
+    </div>
+    <div style="margin:0 16px;border-radius:22px;border:1px solid rgba(198,255,51,0.18);background:radial-gradient(circle at 100% 0%, rgba(198,255,51,0.22), rgba(198,255,51,0) 60%), #0E120A;padding:16px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;gap:14px;align-items:center;">
+        <div style="width:92px;flex:none;display:flex;flex-direction:column;align-items:center;">
+          <div style="width:76px;height:50px;border-radius:5px;border:2px solid #3A3D3A;background:#050505;"></div>
+          <div style="width:92px;height:4px;border-radius:0 0 4px 4px;background:#3A3D3A;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+          <span style="font-size:16px;font-weight:600;">Studio MacBook</span>
+          <span style="align-self:flex-start;display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;border:1px solid rgba(198,255,51,0.3);background:rgba(198,255,51,0.10);font-size:11.5px;font-weight:500;color:#C6FF33;"><span style="width:6px;height:6px;border-radius:50%;background:#C6FF33;"></span>Connected</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;display:flex;gap:8px;align-items:center;"><span style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:16px;color:#9A9CA8;overflow:hidden;">wifi</span><div style="display:flex;flex-direction:column;"><span style="font-size:10.5px;color:#6B6E7A;">Address</span><span style="font-size:12px;font-family:'JetBrains Mono',monospace;">192.168.1.10</span></div></div>
+        <div style="flex:1;display:flex;gap:8px;align-items:center;"><span style="width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:16px;color:#9A9CA8;overflow:hidden;">lock</span><div style="display:flex;flex-direction:column;"><span style="font-size:10.5px;color:#6B6E7A;">Security</span><span style="font-size:12px;">TLS 1.3</span></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;padding:12px 16px;">
+      <span style="flex:1;height:44px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden;">screen_share</span>Start mirroring</span>
+      <span style="flex:1;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,0.10);font-size:13.5px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:18px;width:18px;overflow:hidden;">info</span>Device info</span>
+    </div>
+    <div style="margin:0 16px;border-radius:20px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:12px 14px 4px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;"><span style="font-size:14px;font-weight:600;">Recent activity</span><span style="font-size:12px;color:#C6FF33;">View all</span></div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="3">
+        <div style="height:52px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(255,255,255,0.06);">
+          <span style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px;color:#9A9CA8;overflow:hidden;">{{ r.icon }}</span>
+          <div style="flex:1;display:flex;flex-direction:column;min-width:0;"><span style="font-size:13px;font-weight:500;">{{ r.title }}</span><span style="font-size:11px;color:#9A9CA8;">{{ r.detail }}</span></div>
+          <span style="font-size:11px;color:#6B6E7A;">{{ r.ago }}</span>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isFeed }}">
+    <div style="padding:18px 20px 12px;">
+      <div style="font-size:30px;font-weight:700;letter-spacing:-0.02em;">Feed</div>
+      <div style="font-size:13px;color:#9A9CA8;margin-top:2px;">Notifications from your phone.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:0 16px;">
+      <sc-for list="{{ feed }}" as="f" hint-placeholder-count="5">
+        <div style="border-radius:18px;border:1px solid rgba(255,255,255,0.07);background:#161616;padding:12px 14px;display:flex;gap:12px;align-items:center;">
+          <span style="width:38px;height:38px;border-radius:12px;background:#1C1C1C;border:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:19px;color:#9A9CA8;overflow:hidden;flex:none;">{{ f.icon }}</span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font-size:11px;color:#9A9CA8;">{{ f.app }} · {{ f.ago }}</span><span style="font-size:13px;font-weight:600;">{{ f.title }}</span><span style="font-size:12px;color:#9A9CA8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ f.body }}</span></div>
+          <sc-if value="{{ f.canReply }}"><span style="height:30px;padding:0 12px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:12px;font-weight:600;display:flex;align-items:center;">Reply</span></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isConsent }}">
+    <div style="position:absolute;inset:0;background:#F4F1EA;"></div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);"></div>
+    <div style="position:absolute;left:22px;right:22px;top:250px;border-radius:28px;background:#2A2A2E;padding:24px;display:flex;flex-direction:column;gap:14px;">
+      <span style="font-family:'Material Symbols Rounded';font-size:26px;color:#C6FF33;overflow:hidden;height:26px;">screen_share</span>
+      <span style="font-size:20px;font-weight:500;line-height:1.3;">Start recording or casting with Sidekick?</span>
+      <span style="font-size:13.5px;color:#C9CBD3;line-height:1.5;">Sidekick will have access to everything that is visible on your screen while it's being shown on your Mac.</span>
+      <div style="display:flex;justify-content:flex-end;gap:18px;padding-top:6px;font-size:14px;font-weight:600;color:#C6FF33;"><span style="padding:10px 4px;">Cancel</span><span style="padding:10px 16px;border-radius:999px;background:#C6FF33;color:#0B1002;">Start now</span></div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isScan }}">
+    <div style="padding:14px 20px 8px;display:flex;align-items:center;gap:12px;"><span style="font-family:'Material Symbols Rounded';font-size:22px;overflow:hidden;width:22px;">arrow_back</span><span style="font-size:18px;font-weight:600;">Connect your Mac</span></div>
+    <div style="margin:12px 20px 0;height:420px;border-radius:26px;background:radial-gradient(circle at 50% 40%, #2A2C33, #121317);position:relative;display:flex;align-items:center;justify-content:center;">
+      <div style="width:210px;height:210px;position:relative;">
+        <span style="position:absolute;left:0;top:0;width:44px;height:44px;border-left:4px solid #C6FF33;border-top:4px solid #C6FF33;border-radius:14px 0 0 0;"></span>
+        <span style="position:absolute;right:0;top:0;width:44px;height:44px;border-right:4px solid #C6FF33;border-top:4px solid #C6FF33;border-radius:0 14px 0 0;"></span>
+        <span style="position:absolute;left:0;bottom:0;width:44px;height:44px;border-left:4px solid #C6FF33;border-bottom:4px solid #C6FF33;border-radius:0 0 0 14px;"></span>
+        <span style="position:absolute;right:0;bottom:0;width:44px;height:44px;border-right:4px solid #C6FF33;border-bottom:4px solid #C6FF33;border-radius:0 0 14px 0;"></span>
+        <div style="position:absolute;inset:28px;border-radius:8px;background:#F2F3F5;display:grid;grid-template-columns:repeat(9,1fr);gap:3px;padding:10px;">
+          <sc-for list="{{ qr }}" as="q" hint-placeholder-count="81"><span style="background:{{ q }};border-radius:1px;"></span></sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="padding:22px 24px;display:flex;flex-direction:column;gap:8px;">
+      <span style="font-size:17px;font-weight:600;">Point at the code on your Mac</span>
+      <span style="font-size:13px;color:#9A9CA8;line-height:1.5;">Open Sidekick on your Mac and choose Pair a phone. You only do this once.</span>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isInstall }}">
+    <div style="position:absolute;inset:0;background:#F4F1EA;color:#1B1B1F;padding:60px 22px 0;display:flex;flex-direction:column;gap:18px;">
+      <div style="display:flex;align-items:center;gap:12px;"><span style="font-family:'Material Symbols Rounded';font-size:22px;overflow:hidden;width:22px;">arrow_back</span><span style="font-size:20px;font-weight:500;">Install unknown apps</span></div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 0;"><span style="width:44px;height:44px;border-radius:12px;background:#E3DFEE;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px;overflow:hidden;color:#3A3550;">folder</span><div style="display:flex;flex-direction:column;"><span style="font-size:15px;font-weight:500;">Files</span><span style="font-size:12px;color:#6A6872;">The app you opened the .apk from</span></div></div>
+      <div style="border-radius:24px;background:#FFFFFF;padding:18px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <span style="font-size:15px;font-weight:500;">Allow from this source</span>
+        <span style="width:52px;height:32px;border-radius:999px;background:#3A22B8;position:relative;flex:none;"><span style="position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;background:#FFFFFF;"></span></span>
+      </div>
+      <span style="font-size:12.5px;color:#6A6872;line-height:1.5;">Your phone and personal data are more vulnerable to attack by unknown apps. Turn this off again after installing if you like.</span>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+    <div style="margin-top:auto;height:74px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-around;align-items:center;padding-bottom:10px;background:#0A0A0A;">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;color:{{ t.color }};font-size:10.5px;">
+          <span style="font-family:'Material Symbols Rounded';font-size:22px;width:22px;overflow:hidden;line-height:1;">{{ t.icon }}</span>{{ t.label }}
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:820},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;devices&quot;,&quot;feed&quot;,&quot;consent&quot;,&quot;scan&quot;,&quot;install&quot;],&quot;default&quot;:&quot;devices&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.props.screen ?? 'devices';
+    const active = s === 'feed' ? 'Feed' : 'Devices';
+    const tabs = [['devices','Devices'],['swap_vert','Transfers'],['content_paste','Clip'],['notifications','Feed'],['smartphone','Mirror']]
+      .map(([icon,label]) => ({icon,label,color: label === active ? '#C6FF33' : '#9A9CA8'}));
+    const seed = [1,1,1,0,1,0,1,1,1, 1,0,1,0,0,1,1,0,1, 1,1,1,0,1,0,1,1,1, 0,0,0,1,0,1,0,0,0, 1,0,1,1,1,0,1,1,0, 0,1,0,0,1,1,0,1,1, 1,1,1,0,0,1,0,0,1, 1,0,1,0,1,0,1,1,0, 1,1,1,0,1,1,0,1,1];
+    const labels = { devices:'Devices screen', feed:'Feed of phone notifications', consent:"Android's screen-sharing consent prompt", scan:'QR code scanner for pairing', install:'Android setting: allow installs from this source' };
+    return {
+      ariaLabel: `Sidekick for Android, ${labels[s] || 'Devices screen'}, with example data`,
+      isDevices: s === 'devices', isFeed: s === 'feed', isConsent: s === 'consent', isScan: s === 'scan', isInstall: s === 'install',
+      showBrandHeader: s === 'devices' || s === 'feed',
+      showTabs: s === 'devices' || s === 'feed',
+      qr: seed.map(v => v ? '#17142E' : 'transparent'),
+      rows: [
+        {icon:'north_east',title:'Sent to Mac',detail:'IMG_2041.jpg · 3.1 MB',ago:'2 min'},
+        {icon:'content_paste',title:'Clipboard',detail:'Link sent to Mac',ago:'8 min'},
+        {icon:'link',title:'Connected',detail:'Studio MacBook',ago:'32 min'}
+      ],
+      feed: [
+        {icon:'sms',app:'Messages',ago:'now',title:'Sam Okafor',body:'Are we still on for Saturday?',canReply:true},
+        {icon:'schedule',app:'Calendar',ago:'6 min',title:'Design review',body:'In 15 minutes · Room 3',canReply:false},
+        {icon:'mail',app:'Mail',ago:'23 min',title:'Priya Nair',body:'Invoice #2041 attached',canReply:true},
+        {icon:'chat_bubble',app:'Chat',ago:'1 h',title:'Book club',body:'Lena: chapter 9 was wild',canReply:true},
+        {icon:'battery_full',app:'System',ago:'2 h',title:'Battery saver off',body:'Charged to 80%',canReply:false}
+      ],
+      tabs
+    };
+  }
+}
+</script>
+</body>
+</html>
