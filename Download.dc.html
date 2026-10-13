@@ -89,8 +89,8 @@ a:hover{color:#3A22B8;}
       <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;font-size:15.5px;">
         <dt style="color:#55526B;">Version</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ ver }}</dd>
         <dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ apk.file }}</dd>
-        <dt style="color:#55526B;">Size</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;">{{ apk.size }}</span></dd>
-        <dt style="color:#55526B;">SHA-256</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;word-break:break-all;">{{ apk.sha }}</span></dd>
+        <sc-if value="{{ apk.size }}"><dt style="color:#55526B;">Size</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;">{{ apk.size }}</span></dd></sc-if>
+        <sc-if value="{{ apk.sha }}"><dt style="color:#55526B;">SHA-256</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;word-break:break-all;">{{ apk.sha }}</span></dd></sc-if>
       </dl>
       <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">Download it on the phone itself, or on the Mac and send it across. You'll allow installs from that app once.</p>
       <button type="button" onClick="{{ dlApk }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlApkLabel }}</button>
@@ -103,7 +103,7 @@ a:hover{color:#3A22B8;}
     <div style="display:flex;flex-direction:column;gap:16px;">
       <span style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR ACCESS TOKEN</span>
       <h2 id="tok-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">The Mac app asks for a token the first time it opens.</h2>
-      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">We email it to <strong style="color:#F6F3EC;">{{ email }}</strong>. It usually arrives within <span style="font:500 13px 'JetBrains Mono',monospace;border:1px dashed rgba(246,243,236,0.4);border-radius:6px;padding:2px 8px;">[timeframe — to confirm]</span>. Nothing to do on the phone.</p>
+      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">We email it to <strong style="color:#F6F3EC;">{{ email }}</strong>. Nothing to do on the phone.</p>
       <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:17px;line-height:1.5;">
         <li>Open Sidekick on your Mac.</li>
         <li>Paste the token on the first-launch screen and choose Continue.</li>
@@ -219,7 +219,7 @@ class Component extends DCLogic {
       splitCols: wide ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', stepCols: this.state.w >= 1100 ? 'repeat(3,minmax(0,1fr))' : 'minmax(0,1fr)',
       archOpts, ver: R.version, intelWarn: arch === 'x64' && !C.intelBuildTested, unsureNote: chip === 'unsure' && !this.state.arch,
       mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 },
-      apk: { file: ab.file, size: this.fmt(ab.bytes) || '[size — after the signed build]', sha: ab.sha256 || '[SHA-256 — after the signed build]' },
+      apk: { file: ab.file, size: this.fmt(ab.bytes), sha: ab.sha256 },
       notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false,
       copyMacLabel: this.state.copied ? 'Copied' : 'Copy SHA-256', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
       copyMac: () => { try { navigator.clipboard.writeText(b.sha256); } catch (e) {} this.setState({ copied: true }); },

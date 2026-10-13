@@ -170,3 +170,6 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 - The "Photos and videos" and "Accessibility service" permission labels are inferred from the README and handoff. Check them against the Android manifest.
 - The OEM battery paths (Samsung, Xiaomi) come from the README, not from on-device checks across brands.
 - Android app labels used ("Connect your Mac", "Allow from this source", "Start now") match the repo checklist and stock Android, but may differ by OEM skin.
+
+## 11. Follow-ups
+- **Self-host React to remove unpkg.** `support.js` loads `react@18.3.1` and `react-dom@18.3.1` from unpkg.com on every page, so unpkg receives each visitor's request details. Serve both files from this site instead, then remove unpkg from the "This website" paragraph in Support › Privacy (`Support.dc.html`).

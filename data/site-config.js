@@ -8,12 +8,13 @@ window.SK_CONFIG = {
   notarized: false,            // false → Download page shows the Gatekeeper "Open Anyway" steps
   mocksEnabled: true,          // true → API calls are answered by data/mock-api.js
 
-  // PLACEHOLDERS — fill before launch (see Handoff.md → Launch blockers)
+  // PLACEHOLDER — fill before launch (see Handoff.md → Launch blockers). Not shown on any page.
   domain: '[sidekick-domain.example]',
-  supportEmail: '[support@sidekick-domain.example]',
-  publisher: '[Publisher legal name]',
-  publisherAddress: '[Publisher postal address]',
-  policyEffectiveDate: '[Effective date]'
+  // Publisher details. Country only — no postal address or phone number, by the owner's choice.
+  supportEmail: 'chetanpujari.sitit@gmail.com',
+  publisher: 'Chetan Pujari',
+  publisherAddress: 'India',
+  policyEffectiveDate: '14 October 2026'
 };
 
 window.SK_RELEASES = {
@@ -35,7 +36,7 @@ window.SK_RELEASES = {
     storeUrl: null
   },
   changelog: [
-    { version: '2.0.0', date: '[Release date]', items: [
+    { version: '2.0.0', date: null, items: [ // release date not confirmed yet; null hides it
       'Sidekick name and look across the Mac app and the phone app.',
       'Pair once by scanning a QR code; the link is TLS 1.3 with certificate pinning.',
       'Screen mirroring with control, notifications with replies, messages, calls, files, photos, clipboard history, apps and a media remote.',

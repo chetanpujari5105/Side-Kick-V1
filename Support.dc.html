@@ -31,6 +31,7 @@ a:hover{color:#3A22B8;}
       <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.4vw,76px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">{{ page.pre }}<span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">{{ page.mark }}</span></span>{{ page.post }}</h1>
       <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">{{ page.intro }}</p>
       <sc-if value="{{ page.draft }}"><p style="margin:0;font:500 14px/1.5 'JetBrains Mono',monospace;color:#17142E;background:#FFFFFF;border:1.5px dashed rgba(23,20,46,0.35);border-radius:14px;padding:12px 16px;">{{ page.draft }}</p></sc-if>
+      <sc-if value="{{ page.note }}"><p style="margin:0;font:500 13px/1.5 'JetBrains Mono',monospace;color:#55526B;">{{ page.note }}</p></sc-if>
     </header>
     <sc-for list="{{ page.sections }}" as="s" hint-placeholder-count="3">
       <section style="display:flex;flex-direction:column;gap:14px;padding-top:28px;border-top:1px solid rgba(23,20,46,0.14);">
@@ -53,6 +54,7 @@ a:hover{color:#3A22B8;}
             </sc-for>
           </div>
         </sc-if>
+        <sc-if value="{{ s.link }}"><a href="{{ s.link.href }}" style="align-self:flex-start;min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;" style-hover="color:#3A22B8;">{{ s.link.label }}</a></sc-if>
       </section>
     </sc-for>
     <section style="border-radius:24px;background:#E8E2FF;padding:28px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;">
@@ -77,7 +79,9 @@ class Component extends DCLogic {
   pages() {
     const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { changelog: [] };
     const I = (lead, text) => ({ lead: lead ? lead + ' ' : '', text });
-    const S = (h, o) => ({ h, paras: o.paras || [], items: o.items || [], rows: o.rows || [], hasItems: !!(o.items && o.items.length), hasRows: !!(o.rows && o.rows.length) });
+    const S = (h, o) => ({ h, paras: o.paras || [], items: o.items || [], rows: o.rows || [], hasItems: !!(o.items && o.items.length), hasRows: !!(o.rows && o.rows.length), link: o.link || null });
+    const unset = v => !v || /^\[/.test(v);
+    const email = C.supportEmail, policyDraft = [C.publisher, C.publisherAddress, C.supportEmail, C.policyEffectiveDate].some(unset);
     return {
       setup: { label: 'Setup', pre: 'Set up ', mark: 'Sidekick', post: '.', intro: 'About ten clicks on the Mac and a few taps on the phone. You only pair once.', sections: [
         S('What you need', { items: [I('A Mac', 'with macOS 11 or later.'), I('An Android phone', 'with Android 10 or later.'), I('The same network', '— both on one Wi-Fi, or the Mac joined to the phone\'s hotspot.'), I('Both apps', 'from the Download page.')] }),
@@ -123,16 +127,27 @@ class Component extends DCLogic {
           { a: 'Local Network', b: 'Lets the Mac connect to the phone on your network. macOS asks the first time.' },
           { a: 'Notifications', b: 'Shows phone notifications as Mac notifications, if you allow it.' }] })
       ]},
-      privacy: { label: 'Privacy', pre: '', mark: 'Privacy', post: '.', intro: 'Two different things: the Sidekick apps, and this website.', draft: `DRAFT — needs ${C.publisher || '[publisher]'}, ${C.publisherAddress || '[address]'}, ${C.policyEffectiveDate || '[effective date]'} and a legal review before it is published.`, sections: [
+      privacy: { label: 'Privacy', pre: '', mark: 'Privacy', post: '.', intro: 'Two different things: the Sidekick apps, and this website.',
+        draft: policyDraft ? 'DRAFT — the publisher name, country, contact email and effective date in data/site-config.js must all be filled in before this is published.' : '',
+        note: policyDraft ? '' : 'Effective ' + C.policyEffectiveDate, sections: [
         S('The apps', { items: [
-          I('No account.', 'There is nothing to sign in to, so there is no profile about you.'),
-          I('No server in the middle.', 'Your phone and Mac connect directly over your local network with TLS 1.3, and each refuses a device whose certificate doesn\'t match the one it paired with.'),
-          I('No analytics in the apps.', 'The apps don\'t send usage data to us or anyone else.'),
-          I('You choose what flows.', 'Apps you exclude from notification mirroring are filtered on the phone, so their content never leaves it. Clipboard history is kept in memory only.')] }),
-        S('This website', { paras: ['When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, and whether you asked for updates. We use them to send your download link' + (C.tokenRequired ? ' and access token' : '') + ' and to know which builds people need.', 'Updates are sent only if you tick the box and confirm by email. Every update has a one-click unsubscribe link.', 'The website uses privacy-friendly analytics without tracking cookies. [Provider — to confirm]', 'Ask us to delete your details at any time by writing to ' + (C.supportEmail || '[support email]') + '. [Retention period — to confirm]'] }),
-        S('Who we are', { paras: [`${C.publisher || '[Publisher legal name]'} · ${C.publisherAddress || '[Postal address]'} · ${C.supportEmail || '[Support email]'}`, 'Changes to this policy will be announced [how — to confirm]. Effective ' + (C.policyEffectiveDate || '[date]') + '.'] })
+          I('No account.', 'There is no Sidekick account and nothing to sign in to.'),
+          I('No server in the middle.', 'Your phone and Mac connect directly to each other on your own network, encrypted with TLS 1.3. Each refuses a device whose certificate doesn\'t match the one it paired with.'),
+          I('No analytics in the apps.', 'Sidekick\'s own code sends nothing to us or anyone else — no analytics, advertising or crash reporting. If you install from Google Play, Google adds its own installer check, which Google\'s privacy policy covers.'),
+          I('Kept on your devices.', 'Notifications, messages, contacts and photos shown on the Mac are held in memory while you are connected and aren\'t written to disk, unless you save a photo or file. Clipboard history is kept in memory only, at most 20 entries, and is cleared when the connection ends.')],
+          link: { label: 'Read the full Sidekick privacy policy', href: 'https://chetan-website-delta.vercel.app/sidekick/privacy' } }),
+        S('This website', { paras: [
+          'This website sets no cookies and runs no analytics. It\'s hosted by Vercel, and each page loads the React library from unpkg.com, so both receive the standard request details (such as your IP address and browser) that any website visit sends.'
+        ].concat(C.mocksEnabled ? [
+          'The Get Sidekick form isn\'t collecting anything yet. Nothing you type is sent to us or stored on a server. The page only remembers your name and Mac chip in this browser tab until you close it.'
+        ] : [
+          'When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, and whether you asked for updates. We use them to send your download link' + (C.tokenRequired ? ' and access token' : '') + ' and to know which builds people need.',
+          'Updates are sent only if you tick the box and confirm by email. Every update has a one-click unsubscribe link.',
+          'We keep your details until you ask us to delete them.'
+        ]).concat(['Ask us to delete your details at any time by writing to ' + email + '. We delete them within 30 days of your request.']) }),
+        S('Who we are', { paras: [`${C.publisher}, ${C.publisherAddress} · ${email}`, 'We change the effective date at the top of this page when the policy changes. Effective ' + C.policyEffectiveDate + '.'] })
       ]},
-      changelog: { label: 'Changelog', pre: '', mark: 'Changelog', post: '.', intro: 'What changed in each version of Sidekick.', sections: (R.changelog || []).map(c => S(`Version ${c.version}`, { paras: [c.date], items: c.items.map(t => I('', t)) })) }
+      changelog: { label: 'Changelog', pre: '', mark: 'Changelog', post: '.', intro: 'What changed in each version of Sidekick.', sections: (R.changelog || []).map(c => S(`Version ${c.version}`, { paras: unset(c.date) ? [] : [c.date], items: c.items.map(t => I('', t)) })) }
     };
   }
   renderVals() {
@@ -143,7 +158,7 @@ class Component extends DCLogic {
       cols: wide ? '240px minmax(0,1fr)' : 'minmax(0,1fr)', navPos: wide ? 'sticky' : 'static', navDir: wide ? 'column' : 'row', navLabel: wide ? 'block' : 'none',
       rowCols: this.state.w >= 720 ? 'minmax(0,2fr) minmax(0,3fr)' : 'minmax(0,1fr)',
       nav: Object.keys(P).map(k => ({ label: P[k].label, href: '#' + k, current: k === cur ? 'page' : undefined, bg: k === cur ? '#C6FF33' : 'transparent', border: k === cur ? '#17142E' : 'transparent' })),
-      supportEmail: (window.SK_CONFIG && window.SK_CONFIG.supportEmail) || '[support email]'
+      supportEmail: (window.SK_CONFIG && window.SK_CONFIG.supportEmail) || 'chetanpujari.sitit@gmail.com'
     };
   }
 }
