@@ -93,13 +93,13 @@ a:hover{color:#3A22B8;}
       <fieldset id="f-chip" aria-describedby="{{ desc.chip }}" style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;">
         <legend style="font-size:15px;font-weight:600;padding:0 0 10px;">Your Mac's chip</legend>
         <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="2">
             <label style="min-height:48px;padding:0 18px;border-radius:999px;border:1.5px solid {{ c.border }};background:{{ c.bg }};display:flex;align-items:center;gap:10px;cursor:pointer;font-size:16px;font-weight:500;">
               <input type="radio" name="macChip" value="{{ c.value }}" checked="{{ c.checked }}" onChange="{{ c.pick }}" disabled="{{ busyBool }}" style="width:18px;height:18px;margin:0;accent-color:#5B3DF5;">{{ c.label }}
             </label>
           </sc-for>
         </div>
-        <span id="h-chip" style="font-size:14.5px;line-height:1.5;color:#55526B;">Apple menu › About This Mac shows “Chip” on Apple silicon and “Processor” on Intel.</span>
+        <span id="h-chip" style="font-size:14.5px;line-height:1.5;color:#55526B;">Sidekick runs on Macs with Apple silicon (M1 or later). Apple menu › About This Mac shows “Chip” on these Macs; “Processor” means an Intel Mac, which Sidekick doesn't support.</span>
         <sc-if value="{{ e.chip }}"><span id="e-chip" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.chip }}</span></sc-if>
       </fieldset>
 
@@ -228,7 +228,7 @@ class Component extends DCLogic {
     const tokenReq = !window.SK_CONFIG || window.SK_CONFIG.tokenRequired;
     const ids = { name: 'f-name', email: 'f-email', chip: 'f-chip', phone: 'f-phone', privacy: 'f-privacy' };
     const summary = submitted && status === 'idle' ? keys.filter(k => e[k]).map(k => ({ msg: e[k], href: '#' + ids[k], go: (ev) => { ev.preventDefault(); const el = document.getElementById(ids[k]); if (el) { (el.querySelector && el.querySelector('input') || el).focus(); } } })) : [];
-    const chipOpts = [['apple','Apple silicon'],['intel','Intel'],['unsure','Not sure']];
+    const chipOpts = [['apple','Apple silicon'],['unsure','Not sure']];
     const review = ['empty','focus','errors','submitting','server_error','rate_limited','success'];
     return {
       cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',

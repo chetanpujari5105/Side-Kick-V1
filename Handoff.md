@@ -85,14 +85,14 @@ Status chips: **Next up** lime with ink border · **In design** violet with whit
 ---
 
 ## 4. Copy deck (key strings; full copy lives in each file)
-- **Hero:** "Your Android phone, on your **Mac**." / "Mirror your screen, answer notifications, move files and share your clipboard — over your own Wi-Fi. No cloud. No account." / CTA "Get Sidekick" / "See how it works" / "For macOS 11 or later and Android 10 or later. Both apps required."
+- **Hero:** "Your Android phone, on your **Mac**." / "Mirror your screen, answer notifications, move files and share your clipboard — over your own Wi-Fi. No cloud. No account." / CTA "Get Sidekick" / "See how it works" / "For Macs with Apple silicon on macOS 11.0 (Big Sur) or later, and Android 10 or later. Both apps required."
 - **Tabs** (H2 "Do more without picking up your phone."): Mirror & control · Notifications & replies · Messages · Files & photos · Clipboard.
 - **How it works:** "Two apps. One local connection." Steps: Install both apps → Scan the QR code once → Use it. Chips: TLS 1.3 · Certificate pinning · No cloud relay · No account.
 - **Mosaic:** "The small stuff, handled." Reply from your Mac · Clipboard, both ways · See who's calling · Photos to Finder · A remote for what's playing · Ask the phone to open an app.
 - **Honest by design:** seven limits (mirroring consent, secure screens, call audio, clipboard, files, network, battery).
 - **Roadmap:** heading, subline and footnote are verbatim from the brief and live in `data/roadmap-data.js`.
 - **Form errors:** "Enter your name." · "Enter an email address like name@example.com." · "Choose your Mac's chip, or Not sure." · "Confirm you've read the Privacy Policy to continue." · Server: "We couldn't save your details. Nothing was sent…" · 429: "Too many tries in a short time…"
-- **Download:** "You're in, {first name}." · "Intel build — not yet tested on Intel Macs." · Token panel · Install & connect (3 steps) · "Something not working?"
+- **Download:** "You're in, {first name}." · "For Macs with Apple silicon (M1 or later)." · Token panel · Install & connect (3 steps) · "Something not working?"
 
 ---
 
@@ -106,7 +106,7 @@ Status chips: **Next up** lime with ink border · **In design** violet with whit
 ---
 
 ## 6. Data files
-- `data/site-config.js`: flags `releaseState`, `tokenRequired`, `intelBuildTested`, `notarized`, `mocksEnabled`, plus the placeholders for domain, support email and publisher. `SK_RELEASES` has the 2.0.0 facts from `docs/release-candidate-2026-10-12.md` and should be replaced by `GET /api/releases`.
+- `data/site-config.js`: flags `releaseState`, `tokenRequired`, `notarized`, `mocksEnabled`, plus the placeholders for domain, support email and publisher. `SK_RELEASES` has the 2.0.1 facts for the single Apple silicon build (`Sidekick-2.0.1-arm64.dmg`); its size and SHA-256 stay `null` until the staged DMG exists. It should be replaced by `GET /api/releases`.
 - `data/roadmap-data.js`: the only roadmap source, with fields `{id, phase, category, title, benefit, note?}`. Phase status and label come from `phases[]`.
 - `data/mock-api.js`: **MOCK.** Set `sessionStorage.sk_mock_outcome` to `success | server_error | rate_limited | invalid`.
 
@@ -116,7 +116,7 @@ Status chips: **Next up** lime with ink border · **In design** violet with whit
 
 ```
 POST /api/get-sidekick
-  body {name:string(1..120), email:string(email), macChip:'apple'|'intel'|'unsure',
+  body {name:string(1..120), email:string(email), macChip:'apple'|'unsure',
         phoneModel:string(1..120), privacyAccepted:true, marketingOptIn:boolean, captchaToken:string}
   200 {ok:true}  + Set-Cookie sk_session (HttpOnly, Secure, SameSite=Lax, signed, ~24h)
   400 {ok:false, fieldErrors:{[field]:message}}
@@ -125,12 +125,12 @@ POST /api/get-sidekick
   Rules: verify captcha → rate limit per IP + email → write row → THEN 200. Never 200 before the write commits.
   marketingOptIn=true sends a double-opt-in email; it is not stored as consented until confirmed.
 
-GET /api/download/:platform(/:arch)   platform=mac|android, arch=arm64|x64
+GET /api/download/:platform(/:arch)   platform=mac|android, arch=arm64
   requires sk_session; 302 → signed R2/S3 URL (TTL ~10 min); logs {signupId, platform, arch, ts}
   401 → client shows the expired-link state
 
 GET /api/releases
-  {version, mac:{minOS, notarized, builds:{arm64:{file,bytes,sha256}, x64:{file,bytes,sha256,tested}}},
+  {version, mac:{minOS, notarized, builds:{arm64:{file,bytes,sha256}}},
    android:{minOS, build:{file,bytes,sha256,signed}, storeUrl|null}, changelog:[{version,date,items[]}]}
 
 POST /api/roadmap-notify {email, featureId}   → 202; sends a confirm email; one notification per feature
@@ -141,7 +141,7 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 **Token process (phase 1).** The owner issues each token on their own Mac from the signup list. The signing key never touches the server. The Download page says the token arrives by email. Hook: `issueToken(signup)` is a no-op stub for automating this later. Setting `tokenRequired:false` hides the token panel, the FAQ entry and token mentions in the copy.
 
 ### Environment variables
-`DATABASE_URL`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `DOWNLOAD_URL_TTL`, `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`, `ADMIN_AUTH_*`, `ANALYTICS_SITE_ID`, `RATE_LIMIT_*`, flags `RELEASE_STATE`, `TOKEN_REQUIRED`, `INTEL_BUILD_TESTED`, `NOTARIZED`, `MOCKS_ENABLED`.
+`DATABASE_URL`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `DOWNLOAD_URL_TTL`, `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`, `ADMIN_AUTH_*`, `ANALYTICS_SITE_ID`, `RATE_LIMIT_*`, flags `RELEASE_STATE`, `TOKEN_REQUIRED`, `NOTARIZED`, `MOCKS_ENABLED`.
 
 ---
 
@@ -158,7 +158,7 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 2. **Support email** — placeholder.
 3. **Privacy policy publisher details** — legal name, postal address, effective date, how changes are announced, data retention period, analytics provider, email provider. Needs a legal review.
 4. **Signing / notarization** — the Mac 2.0.0 build is ad-hoc signed and not notarized, so the site shows the Gatekeeper steps. The **APK is unsigned and cannot be installed**, and its size and SHA-256 are placeholders until the signed build exists.
-5. **Intel build** — it has never run on an Intel Mac. Decide whether to ship it with the label or drop it.
+5. **Intel** — decided 2026-10-15: Apple silicon only. No x64 build is offered and the form has no Intel option.
 6. **Token process** — how tokens are delivered (pasted string or file?), how long it takes, whether one token works on more than one Mac, and its expiry. The repo mentions a 45-day trial; the site doesn't mention it until you confirm.
 7. **Real download files** uploaded to R2/S3, plus `SHA256SUMS.txt`.
 8. Pricing — nothing on the site mentions it.

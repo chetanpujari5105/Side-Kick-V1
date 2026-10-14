@@ -32,7 +32,7 @@ a:hover{color:#3A22B8;}
       <a href="Get Sidekick.dc.html" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:transform .15s, box-shadow .15s;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Get Sidekick</a>
       <a href="#how" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;" style-hover="color:#3A22B8;">See how it works</a>
     </div>
-    <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;padding-top:20px;border-top:1px solid rgba(23,20,46,0.1);">For macOS 11.0 (Big Sur) or later and Android 10 or later. Both apps required.</p>
+    <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;padding-top:20px;border-top:1px solid rgba(23,20,46,0.1);">For Macs with Apple silicon on macOS 11.0 (Big Sur) or later, and Android 10 or later. Both apps required.</p>
   </div>
   <div ref="{{ compRef }}" style="width:100%;max-width:740px;justify-self:center;position:relative;height:{{ compH }};">
     <div style="position:absolute;left:0;top:0;width:740px;height:700px;transform:scale({{ compScale }});transform-origin:0 0;">
@@ -304,7 +304,7 @@ class Component extends DCLogic {
     const tokenReq = !window.SK_CONFIG || window.SK_CONFIG.tokenRequired;
     const notarized = window.SK_CONFIG && window.SK_CONFIG.notarized;
     const FAQ = [
-      ['What do I need?', 'A Mac with macOS 11.0 (Big Sur) or later, an Android phone with Android 10 or later, and both Sidekick apps. The phone and the Mac need to be on the same Wi-Fi — or the Mac can join the phone\'s hotspot.'],
+      ['What do I need?', 'A Mac with Apple silicon (M1 or later) and macOS 11.0 (Big Sur) or later, an Android phone with Android 10 or later, and both Sidekick apps. The phone and the Mac need to be on the same Wi-Fi — or the Mac can join the phone\'s hotspot.'],
       ['Do I need an account?', "No. There's nothing to sign in to in either app. During the beta, the person who invited you sends you a private link to the Mac app" + (tokenReq ? ' and your beta token.' : '.')],
       ['Does my data go through the cloud?', 'No. The phone and the Mac connect directly over your local network using TLS 1.3, and each remembers the other\'s certificate after pairing. There is no relay server, so Sidekick also doesn\'t work over the internet when you\'re away from that network.'],
       ['Does it work with iPhone or Windows?', 'No. Sidekick is for an Android phone and a Mac. iOS doesn\'t let apps read notifications, messages or the call log, so an iPhone version of these features isn\'t possible.'],

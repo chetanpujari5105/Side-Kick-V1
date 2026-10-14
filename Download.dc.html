@@ -55,24 +55,13 @@ a:hover{color:#3A22B8;}
     <section aria-labelledby="mac-h" style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:22px;">
       <div style="display:flex;align-items:center;gap:16px;">
         <span aria-hidden="true" style="display:flex;flex-direction:column;align-items:center;"><span style="width:52px;height:34px;border-radius:5px;border:2px solid #17142E;box-sizing:border-box;display:block;background:#E8E2FF;"></span><span style="width:64px;height:4px;border-radius:0 0 4px 4px;background:#17142E;display:block;"></span></span>
-        <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="mac-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Mac</h2><span style="font-size:15px;color:#55526B;">Sidekick for Mac · macOS 11.0 (Big Sur) or later</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="mac-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Mac</h2><span style="font-size:15px;color:#55526B;">Sidekick for Mac · Apple silicon · macOS 11.0 (Big Sur) or later</span></div>
       </div>
-      <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;">
-        <legend style="font-size:15px;font-weight:600;padding-bottom:10px;">Which Mac do you have?</legend>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          <sc-for list="{{ archOpts }}" as="a" hint-placeholder-count="2">
-            <label style="min-height:48px;padding:0 18px;border-radius:999px;border:1.5px solid {{ a.border }};background:{{ a.bg }};display:flex;align-items:center;gap:10px;cursor:pointer;font-size:16px;font-weight:500;">
-              <input type="radio" name="arch" value="{{ a.id }}" checked="{{ a.checked }}" onChange="{{ a.pick }}" style="width:18px;height:18px;margin:0;accent-color:#5B3DF5;">{{ a.label }}
-            </label>
-          </sc-for>
-        </div>
-        <sc-if value="{{ intelWarn }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;background:#FDF3DC;border-radius:12px;padding:10px 14px;display:flex;gap:8px;"><span style="font-family:'Material Symbols Rounded';font-size:19px;color:#8A5A00;">warning</span>Intel build — not yet tested on Intel Macs.</p></sc-if>
-        <sc-if value="{{ unsureNote }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">You said you weren't sure. Apple menu › About This Mac shows “Chip” on Apple silicon and “Processor” on Intel.</p></sc-if>
-      </fieldset>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">For Macs with Apple silicon (M1 or later). Apple menu › About This Mac shows “Chip” on these Macs. If it shows “Processor” instead, that Mac has an Intel chip, which Sidekick doesn't support.</p>
       <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;font-size:15.5px;">
         <dt style="color:#55526B;">Version</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ ver }}</dd>
         <dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;word-break:break-all;">{{ mac.file }}</dd>
-        <dt style="color:#55526B;">Size</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ mac.size }}</dd>
+        <sc-if value="{{ mac.size }}"><dt style="color:#55526B;">Size</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ mac.size }}</dd></sc-if>
       </dl>
       <sc-if value="{{ notNotarized }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This build isn't notarized by Apple yet. macOS will warn you the first time you open it. Step 2 of <a href="#getting-started" style="color:#5B3DF5;font-weight:600;text-underline-offset:3px;">Getting started</a>, just below, shows the way through.</p></sc-if>
       <sc-if value="{{ siteDownloads }}"><button type="button" onClick="{{ dlMac }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlMacLabel }}</button></sc-if>
@@ -81,8 +70,9 @@ a:hover{color:#3A22B8;}
       <div role="group" aria-labelledby="sum-h" style="border-radius:16px;background:#F6F3EC;border:1px dashed rgba(23,20,46,0.25);padding:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;">
         <span id="sum-h" style="font-size:15px;font-weight:600;color:#17142E;">Checksum <span style="font-weight:400;color:#55526B;">(optional, to check your download)</span></span>
         <span style="font-size:14.5px;line-height:1.5;color:#55526B;">This is not your beta token.</span>
-        <code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#FFFFFF;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code>
-        <button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button>
+        <sc-if value="{{ noMacSha }}"><span style="font-size:14.5px;line-height:1.5;color:#55526B;">The checksum appears here once the beta build is staged.</span></sc-if>
+        <sc-if value="{{ mac.sha }}"><code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#FFFFFF;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code></sc-if>
+        <sc-if value="{{ mac.sha }}"><button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button></sc-if>
       </div>
     </section>
 
@@ -204,7 +194,7 @@ a:hover{color:#3A22B8;}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;previewState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;valid&quot;,&quot;expired&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Design review&quot;}}">
 class Component extends DCLogic {
-  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, arch: null, copied: false, toast: '', busy: '' };
+  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, copied: false, toast: '', busy: '' };
   componentDidMount() {
     this.onResize = () => this.setState({ w: window.innerWidth });
     window.addEventListener('resize', this.onResize);
@@ -219,30 +209,26 @@ class Component extends DCLogic {
     this.setState({ busy: '', toast: r && r.mock ? `MOCK — the real site redirects to a short-lived signed URL for the ${platform === 'mac' ? arch + ' .dmg' : '.apk'}.` : '' });
   }
   renderVals() {
-    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.1', mac: { builds: { arm64: {}, x64: {} } }, android: { build: {} } };
+    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.1', mac: { builds: { arm64: {} } }, android: { build: {} } };
     const pv = this.props.previewState ?? 'auto';
     const sess = window.SK_API ? window.SK_API.session() : null;
     const demo = { name: 'Alex', email: 'alex@example.com', macChip: 'apple' };
     const s = pv === 'valid' ? (sess || demo) : (pv === 'expired' ? null : sess);
-    const chip = s ? s.macChip : 'apple';
-    const arch = this.state.arch || (chip === 'intel' ? 'x64' : 'arm64');
-    const b = R.mac.builds[arch] || {};
+    const b = R.mac.builds.arm64 || {}; // Apple silicon only; there is no Intel build
     const wide = this.state.w >= 900;
-    const archOpts = [['arm64', 'Apple silicon'], ['x64', 'Intel']].map(([id, label]) => ({ id, label, checked: arch === id,
-      border: arch === id ? '#5B3DF5' : 'rgba(23,20,46,0.22)', bg: arch === id ? '#E8E2FF' : '#FFFFFF', pick: () => this.setState({ arch: id, copied: false }) }));
     const ab = R.android.build || {};
     return {
       expired: !s, valid: !!s, name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
       splitCols: wide ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', stepCols: this.state.w >= 1100 ? 'repeat(3,minmax(0,1fr))' : 'minmax(0,1fr)',
-      archOpts, ver: R.version, intelWarn: arch === 'x64' && !C.intelBuildTested, unsureNote: chip === 'unsure' && !this.state.arch,
-      mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 },
+      ver: R.version,
+      mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 || null }, noMacSha: !b.sha256,
       apk: { file: ab.file, size: this.fmt(ab.bytes), sha: ab.sha256 }, apkManual: ab.signed === true, noApk: ab.signed !== true,
       notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false, siteDownloads: C.releaseState === 'public', inviteOnly: C.releaseState !== 'public',
       copyMacLabel: this.state.copied ? 'Copied' : 'Copy checksum', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
       copyMac: () => { try { navigator.clipboard.writeText(b.sha256); } catch (e) {} this.setState({ copied: true }); },
-      dlMacLabel: this.state.busy === 'mac' ? 'Preparing…' : `Download for ${arch === 'arm64' ? 'Apple silicon' : 'Intel'} (.dmg)`,
+      dlMacLabel: this.state.busy === 'mac' ? 'Preparing…' : 'Download for Apple silicon (.dmg)',
       dlApkLabel: this.state.busy === 'android' ? 'Preparing…' : 'Download for Android (.apk)',
-      dlMac: () => this.dl('mac', arch), dlApk: () => this.dl('android'), toast: this.state.toast,
+      dlMac: () => this.dl('mac', 'arm64'), dlApk: () => this.dl('android'), toast: this.state.toast,
       trouble: [
         { label: "The phone can't find the Mac", href: 'Support.dc.html#help' },
         { label: 'My router might block devices (AP isolation)', href: 'Support.dc.html#help' },

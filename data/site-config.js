@@ -1,10 +1,10 @@
 // Sidekick website — config flags + release facts.
-// Release facts: 2.0.1 values given by the owner on 2026-10-14; both DMGs' size and SHA-256 checked against the files on disk.
+// Release facts: 2.0.1, Apple silicon (arm64) only — there is no Intel build.
+// Mac size and SHA-256 stay null until the staged beta DMG exists; never fill them from memory or a guess.
 // In production these come from GET /api/releases; this file is the mock.
 window.SK_CONFIG = {
   releaseState: 'invite',      // 'invite' | 'public'
   tokenRequired: true,         // false → Download page hides the Access token block
-  intelBuildTested: false,     // false → Intel option carries the "not yet tested" label
   notarized: false,            // false → Download page shows the Gatekeeper "Open Anyway" steps
   mocksEnabled: true,          // true → API calls are answered by data/mock-api.js
 
@@ -22,10 +22,7 @@ window.SK_RELEASES = {
   mac: {
     minOS: 'macOS 11.0 (Big Sur) or later',
     builds: {
-      arm64: { label: 'Apple silicon', file: 'Sidekick-2.0.1-arm64.dmg', bytes: 121674754,
-               sha256: 'bf8042be0447c1ac9670981674a5a617b0485d4f21ed9f3e600279ae09f8b716' },
-      x64:   { label: 'Intel', file: 'Sidekick-2.0.1.dmg', bytes: 126571629,
-               sha256: '1f1a021bb94e671ba4541653f1db04c5f4ae959013fa42c640d13088868f6a1b' }
+      arm64: { label: 'Apple silicon', file: 'Sidekick-2.0.1-arm64.dmg', bytes: null, sha256: null } // fill from the staged DMG
     }
   },
   android: {
