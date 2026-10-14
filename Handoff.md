@@ -88,7 +88,7 @@ Status chips: **Next up** lime with ink border · **In design** violet with whit
 - **Hero:** "Your Android phone, on your **Mac**." / "Mirror your screen, answer notifications, move files and share your clipboard — over your own Wi-Fi. No cloud. No account." / CTA "Get Sidekick" / "See how it works" / "For Macs with Apple silicon on macOS 11.0 (Big Sur) or later, and Android 10 or later. Both apps required."
 - **Tabs** (H2 "Do more without picking up your phone."): Mirror & control · Notifications & replies · Messages · Files & photos · Clipboard.
 - **How it works:** "Two apps. One local connection." Steps: Install both apps → Scan the QR code once → Use it. Chips: TLS 1.3 · Certificate pinning · No cloud relay · No account.
-- **Mosaic:** "The small stuff, handled." Reply from your Mac · Clipboard, both ways · See who's calling · Photos to Finder · A remote for what's playing · Ask the phone to open an app.
+- **Mosaic:** "The small stuff, handled." Reply from your Mac · Clipboard, both ways · See who's calling · Photos, saved to your Mac · A remote for what's playing · Ask the phone to open an app.
 - **Honest by design:** seven limits (mirroring consent, secure screens, call audio, clipboard, files, network, battery).
 - **Roadmap:** heading, subline and footnote are verbatim from the brief and live in `data/roadmap-data.js`.
 - **Form errors:** "Enter your name." · "Enter an email address like name@example.com." · "Choose your Mac's chip, or Not sure." · "Confirm you've read the Privacy Policy to continue." · Server: "We couldn't save your details. Nothing was sent…" · 429: "Too many tries in a short time…"

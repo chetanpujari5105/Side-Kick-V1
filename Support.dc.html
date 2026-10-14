@@ -110,7 +110,7 @@ class Component extends DCLogic {
           { a: 'The Mac asks and nothing happens', b: 'Android only shows the screen-sharing prompt to an app on screen. Open Sidekick on the phone, go to Mirror and tap Start.' },
           { a: 'The mirrored screen is black', b: 'The app on the phone protects its screen — banking apps, protected video and the lock screen do this. Android blanks it for every app; Sidekick says when it happens.' }] }),
         S('Files and clipboard', { rows: [
-          { a: 'Transfers pause near the end', b: 'Usually Wi-Fi power saving. The transfer pauses and picks up again once both devices see each other.' },
+          { a: 'Transfers pause near the end', b: 'Usually Wi-Fi power saving. Once both devices see each other again, a file going to the phone picks up where it stopped; a file coming to the Mac starts again from the beginning.' },
           { a: "Can't see a file in Download", b: "Android doesn't let apps open the Download folder itself. Folders inside it can be shared; files sent from the Mac land in Download/ConnectSuite." },
           { a: "Phone clipboard doesn't reach the Mac", b: 'Copy on the phone while Sidekick is open on it. Android blocks background clipboard reads for every app.' }] }),
         S('Beta token', { rows: [ { a: 'No beta token yet', b: 'Ask the person who invited you. They send it to you privately.' }, { a: 'Need to re-enter it', b: 'Settings › About in the Mac app.' }] })
@@ -118,7 +118,7 @@ class Component extends DCLogic {
       permissions: { label: 'Permissions', pre: 'What each ', mark: 'permission', post: ' is for.', intro: 'Each feature needs its own permission. Leave one off and only that feature stops working — the app says which one and why.', sections: [
         S('On the phone', { rows: [
           { a: 'Notification access', mono: 'NotificationListenerService', b: 'Shows phone notifications on the Mac, lets you reply where the app allows, and powers the media remote.' },
-          { a: 'SMS', mono: 'READ_SMS · SEND_SMS', b: 'Reads your text conversations and sends texts you write on the Mac.' },
+          { a: 'SMS', mono: 'READ_SMS · RECEIVE_SMS · SEND_SMS', b: 'Reads your text conversations, shows new texts as they arrive and sends texts you write on the Mac. All three are needed together.' },
           { a: 'Phone and call log', mono: 'READ_CALL_LOG · READ_PHONE_STATE · CALL_PHONE · ANSWER_PHONE_CALLS', b: 'Shows calls on the Mac and dials numbers you choose there.' },
           { a: 'Contacts', mono: 'READ_CONTACTS', b: 'Shows names instead of numbers in messages and calls.' },
           { a: 'Photos and videos', b: 'Lets the Mac browse your photo albums.' },
