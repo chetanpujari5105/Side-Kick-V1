@@ -24,7 +24,7 @@ a:hover{color:#3A22B8;}
 <main id="main" style="max-width:1440px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;display:grid;grid-template-columns:{{ cols }};gap:clamp(32px,5vw,80px);align-items:start;">
   <div style="display:flex;flex-direction:column;gap:28px;padding-top:{{ leftPad }};">
     <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">Almost <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">there</span></span>.</h1>
-    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:460px;">Tell us who you are and which Mac you have. Next you'll see the downloads for both apps and a short install guide.</p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:460px;">{{ intro }}</p>
     <svg width="320" height="96" viewBox="0 0 320 96" aria-hidden="true" style="max-width:100%;">
       <rect x="4" y="12" width="40" height="72" rx="9" fill="#FFFFFF" stroke="#17142E" stroke-width="2"></rect>
       <path data-anim="draw" d="M 44 48 L 220 48" stroke="#17142E" stroke-width="2" stroke-linecap="round" fill="none"></path>
@@ -232,9 +232,10 @@ class Component extends DCLogic {
     const review = ['empty','focus','errors','submitting','server_error','rate_limited','success'];
     return {
       cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',
-      reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? 'Your access token for the Mac app arrives by email.' : 'You can unsubscribe from updates in one click.'],
+      reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? 'Your beta token comes from the person who invited you. They send it to you privately.' : 'You can unsubscribe from updates in one click.'],
+      intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.' : 'Tell us who you are and which Mac you have. Next you\'ll see the downloads for both apps and a short install guide.',
       purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : 'Five short questions, then your downloads.',
-      purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to send your download' + (tokenReq ? ' and access token' : '') + ' and to know which builds people need. Ask us any time and we\'ll delete them.',
+      purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to send your download and to know which builds people need.' + (tokenReq ? ' Your beta token comes from the person who invited you, privately.' : '') + ' Ask us any time and we\'ll delete them.',
       v, on: { name: set('name'), email: set('email'), phone: set('phone'), privacy: set('privacy'), updates: set('updates') },
       blur: Object.fromEntries(['name','email','phone'].map(k => [k, () => this.setState(s => ({ touched: { ...s.touched, [k]: true } }))])),
       e, inv: Object.fromEntries(keys.map(k => [k, e[k] ? 'true' : 'false'])),

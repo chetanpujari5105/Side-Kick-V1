@@ -228,7 +228,7 @@ a:hover{color:#3A22B8;}
     <div style="position:absolute;right:-60px;bottom:-90px;width:260px;height:260px;border-radius:50%;background:#5B3DF5;"></div>
     <div style="display:flex;flex-direction:column;gap:24px;max-width:640px;position:relative;">
       <h2 id="cta-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(38px,4.8vw,68px);line-height:0.98;font-weight:800;letter-spacing:-0.04em;">Get your phone onto your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">Mac</span></span>.</h2>
-      <p style="margin:0;font-size:18px;line-height:1.55;color:#55526B;">Tell us where to send the download. It takes a minute.</p>
+      <p style="margin:0;font-size:18px;line-height:1.55;color:#55526B;">Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.</p>
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;">
         <a href="Get Sidekick.dc.html" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Get Sidekick</a>
         <a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Read the setup guide</a>
@@ -305,13 +305,13 @@ class Component extends DCLogic {
     const notarized = window.SK_CONFIG && window.SK_CONFIG.notarized;
     const FAQ = [
       ['What do I need?', 'A Mac with macOS 11 or later, an Android phone with Android 10 or later, and both Sidekick apps. The phone and the Mac need to be on the same Wi-Fi — or the Mac can join the phone\'s hotspot.'],
-      ['Do I need an account?', "No. There's nothing to sign in to in either app. The form on this website is only there to send you the download" + (tokenReq ? ' and your access token.' : '.')],
+      ['Do I need an account?', "No. There's nothing to sign in to in either app. During the beta, the person who invited you sends you a private link to the Mac app" + (tokenReq ? ' and your beta token.' : '.')],
       ['Does my data go through the cloud?', 'No. The phone and the Mac connect directly over your local network using TLS 1.3, and each remembers the other\'s certificate after pairing. There is no relay server, so Sidekick also doesn\'t work over the internet when you\'re away from that network.'],
       ['Does it work with iPhone or Windows?', 'No. Sidekick is for an Android phone and a Mac. iOS doesn\'t let apps read notifications, messages or the call log, so an iPhone version of these features isn\'t possible.'],
       ['Can I reply to chat apps like WhatsApp?', "You can reply to notifications from apps that offer a reply action, which includes many chat apps. That's replying to the notification — it isn't a full client for those apps."],
       ['Why does my phone ask permission every time I mirror?', 'Android requires a fresh tap on the phone for every screen-sharing session, and no app can remember it. Tap Start now on the phone and mirroring begins.'],
-      ...(tokenReq ? [['What is the access token?', 'The Mac app asks for an access token the first time it opens. We email it to you after you fill in the form. Paste it into the first-launch screen, or later in Settings › About.']] : []),
-      ['Why does macOS say it can\'t verify the app?', notarized ? 'It shouldn\'t — the current build is notarized by Apple. If you see a warning, download it again from the Download page.' : "The current Mac build isn't notarized by Apple yet, so macOS warns you the first time. The Download page shows the two steps to open it with Open Anyway. You never need to turn off Gatekeeper."]
+      ...(tokenReq ? [['What is the beta token?', 'The Mac app asks for a beta token the first time it opens. The person who invited you sends it to you privately. Paste it into the first-launch screen, or later in Settings › About.']] : []),
+      ['Why does macOS say it can\'t verify the app?', notarized ? 'It shouldn\'t — the current build is notarized by Apple. If you see a warning, download it again from the link you were sent.' : "The current Mac build isn't notarized by Apple yet, so macOS warns you the first time. The setup guide shows the two steps to open it with Open Anyway. You never need to turn off Gatekeeper."]
     ];
     const faqs = FAQ.map(([q, a], i) => { const open = this.state.faq === i; return { q, a, open, expanded: open ? 'true' : 'false', btnId: 'faq-b-' + i, panelId: 'faq-p-' + i,
       rot: open ? 'rotate(45deg)' : 'none', iconBg: open ? '#C6FF33' : 'transparent', toggle: () => this.setState(s => ({ faq: s.faq === i ? -1 : i })) }; });
@@ -331,7 +331,7 @@ class Component extends DCLogic {
       diagDir: mid ? 'row' : 'column',
       segW: mid ? '100%' : '40', segH: mid ? '40' : '64', segBox: mid ? '0 0 200 40' : '0 0 40 64', segPath: mid ? 'M 8 20 L 192 20' : 'M 20 6 L 20 58',
       steps: [
-        { n: '1', title: 'Install both apps', body: 'Sidekick for Mac from a .dmg; the Download page walks you through it. Android: currently in invited testing on Google Play.' },
+        { n: '1', title: 'Install both apps', body: 'Sidekick for Mac from a .dmg, through a private link from the person who invited you. Android: currently in invited testing on Google Play.' },
         { n: '2', title: 'Scan the QR code once', body: 'The Mac shows a code; the phone scans it. Both check each other\'s certificate before anything is sent.' },
         { n: '3', title: 'Use it', body: 'From then on the link comes back on its own when both devices are on the same network.' }
       ],
