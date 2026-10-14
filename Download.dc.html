@@ -55,7 +55,7 @@ a:hover{color:#3A22B8;}
     <section aria-labelledby="mac-h" style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:22px;">
       <div style="display:flex;align-items:center;gap:16px;">
         <span aria-hidden="true" style="display:flex;flex-direction:column;align-items:center;"><span style="width:52px;height:34px;border-radius:5px;border:2px solid #17142E;box-sizing:border-box;display:block;background:#E8E2FF;"></span><span style="width:64px;height:4px;border-radius:0 0 4px 4px;background:#17142E;display:block;"></span></span>
-        <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="mac-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Mac</h2><span style="font-size:15px;color:#55526B;">Sidekick for Mac · macOS 11 or later</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="mac-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Mac</h2><span style="font-size:15px;color:#55526B;">Sidekick for Mac · macOS 11.0 (Big Sur) or later</span></div>
       </div>
       <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;">
         <legend style="font-size:15px;font-weight:600;padding-bottom:10px;">Which Mac do you have?</legend>
@@ -219,7 +219,7 @@ class Component extends DCLogic {
     this.setState({ busy: '', toast: r && r.mock ? `MOCK — the real site redirects to a short-lived signed URL for the ${platform === 'mac' ? arch + ' .dmg' : '.apk'}.` : '' });
   }
   renderVals() {
-    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.0', mac: { builds: { arm64: {}, x64: {} } }, android: { build: {} } };
+    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.1', mac: { builds: { arm64: {}, x64: {} } }, android: { build: {} } };
     const pv = this.props.previewState ?? 'auto';
     const sess = window.SK_API ? window.SK_API.session() : null;
     const demo = { name: 'Alex', email: 'alex@example.com', macChip: 'apple' };

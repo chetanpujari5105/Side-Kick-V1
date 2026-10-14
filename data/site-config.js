@@ -1,5 +1,5 @@
 // Sidekick website — config flags + release facts.
-// Release facts are from docs/release-candidate-2026-10-12.md (candidate 83c4096).
+// Release facts: 2.0.1 values given by the owner on 2026-10-14; both DMGs' size and SHA-256 checked against the files on disk.
 // In production these come from GET /api/releases; this file is the mock.
 window.SK_CONFIG = {
   releaseState: 'invite',      // 'invite' | 'public'
@@ -18,14 +18,14 @@ window.SK_CONFIG = {
 };
 
 window.SK_RELEASES = {
-  version: '2.0.0',
+  version: '2.0.1',
   mac: {
-    minOS: 'macOS 11 or later',
+    minOS: 'macOS 11.0 (Big Sur) or later',
     builds: {
-      arm64: { label: 'Apple silicon', file: 'Sidekick-2.0.0-arm64.dmg', bytes: 121675455,
-               sha256: 'a50c2461bcc8e34130707006005dc61be267672702694fe46567f0c853b11d35' },
-      x64:   { label: 'Intel', file: 'Sidekick-2.0.0.dmg', bytes: 126572183,
-               sha256: '5bab1f5b838acffa5f4195f0f4c6423b0e3d67cd6be7e832c90a117a7a803e50' }
+      arm64: { label: 'Apple silicon', file: 'Sidekick-2.0.1-arm64.dmg', bytes: 121674754,
+               sha256: 'bf8042be0447c1ac9670981674a5a617b0485d4f21ed9f3e600279ae09f8b716' },
+      x64:   { label: 'Intel', file: 'Sidekick-2.0.1.dmg', bytes: 126571629,
+               sha256: '1f1a021bb94e671ba4541653f1db04c5f4ae959013fa42c640d13088868f6a1b' }
     }
   },
   android: {
