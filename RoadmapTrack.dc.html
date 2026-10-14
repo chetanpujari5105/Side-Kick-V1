@@ -60,9 +60,10 @@
                           <label for="{{ it.inputId }}" style="font-size:14px;font-weight:600;">Notify me when this ships</label>
                           <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <input id="{{ it.inputId }}" type="email" autoComplete="email" placeholder="you@example.com" value="{{ it.email }}" onChange="{{ it.onEmail }}" aria-invalid="{{ it.invalid }}" aria-describedby="{{ it.errId }}" style="flex:1;min-width:160px;height:44px;padding:0 14px;border-radius:12px;border:1.5px solid {{ it.inputBorder }};background:#FFFFFF;font:400 16px Inter,sans-serif;color:#17142E;box-sizing:border-box;" style-focus="outline:2px solid #5B3DF5;outline-offset:2px;">
-                            <button type="submit" style="height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;cursor:pointer;" style-hover="background:#C6FF33;">{{ it.btn }}</button>
+                            <button type="submit" disabled="{{ it.btnDisabled }}" style="height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;cursor:pointer;" style-hover="background:#C6FF33;">{{ it.btn }}</button>
                           </div>
                           <sc-if value="{{ it.error }}"><span id="{{ it.errId }}" style="font-size:14px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:16px;">error</span>{{ it.error }}</span></sc-if>
+                          <sc-if value="{{ mocks }}"><span style="font-size:14px;line-height:1.5;color:#55526B;">This isn't connected yet during the beta, so nothing is sent.</span></sc-if>
                         </form>
                       </sc-if>
                     </sc-if>
@@ -95,6 +96,7 @@ class Component extends DCLogic {
   setN(id, patch) { this.setState(s => ({ notify: { ...s.notify, [id]: { ...(s.notify[id] || {}), ...patch } } })); }
   async submit(e, id) {
     e.preventDefault();
+    if (window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) return;
     const n = this.state.notify[id] || {};
     const email = (n.email || '').trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.setN(id, { error: 'Enter an email address like name@example.com.' }); return; }
@@ -109,6 +111,7 @@ class Component extends DCLogic {
     const R = window.SK_ROADMAP || { phases: [], items: [], categories: [] };
     const limit = this.props.limit ?? 0;
     const showNotify = this.props.showNotify ?? true;
+    const mocks = !!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled);
     const horizontal = this.state.w >= 880;
     const f = this.state.filter;
     const chips = ['All', ...R.categories].map(c => {
@@ -134,13 +137,13 @@ class Component extends DCLogic {
           const isOpen = this.state.open === it.id; const n = this.state.notify[it.id] || {};
           return { ...it, isOpen, expanded: isOpen ? 'true' : 'false', rot: isOpen ? 'rotate(180deg)' : 'none', panelId: 'rm-' + it.id, inputId: 'rm-email-' + it.id, errId: n.error ? 'rm-err-' + it.id : undefined,
             note: it.note || '', email: n.email || '', error: n.error || '', invalid: n.error ? 'true' : 'false', inputBorder: n.error ? '#D9432F' : 'rgba(23,20,46,0.22)',
-            sent: !!n.sent, notSent: !n.sent, btn: n.sending ? 'Sending…' : 'Notify me',
+            sent: !mocks && !!n.sent, notSent: !(!mocks && !!n.sent), btnDisabled: mocks || !!n.sending, btn: mocks ? 'Not connected yet' : (n.sending ? 'Sending…' : 'Notify me'),
             toggle: () => this.setState(s => ({ open: s.open === it.id ? null : it.id })),
             onEmail: (e) => this.setN(it.id, { email: e.target.value, error: '' }),
             submit: (e) => this.submit(e, it.id) };
         }) };
     });
-    return { rootRef: this.rootRef, chips, phases, horizontal, vertical: !horizontal, showNotify, filterName: f,
+    return { rootRef: this.rootRef, chips, phases, horizontal, vertical: !horizontal, showNotify, mocks, filterName: f,
       cols: horizontal ? 'repeat(4, minmax(0,1fr))' : 'minmax(0,1fr)', gap: horizontal ? '20px' : '28px' };
   }
 }

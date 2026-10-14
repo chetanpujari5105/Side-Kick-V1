@@ -26,7 +26,7 @@ a:hover{color:#3A22B8;}
     <span style="font:500 14px 'JetBrains Mono',monospace;color:#55526B;">Roadmap</span>
     <h1 id="rm-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(46px,6.4vw,92px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">What we're building <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">next</span></span>.</h1>
     <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;">Sidekick keeps growing. This is the direction — plans can change, and nothing here is promised until it ships.</p>
-    <p style="margin:0;font-size:16px;line-height:1.55;color:#55526B;max-width:640px;">Open any item to read what it's for. Leave your email on the ones you care about and we'll send one message when it ships.</p>
+    <p style="margin:0;font-size:16px;line-height:1.55;color:#55526B;max-width:640px;">{{ intro }}</p>
   </section>
 
   <dc-import name="RoadmapTrack" limit="{{ zero }}" show-notify="{{ true }}" hint-size="100%,1400px"></dc-import>
@@ -59,7 +59,8 @@ a:hover{color:#3A22B8;}
           <sc-if value="{{ emErr }}"><span id="sg-em-e" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ emErr }}</span></sc-if>
         </div>
         <sc-if value="{{ failed }}"><p role="alert" style="margin:0;font-size:15px;line-height:1.5;color:#B3341F;">That didn't go through, and nothing was saved. Try again in a moment.</p></sc-if>
-        <button type="submit" disabled="{{ sending }}" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">{{ btn }}</button>
+        <sc-if value="{{ mocks }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This isn't connected yet during the beta, so nothing you type here is sent.</p></sc-if>
+        <button type="submit" disabled="{{ btnDisabled }}" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">{{ btn }}</button>
       </form>
       </sc-if>
     </div>
@@ -80,6 +81,7 @@ class Component extends DCLogic {
   }
   async submit(ev) {
     ev.preventDefault();
+    if (window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) return;
     const e = this.errs();
     if (Object.keys(e).length) { this.setState({ tried: true }); return; }
     this.setState({ status: 'sending' });
@@ -88,15 +90,18 @@ class Component extends DCLogic {
   }
   renderVals() {
     const e = this.state.tried ? this.errs() : {};
+    const mocks = !!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled);
+    const sent = !mocks && this.state.status === 'sent';
     return {
-      zero: 0, cols: this.state.w >= 900 ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)',
+      intro: mocks ? 'Open any item to read what it\'s for. Email updates aren\'t connected yet during the beta.' : 'Open any item to read what it\'s for. Leave your email on the ones you care about and we\'ll send one message when it ships.',
+      mocks, zero: 0, cols: this.state.w >= 900 ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)',
       msg: this.state.msg, email: this.state.email,
       onMsg: ev => this.setState({ msg: ev.target.value }), onEmail: ev => this.setState({ email: ev.target.value }),
       msgErr: e.msg || '', emErr: e.email || '', msgInv: e.msg ? 'true' : 'false', emInv: e.email ? 'true' : 'false',
       msgDesc: e.msg ? 'sg-msg-e' : undefined, emDesc: e.email ? 'sg-em-e' : undefined,
       msgBorder: e.msg ? '#D9432F' : 'rgba(23,20,46,0.22)', emBorder: e.email ? '#D9432F' : 'rgba(23,20,46,0.22)',
-      sent: this.state.status === 'sent', notSent: this.state.status !== 'sent', failed: this.state.status === 'failed',
-      sending: this.state.status === 'sending', btn: this.state.status === 'sending' ? 'Sending…' : 'Send suggestion',
+      sent, notSent: !sent, failed: this.state.status === 'failed',
+      sending: this.state.status === 'sending', btnDisabled: mocks || this.state.status === 'sending', btn: mocks ? 'Not connected yet' : (this.state.status === 'sending' ? 'Sending…' : 'Send suggestion'),
       submit: ev => this.submit(ev), again: () => this.setState({ msg: '', email: '', tried: false, status: 'idle' })
     };
   }

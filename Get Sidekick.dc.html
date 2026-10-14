@@ -235,7 +235,7 @@ class Component extends DCLogic {
       reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? 'Your beta token comes from the person who invited you. They send it to you privately.' : 'You can unsubscribe from updates in one click.'],
       intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.' : 'Tell us who you are and which Mac you have. Next you\'ll see the downloads for both apps and a short install guide.',
       purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : 'Five short questions, then your downloads.',
-      purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to send your download and to know which builds people need.' + (tokenReq ? ' Your beta token comes from the person who invited you, privately.' : '') + ' Ask us any time and we\'ll delete them.',
+      purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to know which builds people need.' + (tokenReq ? ' Your beta token comes from the person who invited you, privately.' : '') + ' Ask us any time and we\'ll delete them.',
       v, on: { name: set('name'), email: set('email'), phone: set('phone'), privacy: set('privacy'), updates: set('updates') },
       blur: Object.fromEntries(['name','email','phone'].map(k => [k, () => this.setState(s => ({ touched: { ...s.touched, [k]: true } }))])),
       e, inv: Object.fromEntries(keys.map(k => [k, e[k] ? 'true' : 'false'])),

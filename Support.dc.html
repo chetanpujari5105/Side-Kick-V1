@@ -144,7 +144,7 @@ class Component extends DCLogic {
         ].concat(C.mocksEnabled ? [
           'The Get Sidekick form isn\'t collecting anything yet. Nothing you type is sent to us or stored anywhere.'
         ] : [
-          'When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, and whether you asked for updates. We use them to send your download link and to know which builds people need.' + (C.tokenRequired ? ' Beta tokens are never sent through this website: the person who invited you sends yours privately.' : ''),
+          'When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, and whether you asked for updates. We use them only to know which builds people need.' + (C.tokenRequired ? ' Beta tokens are never sent through this website: the person who invited you sends yours privately.' : ''),
           'Updates are sent only if you tick the box and confirm by email. Every update has a one-click unsubscribe link.',
           'We keep your details until you ask us to delete them.'
         ]).concat(['Ask us to delete your details at any time by writing to ' + email + '. We delete them within 30 days of your request.']) }),
