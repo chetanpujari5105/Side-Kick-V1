@@ -36,6 +36,11 @@ window.SK_RELEASES = {
     storeUrl: null
   },
   changelog: [
+    { version: '2.0.1', date: '14 October 2026', items: [
+      'A Paste token button on the token screen.',
+      'Pasted tokens are cleaned up automatically, and the app says plainly when the text you pasted isn\'t a token (for example, a download checksum).',
+      'A short note before macOS may ask for your Mac password: choose Always Allow so it doesn\'t ask again.'
+    ]},
     { version: '2.0.0', date: null, items: [ // release date not confirmed yet; null hides it
       'Sidekick name and look across the Mac app and the phone app.',
       'Pair once by scanning a QR code; the link is TLS 1.3 with certificate pinning.',
