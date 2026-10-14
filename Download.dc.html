@@ -73,12 +73,16 @@ a:hover{color:#3A22B8;}
         <dt style="color:#55526B;">Version</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ ver }}</dd>
         <dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;word-break:break-all;">{{ mac.file }}</dd>
         <dt style="color:#55526B;">Size</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ mac.size }}</dd>
-        <dt style="color:#55526B;">SHA-256</dt>
-        <dd style="margin:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start;"><code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#F6F3EC;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code>
-          <button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button></dd>
       </dl>
-      <sc-if value="{{ notNotarized }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This build isn't notarized by Apple yet. macOS will warn you the first time you open it — step 1 below shows the way through.</p></sc-if>
+      <sc-if value="{{ notNotarized }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This build isn't notarized by Apple yet. macOS will warn you the first time you open it. Step 2 of <a href="#getting-started" style="color:#5B3DF5;font-weight:600;text-underline-offset:3px;">Getting started</a>, just below, shows the way through.</p></sc-if>
       <button type="button" onClick="{{ dlMac }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlMacLabel }}</button>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">You need a beta token from the person who invited you. Sidekick asks for it the first time you open it.</p>
+      <div role="group" aria-labelledby="sum-h" style="border-radius:16px;background:#F6F3EC;border:1px dashed rgba(23,20,46,0.25);padding:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;">
+        <span id="sum-h" style="font-size:15px;font-weight:600;color:#17142E;">Checksum <span style="font-weight:400;color:#55526B;">(optional, to check your download)</span></span>
+        <span style="font-size:14.5px;line-height:1.5;color:#55526B;">This is not your beta token.</span>
+        <code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#FFFFFF;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code>
+        <button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button>
+      </div>
     </section>
 
     <section aria-labelledby="and-h" style="border-radius:28px;background:#E8E2FF;padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:22px;">
@@ -98,23 +102,34 @@ a:hover{color:#3A22B8;}
   </div>
   <sc-if value="{{ toast }}"><p role="status" style="margin:-8px 0 0;font:500 14px 'JetBrains Mono',monospace;color:#55526B;">{{ toast }}</p></sc-if>
 
+  <section id="getting-started" aria-labelledby="gs-h" style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3.5vw,48px);display:flex;flex-direction:column;gap:18px;scroll-margin-top:24px;">
+    <h2 id="gs-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">Getting started</h2>
+    <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:12px;font-size:17px;line-height:1.55;max-width:760px;">
+      <li><strong>Download</strong> Sidekick for your Mac with the button above.</li>
+      <li><strong>Open it.</strong> Open the .dmg, drag Sidekick into Applications, then open Sidekick.<sc-if value="{{ notNotarized }}"> macOS says it couldn't verify the app: choose <strong>Done</strong>. Then open <strong>System Settings › Privacy &amp; Security</strong>, scroll to Security and choose <strong>Open Anyway</strong>. You only do this once.</sc-if></li>
+      <li><strong>Type your Mac password once.</strong> macOS asks for it the first time. Type it and choose <strong>Always Allow</strong>.</li>
+      <li><strong>Enter your beta token.</strong> Paste the token you were sent. It's a long piece of text that starts with SIDEKICK-TRIAL-1, and it's not the checksum above.</li>
+      <li><strong>Pair your phone.</strong> On the Mac, choose <strong>Pair a phone</strong>. On the phone, choose <strong>Connect your Mac</strong> and scan the code.</li>
+    </ol>
+  </section>
+
   <sc-if value="{{ tokenRequired }}">
   <section aria-labelledby="tok-h" style="border-radius:28px;background:#17142E;color:#F6F3EC;padding:clamp(24px,3.5vw,48px);display:grid;grid-template-columns:{{ splitCols }};gap:32px;align-items:center;">
     <div style="display:flex;flex-direction:column;gap:16px;">
-      <span style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR ACCESS TOKEN</span>
-      <h2 id="tok-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">The Mac app asks for a token the first time it opens.</h2>
-      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">We email it to <strong style="color:#F6F3EC;">{{ email }}</strong>. Nothing to do on the phone.</p>
+      <span style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR BETA TOKEN</span>
+      <h2 id="tok-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">The Mac app asks for a beta token the first time it opens.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">The person who invited you sends it to you privately. Nothing to do on the phone.</p>
       <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:17px;line-height:1.5;">
         <li>Open Sidekick on your Mac.</li>
         <li>Paste the token on the first-launch screen and choose Continue.</li>
         <li>Need it again later? It's in <strong>Settings › About</strong>.</li>
       </ol>
-      <a href="Support.dc.html#help" style="color:#C6FF33;font-size:16px;font-weight:600;text-underline-offset:5px;min-height:44px;display:flex;align-items:center;">No email after a while? Get help</a>
+      <a href="Support.dc.html#help" style="color:#C6FF33;font-size:16px;font-weight:600;text-underline-offset:5px;min-height:44px;display:flex;align-items:center;">Token not working? Get help</a>
     </div>
     <div aria-hidden="true" style="border-radius:20px;background:#0A0A0A;border:1px solid rgba(255,255,255,0.10);padding:24px;display:flex;flex-direction:column;gap:14px;color:#F2F3F5;font-family:Inter,sans-serif;">
       <span style="display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;"><img src="LOGOS/head_logo.png" alt="" style="width:36px;height:18px;object-fit:contain;">Welcome to Sidekick</span>
-      <span style="font-size:13px;color:#9A9CA8;">Paste the access token from your email.</span>
-      <span style="height:44px;border-radius:12px;background:#1A1A1A;border:1px solid rgba(198,255,51,0.35);display:flex;align-items:center;padding:0 14px;font:500 13px 'JetBrains Mono',monospace;color:#C9CBD3;">sk1.eyJ2Ijox••••••••••••••••</span>
+      <span style="font-size:13px;color:#9A9CA8;">Paste the beta token you were sent.</span>
+      <span style="height:44px;border-radius:12px;background:#1A1A1A;border:1px solid rgba(198,255,51,0.35);display:flex;align-items:center;padding:0 14px;font:400 13px Inter,sans-serif;color:#6A6C78;">Paste your beta token</span>
       <span style="align-self:flex-end;height:36px;padding:0 16px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:13px;font-weight:600;display:flex;align-items:center;">Continue</span>
     </div>
   </section>
@@ -222,7 +237,7 @@ class Component extends DCLogic {
       mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 },
       apk: { file: ab.file, size: this.fmt(ab.bytes), sha: ab.sha256 }, apkManual: ab.signed === true, noApk: ab.signed !== true,
       notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false,
-      copyMacLabel: this.state.copied ? 'Copied' : 'Copy SHA-256', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
+      copyMacLabel: this.state.copied ? 'Copied' : 'Copy checksum', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
       copyMac: () => { try { navigator.clipboard.writeText(b.sha256); } catch (e) {} this.setState({ copied: true }); },
       dlMacLabel: this.state.busy === 'mac' ? 'Preparing…' : `Download for ${arch === 'arm64' ? 'Apple silicon' : 'Intel'} (.dmg)`,
       dlApkLabel: this.state.busy === 'android' ? 'Preparing…' : 'Download for Android (.apk)',
