@@ -36,7 +36,7 @@ a:hover{color:#3A22B8;}
   <nav aria-label="Support pages" style="position:{{ navPos }};top:24px;display:flex;flex-direction:{{ navDir }};gap:4px;overflow-x:auto;padding:4px;margin:-4px;">
     <span style="font:500 13px 'JetBrains Mono',monospace;color:#55526B;padding:0 14px 10px;display:{{ navLabel }};">SUPPORT</span>
     <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
-      <a href="{{ n.href }}" aria-current="{{ n.current }}" style="flex:none;min-height:48px;padding:0 16px;border-radius:999px;display:flex;align-items:center;gap:10px;text-decoration:none;font-size:16px;font-weight:600;background:{{ n.bg }};color:#17142E;border:1.5px solid {{ n.border }};white-space:nowrap;" style-hover="border-color:#17142E;">{{ n.label }}</a>
+      <a href="{{ n.href }}" aria-current="{{ n.current }}" onFocus="{{ n.reveal }}" style="flex:none;min-height:48px;padding:0 16px;border-radius:999px;display:flex;align-items:center;gap:10px;text-decoration:none;font-size:16px;font-weight:600;background:{{ n.bg }};color:#17142E;border:1.5px solid {{ n.border }};white-space:nowrap;" style-hover="border-color:#17142E;">{{ n.label }}</a>
     </sc-for>
   </nav>
   <main id="main" style="display:flex;flex-direction:column;gap:clamp(32px,4vw,48px);max-width:820px;min-width:0;">
@@ -173,7 +173,8 @@ class Component extends DCLogic {
       page: P[cur], headerActive: cur === 'privacy' ? 'privacy' : '',
       cols: wide ? '240px minmax(0,1fr)' : 'minmax(0,1fr)', navPos: wide ? 'sticky' : 'static', navDir: wide ? 'column' : 'row', navLabel: wide ? 'block' : 'none',
       rowCols: this.state.w >= 720 ? 'minmax(0,2fr) minmax(0,3fr)' : 'minmax(0,1fr)',
-      nav: Object.keys(P).map(k => ({ label: P[k].label, href: '#' + k, current: k === cur ? 'page' : undefined, bg: k === cur ? '#C6FF33' : 'transparent', border: k === cur ? '#17142E' : 'transparent' })),
+      // On narrow screens the nav is a sideways-scrolling row; a partly visible pill isn't scrolled by focus alone.
+      nav: Object.keys(P).map(k => ({ reveal: (e) => e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' }), label: P[k].label, href: '#' + k, current: k === cur ? 'page' : undefined, bg: k === cur ? '#C6FF33' : 'transparent', border: k === cur ? '#17142E' : 'transparent' })),
       supportEmail: (window.SK_CONFIG && window.SK_CONFIG.supportEmail) || 'chetanpujari.sitit@gmail.com'
     };
   }
