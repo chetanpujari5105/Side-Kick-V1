@@ -172,4 +172,4 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 - Android app labels used ("Connect your Mac", "Allow from this source", "Start now") match the repo checklist and stock Android, but may differ by OEM skin.
 
 ## 11. Follow-ups
-- **Self-host React to remove unpkg.** `support.js` loads `react@18.3.1` and `react-dom@18.3.1` from unpkg.com on every page, so unpkg receives each visitor's request details. Serve both files from this site instead, then remove unpkg from the "This website" paragraph in Support › Privacy (`Support.dc.html`).
+- ~~**Self-host React to remove unpkg.**~~ **Done 2026-10-15.** `support.js` now loads `vendor/react-18.3.1/react.production.min.js` and `react-dom.production.min.js` from this site (byte-identical to unpkg's, still checked against the same SRI hashes; React's MIT licence is in `vendor/react-18.3.1/LICENSE`). Its Babel loader is disabled — no page uses a JSX x-import — so no page contacts a third-party origin. `support.js` is generated: re-apply the patch (marked at the top of the file) if it is regenerated. Support › Privacy no longer mentions unpkg.

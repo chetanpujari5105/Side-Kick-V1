@@ -140,7 +140,7 @@ class Component extends DCLogic {
           I('Kept on your devices.', 'Notifications, messages, contacts and photos shown on the Mac are held in memory while you are connected and aren\'t written to disk, unless you save a photo or file. Clipboard history is kept in memory only, at most 20 entries, and is cleared when the connection ends.')],
           link: { label: 'Read the full Sidekick privacy policy', href: 'https://chetan-website-delta.vercel.app/sidekick/privacy' } }),
         S('This website', { paras: [
-          'This website sets no cookies and runs no analytics. It\'s hosted by Vercel, and each page loads the React library from unpkg.com, so both receive the standard request details (such as your IP address and browser) that any website visit sends.'
+          'This website sets no cookies and runs no analytics. It\'s hosted by Vercel, which receives the standard request details (such as your IP address and browser) that any website visit sends. Everything the pages load, including fonts and code, comes from this site, so no other company receives those details.'
         ].concat(C.mocksEnabled ? [
           'The Get Sidekick form isn\'t collecting anything yet. Nothing you type is sent to us or stored anywhere.'
         ] : [

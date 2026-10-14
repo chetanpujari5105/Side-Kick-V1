@@ -1,4 +1,7 @@
 // GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.
+// LOCAL PATCH (2026-10-15, Handoff §11): React and ReactDOM load from vendor/react-18.3.1/ on this site
+// instead of unpkg.com (same files, same SRI hashes), and the Babel loader is disabled because no page uses
+// a JSX x-import. Re-apply this if support.js is ever regenerated.
 "use strict";
 (() => {
   var __defProp = Object.defineProperty;
@@ -1140,12 +1143,10 @@
   }
 
   // src/cdn.ts
-  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
+  var REACT_URL = "vendor/react-18.3.1/react.production.min.js";
   var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
-  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
+  var REACT_DOM_URL = "vendor/react-18.3.1/react-dom.production.min.js";
   var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
-  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
-  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
   function cdnScriptFor(url, sri) {
     const res = window.__resources;
     const v = res ? res[url] : void 0;
@@ -1176,18 +1177,7 @@
     function ensureBabel() {
       if (window.Babel) return Promise.resolve();
       if (babelLoading) return babelLoading;
-      const babel = cdnScriptFor(BABEL_URL, BABEL_SRI);
-      babelLoading = new Promise((res, rej) => {
-        const s = document.createElement("script");
-        s.src = babel.src;
-        if (babel.integrity) {
-          s.integrity = babel.integrity;
-          s.crossOrigin = "anonymous";
-        }
-        s.onload = () => res();
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
+      babelLoading = Promise.reject(new Error("dc-runtime: a JSX x-import needs Babel, which this site does not ship (no third-party CDN)"));
       return babelLoading;
     }
     const pending = /* @__PURE__ */ new Map();
