@@ -48,7 +48,7 @@ a:hover{color:#3A22B8;}
 <sc-if value="{{ valid }}" hint-placeholder-val="{{ true }}">
   <section aria-labelledby="dl-h" style="display:flex;flex-direction:column;gap:20px;max-width:900px;">
     <h1 id="dl-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">You're <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">in</span></span>, {{ name }}.</h1>
-    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;">Here are both apps. Install the Mac app first, then the phone app, then pair them with one scan.</p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;"><sc-if value="{{ apkManual }}">Here are both apps. Install the Mac app first, then the phone app, then pair them with one scan.</sc-if><sc-if value="{{ noApk }}">Here's the Mac app. Android: currently in invited testing on Google Play.</sc-if></p>
   </section>
 
   <div style="display:grid;grid-template-columns:{{ splitCols }};gap:20px;">
@@ -88,12 +88,12 @@ a:hover{color:#3A22B8;}
       </div>
       <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;font-size:15.5px;">
         <dt style="color:#55526B;">Version</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ ver }}</dd>
-        <dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ apk.file }}</dd>
+        <sc-if value="{{ apkManual }}"><dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ apk.file }}</dd></sc-if>
         <sc-if value="{{ apk.size }}"><dt style="color:#55526B;">Size</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;">{{ apk.size }}</span></dd></sc-if>
         <sc-if value="{{ apk.sha }}"><dt style="color:#55526B;">SHA-256</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;word-break:break-all;">{{ apk.sha }}</span></dd></sc-if>
       </dl>
-      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">Download it on the phone itself, or on the Mac and send it across. You'll allow installs from that app once.</p>
-      <button type="button" onClick="{{ dlApk }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlApkLabel }}</button>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;"><sc-if value="{{ apkManual }}">Download it on the phone itself, or on the Mac and send it across. You'll allow installs from that app once.</sc-if><sc-if value="{{ noApk }}">Android: currently in invited testing on Google Play.</sc-if></p>
+      <sc-if value="{{ apkManual }}"><button type="button" onClick="{{ dlApk }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlApkLabel }}</button></sc-if>
     </section>
   </div>
   <sc-if value="{{ toast }}"><p role="status" style="margin:-8px 0 0;font:500 14px 'JetBrains Mono',monospace;color:#55526B;">{{ toast }}</p></sc-if>
@@ -149,13 +149,14 @@ a:hover{color:#3A22B8;}
       <li style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:28px;display:flex;flex-direction:column;gap:18px;">
         <span style="width:44px;height:44px;border-radius:50%;background:#17142E;color:#F6F3EC;font:600 16px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;">2</span>
         <h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:26px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">Install on your phone</h3>
-        <div aria-hidden="true" style="border-radius:16px;background:#E8E2FF;height:220px;overflow:hidden;display:flex;justify-content:center;padding-top:18px;">
+        <sc-if value="{{ apkManual }}"><div aria-hidden="true" style="border-radius:16px;background:#E8E2FF;height:220px;overflow:hidden;display:flex;justify-content:center;padding-top:18px;">
           <div style="width:156px;height:328px;flex:none;"><div style="width:390px;height:820px;transform:scale(0.4);transform-origin:0 0;"><dc-import name="PhoneScreen" screen="install" hint-size="390px,820px"></dc-import></div></div>
-        </div>
+        </div></sc-if>
         <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:16.5px;line-height:1.5;">
-          <li>Open the .apk from your phone's Downloads.</li>
+          <sc-if value="{{ noApk }}"><li>Android: currently in invited testing on Google Play.</li></sc-if>
+          <sc-if value="{{ apkManual }}"><li>Open the .apk from your phone's Downloads.</li>
           <li>When Android asks, turn on <strong>Allow from this source</strong> for that app.</li>
-          <li>Go back and choose <strong>Install</strong>.</li>
+          <li>Go back and choose <strong>Install</strong>.</li></sc-if>
         </ol>
       </li>
       <li style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:28px;display:flex;flex-direction:column;gap:18px;">
@@ -219,7 +220,7 @@ class Component extends DCLogic {
       splitCols: wide ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', stepCols: this.state.w >= 1100 ? 'repeat(3,minmax(0,1fr))' : 'minmax(0,1fr)',
       archOpts, ver: R.version, intelWarn: arch === 'x64' && !C.intelBuildTested, unsureNote: chip === 'unsure' && !this.state.arch,
       mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 },
-      apk: { file: ab.file, size: this.fmt(ab.bytes), sha: ab.sha256 },
+      apk: { file: ab.file, size: this.fmt(ab.bytes), sha: ab.sha256 }, apkManual: ab.signed === true, noApk: ab.signed !== true,
       notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false,
       copyMacLabel: this.state.copied ? 'Copied' : 'Copy SHA-256', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
       copyMac: () => { try { navigator.clipboard.writeText(b.sha256); } catch (e) {} this.setState({ copied: true }); },

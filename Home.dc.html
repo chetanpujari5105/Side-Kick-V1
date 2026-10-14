@@ -331,7 +331,7 @@ class Component extends DCLogic {
       diagDir: mid ? 'row' : 'column',
       segW: mid ? '100%' : '40', segH: mid ? '40' : '64', segBox: mid ? '0 0 200 40' : '0 0 40 64', segPath: mid ? 'M 8 20 L 192 20' : 'M 20 6 L 20 58',
       steps: [
-        { n: '1', title: 'Install both apps', body: 'Sidekick for Mac from a .dmg, Sidekick for Android from an .apk. The Download page walks you through both.' },
+        { n: '1', title: 'Install both apps', body: 'Sidekick for Mac from a .dmg; the Download page walks you through it. Android: currently in invited testing on Google Play.' },
         { n: '2', title: 'Scan the QR code once', body: 'The Mac shows a code; the phone scans it. Both check each other\'s certificate before anything is sent.' },
         { n: '3', title: 'Use it', body: 'From then on the link comes back on its own when both devices are on the same network.' }
       ],
@@ -346,7 +346,7 @@ class Component extends DCLogic {
         { tag: 'SECURE SCREENS', title: 'Some screens show as blank.', body: 'Banking apps, protected video and the lock screen are blanked by Android while mirroring. Sidekick tells you when that happens.' },
         { tag: 'CALLS', title: 'Call audio stays on the phone.', body: "Sidekick shows calls and lets you dial, but it doesn't stream call audio to the Mac. You talk on the phone." },
         { tag: 'CLIPBOARD', title: 'Phone → Mac works while the app is open.', body: "Android blocks apps from reading the clipboard in the background, so copy on the phone with Sidekick open. Mac → phone is automatic." },
-        { tag: 'FILES', title: 'Only the folders you share.', body: "File browsing covers folders you grant on the phone. Android keeps the Download folder itself off-limits, so files you send land in Download/Sidekick." },
+        { tag: 'FILES', title: 'Only the folders you share.', body: "File browsing covers folders you grant on the phone. Android keeps the Download folder itself off-limits, so files you send land in Download/ConnectSuite." },
         { tag: 'NETWORK', title: 'Same network, no isolation.', body: "Both devices need to be on the same network. Routers with \"AP isolation\" turned on stop devices seeing each other; the phone's hotspot works instead." },
         { tag: 'BATTERY', title: 'Some phones pause background apps.', body: 'Certain brands stop apps in the background to save battery. The setup guide shows where to let Sidekick keep running.' }
       ],

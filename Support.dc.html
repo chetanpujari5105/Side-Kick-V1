@@ -84,9 +84,9 @@ class Component extends DCLogic {
     const email = C.supportEmail, policyDraft = [C.publisher, C.publisherAddress, C.supportEmail, C.policyEffectiveDate].some(unset);
     return {
       setup: { label: 'Setup', pre: 'Set up ', mark: 'Sidekick', post: '.', intro: 'About ten clicks on the Mac and a few taps on the phone. You only pair once.', sections: [
-        S('What you need', { items: [I('A Mac', 'with macOS 11 or later.'), I('An Android phone', 'with Android 10 or later.'), I('The same network', '— both on one Wi-Fi, or the Mac joined to the phone\'s hotspot.'), I('Both apps', 'from the Download page.')] }),
+        S('What you need', { items: [I('A Mac', 'with macOS 11 or later.'), I('An Android phone', 'with Android 10 or later.'), I('The same network', '— both on one Wi-Fi, or the Mac joined to the phone\'s hotspot.'), I('Both apps', '— the Mac app from the Download page. Android: currently in invited testing on Google Play.')] }),
         S('1. Install on the Mac', { paras: ['Open the .dmg and drag Sidekick into Applications, then open it.', C.notarized ? 'macOS opens it normally.' : 'This build isn\'t notarized by Apple yet, so macOS says it couldn\'t verify the app. Choose Done, then open System Settings › Privacy & Security, scroll to Security and choose Open Anyway. You only do this once, and you never need to turn off Gatekeeper.', 'When macOS asks whether Sidekick may find devices on your local network, allow it — that is how the Mac reaches the phone.'].concat(C.tokenRequired ? ['Paste the access token from your email on the first-launch screen.'] : []) }),
-        S('2. Install on the phone', { paras: ['Open the .apk. Android asks you to allow installs from the app you opened it with — turn on Allow from this source, go back and choose Install.'] }),
+        S('2. Install on the phone', { paras: ['Android: currently in invited testing on Google Play.'] }),
         S('3. Pair', { paras: ['On the Mac choose Pair a phone. On the phone choose Connect your Mac and scan the code. Both check each other\'s certificate before anything else happens. From then on the link comes back by itself.'] }),
         S('4. Keep it connected', { paras: ['Some phone brands stop apps in the background to save battery. If notifications stop arriving after a while, allow Sidekick to run:'], items: [
           I('All phones:', 'allow Sidekick when it asks to be excluded from battery optimisation.'),
@@ -108,7 +108,7 @@ class Component extends DCLogic {
           { a: 'The mirrored screen is black', b: 'The app on the phone protects its screen — banking apps, protected video and the lock screen do this. Android blanks it for every app; Sidekick says when it happens.' }] }),
         S('Files and clipboard', { rows: [
           { a: 'Transfers pause near the end', b: 'Usually Wi-Fi power saving. The transfer pauses and picks up again once both devices see each other.' },
-          { a: "Can't see a file in Download", b: "Android doesn't let apps open the Download folder itself. Folders inside it can be shared; files sent from the Mac land in Download/Sidekick." },
+          { a: "Can't see a file in Download", b: "Android doesn't let apps open the Download folder itself. Folders inside it can be shared; files sent from the Mac land in Download/ConnectSuite." },
           { a: "Phone clipboard doesn't reach the Mac", b: 'Copy on the phone while Sidekick is open on it. Android blocks background clipboard reads for every app.' }] }),
         S('Access token', { rows: [ { a: 'No token email', b: 'Check spam, then write to support with the email you used on the form.' }, { a: 'Need to re-enter it', b: 'Settings › About in the Mac app.' }] })
       ]},

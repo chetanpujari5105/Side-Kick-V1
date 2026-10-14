@@ -124,7 +124,7 @@ a:hover{color:#3A22B8;}
 
       <sc-if value="{{ showCaptcha }}"><div aria-label="Human check" style="height:66px;border-radius:12px;border:1.5px dashed rgba(23,20,46,0.25);background:repeating-linear-gradient(-45deg,#F6F3EC 0 10px,#EFEBE2 10px 20px);display:flex;align-items:center;justify-content:center;font:500 13px 'JetBrains Mono',monospace;color:#55526B;">[Turnstile / hCaptcha widget — mock]</div></sc-if>
 
-      <button type="submit" disabled="{{ busyBool }}" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:{{ cursor }};opacity:{{ btnOpacity }};transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">
+      <button type="submit" disabled="{{ btnDisabled }}" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:{{ cursor }};opacity:{{ btnOpacity }};transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">
         <sc-if value="{{ busyBool }}"><span aria-hidden="true" ref="{{ spinRef }}" style="width:18px;height:18px;border-radius:50%;border:2.5px solid #17142E;border-right-color:transparent;box-sizing:border-box;"></span></sc-if>
         {{ btnLabel }}
       </button>
@@ -146,7 +146,7 @@ a:hover{color:#3A22B8;}
 </sc-if>
 <dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;mockOutcome&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;success&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;invalid&quot;],&quot;default&quot;:&quot;success&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Mock API&quot;},&quot;previewState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;live&quot;,&quot;empty&quot;,&quot;focus&quot;,&quot;errors&quot;,&quot;submitting&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;success&quot;],&quot;default&quot;:&quot;live&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Design review&quot;},&quot;showReview&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Design review&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;mockOutcome&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;success&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;invalid&quot;],&quot;default&quot;:&quot;success&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Mock API&quot;},&quot;previewState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;live&quot;,&quot;empty&quot;,&quot;focus&quot;,&quot;errors&quot;,&quot;submitting&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;success&quot;],&quot;default&quot;:&quot;live&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Design review&quot;},&quot;showReview&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Design review&quot;}}">
 class Component extends DCLogic {
   state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440,
     v: { name: '', email: '', chip: '', phone: '', privacy: false, updates: false },
@@ -195,7 +195,7 @@ class Component extends DCLogic {
   }
   async submit(e) {
     e && e.preventDefault && e.preventDefault();
-    if (this.state.status === 'submitting') return;
+    if (this.state.status === 'submitting' || (window.SK_CONFIG && window.SK_CONFIG.mocksEnabled)) return;
     const errs = this.validate(this.state.v);
     if (Object.keys(errs).length) {
       this.setState({ submitted: true, status: 'idle', serverErr: {} }, () => { const s = document.getElementById('err-summary'); s && s.focus(); });
@@ -223,6 +223,8 @@ class Component extends DCLogic {
     const keys = ['name','email','chip','phone','privacy'];
     const set = k => ev => { const val = ev.target.type === 'checkbox' ? ev.target.checked : ev.target.value; this.setState(s => ({ v: { ...s.v, [k]: val }, serverErr: { ...s.serverErr, [k]: undefined } })); };
     const busy = status === 'submitting';
+    const mocks = !!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled);
+    const success = !mocks && (status === 'success' || status === 'success_preview');
     const tokenReq = !window.SK_CONFIG || window.SK_CONFIG.tokenRequired;
     const ids = { name: 'f-name', email: 'f-email', chip: 'f-chip', phone: 'f-phone', privacy: 'f-privacy' };
     const summary = submitted && status === 'idle' ? keys.filter(k => e[k]).map(k => ({ msg: e[k], href: '#' + ids[k], go: (ev) => { ev.preventDefault(); const el = document.getElementById(ids[k]); if (el) { (el.querySelector && el.querySelector('input') || el).focus(); } } })) : [];
@@ -231,8 +233,8 @@ class Component extends DCLogic {
     return {
       cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',
       reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? 'Your access token for the Mac app arrives by email.' : 'You can unsubscribe from updates in one click.'],
-      purpose: 'Five short questions, then your downloads.',
-      purpose2: 'We use these details only to send your download' + (tokenReq ? ' and access token' : '') + ' and to know which builds people need. Ask us any time and we\'ll delete them.',
+      purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : 'Five short questions, then your downloads.',
+      purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to send your download' + (tokenReq ? ' and access token' : '') + ' and to know which builds people need. Ask us any time and we\'ll delete them.',
       v, on: { name: set('name'), email: set('email'), phone: set('phone'), privacy: set('privacy'), updates: set('updates') },
       blur: Object.fromEntries(['name','email','phone'].map(k => [k, () => this.setState(s => ({ touched: { ...s.touched, [k]: true } }))])),
       e, inv: Object.fromEntries(keys.map(k => [k, e[k] ? 'true' : 'false'])),
@@ -242,14 +244,14 @@ class Component extends DCLogic {
       chips: chipOpts.map(([value, label]) => ({ value, label, checked: v.chip === value,
         border: v.chip === value ? '#5B3DF5' : (e.chip ? '#D9432F' : 'rgba(23,20,46,0.22)'), bg: v.chip === value ? '#E8E2FF' : '#FFFFFF',
         pick: () => this.setState(s => ({ v: { ...s.v, chip: value } })) })),
-      busy: busy ? 'true' : 'false', busyBool: busy, cursor: busy ? 'progress' : 'pointer', btnOpacity: busy ? 0.85 : 1,
-      btnLabel: busy ? 'Sending…' : 'Continue to download',
-      isSuccess: status === 'success' || status === 'success_preview', showForm: !(status === 'success' || status === 'success_preview'),
+      busy: busy ? 'true' : 'false', busyBool: busy, btnDisabled: busy || mocks, cursor: busy ? 'progress' : 'pointer', btnOpacity: busy ? 0.85 : 1,
+      btnLabel: mocks ? 'Not open yet' : (busy ? 'Sending…' : 'Continue to download'),
+      isSuccess: success, showForm: !success,
       bannerServer: status === 'server_error', bannerRate: status === 'rate_limited',
       hasSummary: summary.length > 0, summary, errCount: summary.length === 1 ? '1 thing' : summary.length + ' things',
       submit: (ev) => this.submit(ev),
       showCaptcha: !(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled),
-      showReview: this.props.showReview ?? true,
+      showReview: this.props.showReview ?? false,
       reviewStates: review.map(r => ({ label: r.replace('_', ' '), on: this.state.review === r ? 'true' : 'false',
         bg: this.state.review === r ? '#17142E' : 'transparent', color: this.state.review === r ? '#F6F3EC' : '#17142E', border: this.state.review === r ? '#17142E' : 'rgba(23,20,46,0.2)',
         go: () => this.applyReview(r) }))

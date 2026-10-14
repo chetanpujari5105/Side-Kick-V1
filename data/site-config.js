@@ -14,7 +14,7 @@ window.SK_CONFIG = {
   supportEmail: 'chetanpujari.sitit@gmail.com',
   publisher: 'Chetan Pujari',
   publisherAddress: 'India',
-  policyEffectiveDate: '14 October 2026'
+  policyEffectiveDate: '13 October 2026'
 };
 
 window.SK_RELEASES = {
