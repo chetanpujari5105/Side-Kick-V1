@@ -147,6 +147,7 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 
 ## 8. Build notes
 - The prototype switches responsive layouts in JS (inline styles only). In production, use CSS media and container queries and render on the server so content reads **without JS**. FAQ answers and roadmap items should be server-rendered `<details>` or open by default.
+  - **Interim (2026-10-15):** Home's FAQ and the Roadmap page carry a generated `<noscript>` copy (FAQ as `<details>`, roadmap as lists by phase), and a `<noscript>` style hides their `data-js-only` templates. Run `node tools/noscript.mjs` after editing the FAQ array, `data/roadmap-data.js` or `data/site-config.js`; `--check` exits 1 if a copy is stale. Everything else still needs JS: header and footer (`dc-import`), Home's feature tabs, steps, security chips, app tiles and limits list, all of Support, the forms, the Download page's valid state and 404's text.
 - Test at 360 / 390 / 768 / 1024 / 1440 and at 200% zoom. There is no horizontal overflow. The tab list scrolls sideways on its own row.
 - Motion: hero rise and line draw play once. The pulse runs only on the lime dot. Tabs crossfade over 200ms. The diagram draws when it scrolls into view. Everything is off under `prefers-reduced-motion`.
 - Never put the real file URLs in page source.

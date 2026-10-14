@@ -14,6 +14,9 @@ Open `Home.dc.html` through any static server (e.g. `npx serve .`) — not via f
 
 Request/response schemas, env vars, tokens and launch blockers: see `Handoff.md`.
 
+## No-JavaScript copies
+Home's FAQ and the Roadmap page include generated `<noscript>` copies. After editing the FAQ, `data/roadmap-data.js` or `data/site-config.js`, run `node tools/noscript.mjs` (and `node tools/noscript.mjs --check` before deploying).
+
 ## Files
 - `*.dc.html` — pages and shared components (need `support.js` next to them)
 - `data/` — config flags, release facts, roadmap data, API layer
