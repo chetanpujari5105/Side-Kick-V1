@@ -97,10 +97,10 @@ Status chips: **Next up** lime with ink border · **In design** violet with whit
 ---
 
 ## 5. Assets
-- `LOGOS/head_logo.png` (mask, transparent, from the repo). **Needs an SVG or optimised export** (895 KB as PNG).
-- `LOGOS/main_logo.png` (app tile, used in the Gatekeeper illustration).
+- `LOGOS/head_logo.png` (mask, transparent). **Optimised 2026-10-15:** 144×77, 18 KB (was 512×275, 165 KB; the 895 KB original is the unused `LOGOS/head_logo1.png`, kept out of the deployment). 144 px is 3× its largest use (48 CSS px). An SVG would still be better.
+- `LOGOS/main_logo.png` (app tile, used in the Gatekeeper illustration at 44 px). **Optimised 2026-10-15:** 132×132, 21 KB (was 1254×1254, 1.1 MB). The full-size originals are in git history and the app repo.
 - `fonts/` holds self-hosted, subset woff2 files (latin + latin-ext) for Bricolage Grotesque, Inter, JetBrains Mono and a Material Symbols Rounded subset of about 70 icons. `fonts/fonts.css` uses `font-display: swap` (the icon font uses `block`). Licences: OFL / Apache 2.0, so ship the licence files.
-- Needed: favicon set, OG image (1200×630), Apple touch icon.
+- **Placeholders added 2026-10-15** (replace with designed assets when ready): `favicon.ico` (16/32/48) and `icons/favicon-32.png` — the mask on the app tile's cream; `icons/apple-touch-icon.png` (180×180, opaque); `icons/og-image.png` (1200×630, rendered from the site's own fonts and colours). Every page links the icons in its static `<head>`; Home, Get Sidekick, Roadmap and Support also carry Open Graph and Twitter card tags. **`og:image` is relative until the domain is set** — most link previews need it absolute (`https://<domain>/icons/og-image.png`).
 - App screens are built in HTML, not screenshots. If you swap in real captures, they must contain only fictional data.
 
 ---
