@@ -113,7 +113,7 @@ Mac: storage adapter → signed URL → insert `{signupId, platform, arch, ts}` 
 only from the storage adapter (a host from config), never from the request: no open redirect. A browser
 navigation without a valid session gets `303 → /Download.dc.html` (the page shows the expired state); `fetch`
 gets 401. Android: `releases.android.storeUrl` if set and on `https://play.google.com/` → 302; otherwise 404
-`NOT_AVAILABLE`. No APK is ever served. `x64` → 404.
+`NOT_AVAILABLE`. No APK is ever served, and `releases.json` may not even describe one (`releaseProblems` refuses `android.build`). `x64` → 404.
 
 ### 3.6 Releases
 `data/releases.json` is the one source. `/api/releases` imports it; the pages load `data/releases.js`, a copy
@@ -130,7 +130,7 @@ Never fill a hash or size by hand from memory: `node tools/releases.mjs --from-d
 | `rate_limits` | bucket (HMAC of IP or email, never clear), window start, count | Deleted after 2 days |
 | `downloads` | signup id, platform, arch, created_at | 180 days |
 | `outbox` | queued email: to, subject, text, claimed/sent times, attempts, error code | Address and text erased on send; rows deleted after 7 days |
-| `roadmap_notify` | email, feature id, confirmed_at | Unconfirmed: 7 days |
+| `roadmap_notify` | email, feature id, confirmed_at | Unconfirmed: 7 days; confirmed: a year after confirming |
 | `feedback` | message, optional email | 365 days |
 | `settings` | beta_cap, allow list, deny list | — |
 | `admin_nonces` | nonce, seen_at | 1 day |
@@ -167,7 +167,7 @@ timestamp is more than 300 s away, the nonce was seen (stored in `admin_nonces`,
 | `pending` | signer | Claims up to 10 approved signups without a token (claim expires after 15 min) → `[{signupId, label}]`; label = the name, control characters removed, ≤ 60 chars |
 | `token` | signer | `{signupId, token}` → checks the token's shape (`SIDEKICK-TRIAL-1.<payload>.<86 chars>`, base64url), stores it once, state `issued`, queues the token email. A second token for the same person → 409 |
 | `outbox` / `outbox-ack` | signer | Claims queued emails / reports sent or failed; on success the address and text are erased |
-| `stats`, `export` (CSV), `set-state`, `delete`, `settings`, `promote`, `retention` | admin | The CLI in `tools/admin/` |
+| `stats`, `export` (CSV), `set-state`, `delete`, `unsubscribe`, `settings`, `promote`, `retention` | admin | The CLI in `tools/admin/` |
 
 **The signer** (`tools/signer/signer.mjs`, never deployed — `/tools` is in `.vercelignore`) runs on the owner's Mac by
 launchd every 5 minutes (`tools/signer/com.sidekick.signer.plist.template`) or by hand
@@ -196,7 +196,10 @@ like an email, a token, an IPv4/IPv6 address or a bearer secret before printing,
 Tests capture every log line and fail on any test email, token, IP or secret.
 
 Delete-my-data: in plain words on Support › Privacy (write to the support email from the signup address);
-`node tools/admin/admin.mjs delete <email>` removes the person and everything linked.
+`node tools/admin/admin.mjs delete <email>` removes the sign-up and everything linked, plus roadmap requests and
+feedback from that address, and the signer's local token copy (the issuer's own list is edited by hand).
+`unsubscribe <email>` withdraws updates consent and removes roadmap requests; updates are stopped on request by
+email, since no update-sending code exists yet (closeout 2026-10-15).
 
 ## 8. Headers
 
