@@ -1,7 +1,7 @@
 // Postgres repository. `db` is { query(text, params) → rows, transaction([{text, params}]) → [rows] }:
 // neonDb() below on Vercel, a PGlite wrapper in tests. Every write is one statement or one non-interactive
 // transaction, so the Neon HTTP driver needs no session.
-const ALLOWED = `('approved','issued','delivered')`;
+const ALLOWED = `('approved','play_added','issued','delivered')`;
 const DAY = 86400000;
 
 const camel = (row) => {
@@ -45,9 +45,9 @@ export class PgRepo {
 
   async upsertSignup(v, now) {
     const t = d(now);
-    const ins = await this.q(`insert into signups (id, email, email_norm, name, mac_chip, phone_model, privacy_accepted_at, marketing_requested_at, created_at, updated_at)
-      values (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $6, $6) on conflict (email_norm) do nothing returning *`,
-      [v.email, v.emailNorm, v.name, v.macChip, v.phoneModel, t, v.marketingOptIn ? t : null]);
+    const ins = await this.q(`insert into signups (id, email, email_norm, name, mac_chip, phone_model, google_email, privacy_accepted_at, marketing_requested_at, created_at, updated_at)
+      values (gen_random_uuid(), $1, $2, $3, $4, $5, $8, $6, $7, $6, $6) on conflict (email_norm) do nothing returning *`,
+      [v.email, v.emailNorm, v.name, v.macChip, v.phoneModel, t, v.marketingOptIn ? t : null, v.googleEmail ?? null]);
     if (ins.length) return { signup: camel(ins[0]), created: true };
     return { signup: await this.getSignupByEmail(v.emailNorm), created: false };
   }
@@ -92,15 +92,16 @@ export class PgRepo {
     await this.q('insert into downloads (signup_id, platform, arch, created_at) values ($1,$2,$3,$4)', [signupId, platform, arch, d(now)]);
   }
 
-  async claimPending(now, limit, claimTtlMs) {
+  // gate: only people whose Google account is on the Play test list (play_added) get a token.
+  async claimPending(now, limit, claimTtlMs, { gate = false } = {}) {
     const rows = await this.q(`update signups set signer_claimed_at = $1 where id in (
-        select id from signups where state = 'approved' and token is null and (signer_claimed_at is null or signer_claimed_at < $2)
+        select id from signups where state = '${gate ? 'play_added' : 'approved'}' and token is null and (signer_claimed_at is null or signer_claimed_at < $2)
         order by approved_at limit $3 for update skip locked) returning id, name, approved_at`, [d(now), d(now - claimTtlMs), limit]);
     return rows.sort((a, b) => a.approved_at - b.approved_at).map(r => ({ id: r.id, name: r.name }));
   }
-  async storeToken(id, token, now) {
+  async storeToken(id, token, now, { gate = false } = {}) {
     const rows = await this.q(`update signups set token = $2, token_issued_at = $3, state = 'issued', updated_at = $3
-      where id = $1 and state = 'approved' and token is null returning id`, [id, token, d(now)]);
+      where id = $1 and state = $4 and token is null returning id`, [id, token, d(now), gate ? 'play_added' : 'approved']);
     if (rows.length) return 'ok';
     return (await this.getSignup(id)) ? 'conflict' : 'not_found';
   }
@@ -113,15 +114,19 @@ export class PgRepo {
   async claimOutbox(now, limit, claimTtlMs) {
     const rows = await this.q(`update outbox set claimed_at = $1, attempts = attempts + 1 where id in (
         select id from outbox where sent_at is null and attempts < 5 and (claimed_at is null or claimed_at < $2)
-        order by created_at limit $3 for update skip locked) returning id, kind, to_email, subject, body, created_at`, [d(now), d(now - claimTtlMs), limit]);
-    return rows.sort((a, b) => a.created_at - b.created_at).map(r => ({ id: r.id, kind: r.kind, toEmail: r.to_email, subject: r.subject, text: r.body }));
+        order by (kind = 'announce'), created_at limit $3 for update skip locked) returning id, kind, to_email, subject, body, created_at`, [d(now), d(now - claimTtlMs), limit]);
+    // Transactional emails first; announcements wait behind them.
+    return rows.sort((a, b) => ((a.kind === 'announce') - (b.kind === 'announce')) || (a.created_at - b.created_at)).map(r => ({ id: r.id, kind: r.kind, toEmail: r.to_email, subject: r.subject, text: r.body }));
   }
   async ackOutbox(id, ok, errorCode, now) {
     if (!ok) return (await this.q('update outbox set claimed_at = null, last_error = $2 where id = $1 and sent_at is null returning id', [id, String(errorCode || 'failed').slice(0, 40)])).length > 0;
     const t = d(now);
     const [rows] = await this.db.transaction([
       { text: `update outbox set sent_at = $2, to_email = '', body = '' where id = $1 and sent_at is null returning kind, signup_id`, params: [id, t] },
-      { text: `update signups set state = 'delivered', token_emailed_at = $2, updated_at = $2 where id = (select signup_id from outbox where id = $1 and kind = 'token') and state = 'issued'`, params: [id, t] }
+      // Delivered once both the invitation and the token email are sent.
+      { text: `update signups s set state = 'delivered', token_emailed_at = $2, updated_at = $2
+        where s.id = (select signup_id from outbox where id = $1 and kind in ('invite', 'token')) and s.state = 'issued'
+          and not exists (select 1 from outbox o where o.signup_id = s.id and o.kind in ('invite', 'token') and o.sent_at is null)`, params: [id, t] }
     ]);
     return rows.length > 0;
   }
@@ -133,6 +138,26 @@ export class PgRepo {
   }
   async confirmNotify(id, now) { return (await this.q('update roadmap_notify set confirmed_at = coalesce(confirmed_at, $2) where id = $1 returning id', [id, d(now)])).length > 0; }
   async addFeedback({ message, email }, now) { await this.q('insert into feedback (id, message, email, created_at) values (gen_random_uuid(),$1,$2,$3)', [message, email, d(now)]); }
+
+  // The Play test list: approved people whose Google account the owner still has to add, oldest first.
+  async playPending() {
+    return (await this.q(`select id, google_email from signups where state = 'approved' and google_email is not null order by approved_at, created_at`, []))
+      .map(r => ({ id: r.id, googleEmail: r.google_email }));
+  }
+  // Marks approved people whose Google account is in the list as added. Returns how many matched and how many didn't.
+  async markPlayAdded(googleEmails, now) {
+    const list = [...new Set(googleEmails)];
+    if (!list.length) return { marked: 0, unmatched: 0 };
+    const rows = await this.q(`update signups set state = 'play_added', play_added_at = $2, updated_at = $2
+      where state = 'approved' and google_email = any($1::text[]) returning google_email`, [list, d(now)]);
+    const hit = new Set(rows.map(r => r.google_email));
+    return { marked: rows.length, unmatched: list.filter(e => !hit.has(e)).length };
+  }
+  // Update emails go only to people who asked for them on the form AND confirmed by email.
+  async announceRecipients() {
+    return (await this.q(`select id, email_norm, name from signups where marketing_requested_at is not null and marketing_confirmed_at is not null order by created_at`, []))
+      .map(r => ({ id: r.id, emailNorm: r.email_norm, name: r.name }));
+  }
 
   async useNonce(nonce, now) { return (await this.q('insert into admin_nonces (nonce, seen_at) values ($1,$2) on conflict do nothing returning nonce', [nonce, d(now)])).length > 0; }
 
@@ -152,7 +177,7 @@ export class PgRepo {
   }
 
   async stats() {
-    const signups = { pending_email: 0, approved: 0, issued: 0, delivered: 0, waitlisted: 0, denied: 0, total: 0 };
+    const signups = { pending_email: 0, approved: 0, play_added: 0, issued: 0, delivered: 0, waitlisted: 0, denied: 0, total: 0 };
     for (const r of await this.q('select state, count(*)::int as n from signups group by state', [])) { signups[r.state] = r.n; signups.total += r.n; }
     const [x] = await this.q(`select (select count(*)::int from downloads) as downloads, (select count(*)::int from outbox where sent_at is null) as outbox_pending,
       (select count(*)::int from signups where marketing_confirmed_at is not null) as marketing_confirmed,
@@ -160,7 +185,7 @@ export class PgRepo {
     return { signups, downloads: x.downloads, outboxPending: x.outbox_pending, marketingConfirmed: x.marketing_confirmed, notify: x.notify, feedback: x.feedback };
   }
   async exportSignups() {
-    const rows = await this.q(`select s.id, s.created_at, s.state, s.name, s.email, s.mac_chip, s.phone_model, s.marketing_confirmed_at, s.confirmed_at, s.approved_at,
+    const rows = await this.q(`select s.id, s.created_at, s.state, s.name, s.email, s.mac_chip, s.phone_model, s.marketing_confirmed_at, s.confirmed_at, s.approved_at, s.google_email, s.play_added_at,
       s.token_issued_at, s.token_emailed_at, (select count(*)::int from downloads d where d.signup_id = s.id) as downloads from signups s order by s.created_at`, []);
     return rows.map(camel);
   }

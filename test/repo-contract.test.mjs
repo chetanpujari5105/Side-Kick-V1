@@ -8,6 +8,7 @@ import { MemoryRepo } from '../server/repo-memory.mjs';
 import { PgRepo } from '../server/repo-pg.mjs';
 
 const SCHEMA = fs.readFileSync(new URL('../server/schema.sql', import.meta.url), 'utf8');
+const SCHEMA2 = fs.readFileSync(new URL('../server/schema-v2.sql', import.meta.url), 'utf8');
 const T = Date.parse('2026-10-15T10:00:00Z');
 const H = 3600000, DAY = 24 * H;
 
@@ -19,11 +20,13 @@ export async function pgliteRepo() {
   };
   const repo = new PgRepo(db);
   await repo.migrate(SCHEMA);
+  await repo.migrate(SCHEMA2);
   await repo.migrate(SCHEMA); // idempotent
+  await repo.migrate(SCHEMA2);
   return repo;
 }
 
-const person = (email, o = {}) => ({ email, emailNorm: email.toLowerCase(), name: 'Pat ' + email.split('@')[0], macChip: 'apple', phoneModel: 'Pixel 8', marketingOptIn: false, ...o });
+const person = (email, o = {}) => ({ email, emailNorm: email.toLowerCase(), name: 'Pat ' + email.split('@')[0], macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'g.' + email.toLowerCase(), marketingOptIn: false, ...o });
 
 for (const [name, make] of [['MemoryRepo', async () => new MemoryRepo()], ['PgRepo on PGlite', pgliteRepo]]) {
   test(`${name}: signup upsert is idempotent and never overwrites`, async () => {
@@ -169,5 +172,46 @@ for (const [name, make] of [['MemoryRepo', async () => new MemoryRepo()], ['PgRe
     assert.equal((await r.stats()).notify, 1);
     await r.retention(T + 366 * DAY, { signupDays: 365 });
     assert.equal((await r.stats()).notify, 0);
+  });
+
+  test(`${name}: schema v2 — Google account stored; play gate; delivered once invite and token are both sent`, async () => {
+    const r = await make();
+    const { signup } = await r.upsertSignup(person('pg@example.com', { googleEmail: 'pg.play@gmail.com' }), T);
+    assert.equal(signup.googleEmail, 'pg.play@gmail.com');
+    assert.equal(await r.confirmSignup(signup.id, T, 25), 'approved');
+    assert.deepEqual(await r.claimPending(T, 10, 900000, { gate: true }), [], 'gated: approved is not enough');
+    assert.equal(await r.storeToken(signup.id, 'TOKEN-G', T, { gate: true }), 'conflict', 'gated: no token before play-added');
+    assert.deepEqual((await r.playPending()).map(x => x.googleEmail), ['pg.play@gmail.com']);
+    assert.deepEqual(await r.markPlayAdded(['pg.play@gmail.com', 'other@gmail.com'], T + 1), { marked: 1, unmatched: 1 });
+    assert.deepEqual(await r.markPlayAdded(['pg.play@gmail.com'], T + 2), { marked: 0, unmatched: 1 }, 'only approved people are marked');
+    const s1 = await r.getSignup(signup.id);
+    assert.equal(s1.state, 'play_added'); assert.ok(s1.playAddedAt instanceof Date);
+    assert.deepEqual(await r.playPending(), []);
+    assert.equal((await r.stats()).signups.play_added, 1);
+    assert.equal((await r.claimPending(T + 3, 10, 900000, { gate: true })).length, 1);
+    assert.equal(await r.storeToken(signup.id, 'TOKEN-G', T + 4, { gate: true }), 'ok');
+    const a = await r.enqueue({ signupId: signup.id, kind: 'invite', toEmail: 'pg@example.com', subject: 'I', text: 'invite' }, T + 5);
+    const b = await r.enqueue({ signupId: signup.id, kind: 'token', toEmail: 'pg@example.com', subject: 'T', text: 'TOKEN-G' }, T + 6);
+    await r.ackOutbox(b, true, null, T + 7);
+    assert.equal((await r.getSignup(signup.id)).state, 'issued', 'the invitation is not sent yet');
+    await r.ackOutbox(a, true, null, T + 8);
+    assert.equal((await r.getSignup(signup.id)).state, 'delivered');
+    const ex = await r.exportSignups();
+    assert.equal(ex[0].googleEmail, 'pg.play@gmail.com'); assert.ok(ex[0].playAddedAt);
+  });
+
+  test(`${name}: outbox hands out transactional mail before announcements; announce recipients are opted in and confirmed`, async () => {
+    const r = await make();
+    const yes = (await r.upsertSignup(person('yes@example.com', { marketingOptIn: true }), T)).signup;
+    await r.upsertSignup(person('asked@example.com', { marketingOptIn: true }), T);
+    await r.upsertSignup(person('no@example.com'), T);
+    await r.confirmMarketing(yes.id, T);
+    assert.deepEqual((await r.announceRecipients()).map(x => x.emailNorm), ['yes@example.com'], 'asked AND confirmed only');
+    await r.enqueue({ kind: 'announce', toEmail: 'yes@example.com', subject: 'A', text: 'a' }, T);
+    await r.enqueue({ kind: 'confirm', toEmail: 'x@example.com', subject: 'C', text: 'c' }, T + 1000);
+    const first = await r.claimOutbox(T + 2000, 1, 900000);
+    assert.equal(first[0].kind, 'confirm', 'a later confirmation jumps the announcement');
+    await r.unsubscribe('yes@example.com', T + 3000);
+    assert.deepEqual(await r.announceRecipients(), []);
   });
 }
