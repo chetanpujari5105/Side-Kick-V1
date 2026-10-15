@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  TEMPLATE. Copy to ~/Library/LaunchAgents/com.sidekick.signer.plist, replace every __PLACEHOLDER__, then:
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.sidekick.signer.plist
+  Stop it:
+    launchctl bootout gui/$(id -u)/com.sidekick.signer
+  No secrets go in this file: the signer reads them from the login Keychain (see docs/OWNER-SETUP.md).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.sidekick.signer</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE_PATH__</string>
+    <string>__REPO__/tools/signer/signer.mjs</string>
+    <string>--once</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SK_API_BASE</key><string>https://__PROJECT__.vercel.app</string>
+    <key>SK_KEY_SOURCE</key><string>file</string>
+    <key>SK_MAILER</key><string>mailapp</string>
+  </dict>
+  <key>StartInterval</key><integer>300</integer>
+  <key>RunAtLoad</key><true/>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/sidekick-signer.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/sidekick-signer.log</string>
+</dict>
+</plist>
