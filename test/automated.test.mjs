@@ -350,3 +350,14 @@ test('admin CLI: play-pending prints the new accounts and writes the full list (
     assert.notEqual(loose.code, 0, 'a secret file others can read is refused');
   } finally { server.close(); }
 });
+
+test('install steps: releases.json holds exactly the steps the Beta page showed before (its no-JS copy), in order', () => {
+  const page = fs.readFileSync(new URL('../Beta.dc.html', import.meta.url), 'utf8');
+  const esc = (t) => t.replace(/&/g, '&amp;');
+  let at = 0;
+  for (const step of releases.mac.installSteps) {
+    const i = page.indexOf('<li>' + esc(step) + '</li>', at);
+    assert.ok(i > 0, 'in the no-JS copy, in order: ' + step.slice(0, 50));
+    at = i;
+  }
+});
