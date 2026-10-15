@@ -189,7 +189,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     if (ra) return tooMany(ra);
     let location;
     try {
-      location = isMac ? (await storage.signedUrl({ file: releases.mac.builds.arm64.file, platform, arch })).url : releases.android.storeUrl;
+      location = isMac ? (await storage.signedUrl({ file: releases.mac.builds.arm64.file, platform, arch, version: releases.version })).url : releases.android.storeUrl;
       await repo.logDownload({ signupId: s.id, platform, arch: isMac ? 'arm64' : null }, now());
     } catch {
       log.error('download.failed', { signupId: s.id, platform });
