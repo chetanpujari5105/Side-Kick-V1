@@ -4,7 +4,7 @@
 //   node tools/admin/admin.mjs set-state <email|signupId> <pending_email|approved|waitlisted|denied>
 //   node tools/admin/admin.mjs delete <email|signupId>            (delete-my-data: the sign-up and everything linked, roadmap
 //                                                                  requests and feedback from that address, and the signer's
-//                                                                  local token copy in SK_TOKENS_DIR; see OWNER-SETUP §9)
+//                                                                  local token copy in SK_TOKENS_DIR; see OWNER-SETUP §10)
 //   node tools/admin/admin.mjs unsubscribe <email|signupId>       (stops updates and roadmap emails for that address)
 //   node tools/admin/admin.mjs settings [--cap 25] [--allow a@x.com,@friends.org] [--deny b@y.com]
 //   node tools/admin/admin.mjs promote | retention

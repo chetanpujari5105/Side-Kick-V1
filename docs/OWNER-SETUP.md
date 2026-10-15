@@ -15,15 +15,35 @@ Read `docs/backend-design.md` for how it works. Facts marked **[V]** were read i
    A free, invite-style beta with **no price on the site** is the safest reading, but a free beta of a product you
    plan to sell is not addressed explicitly. If in doubt, ask Vercel support, or use Pro ($20 per developer seat a
    month [V vercel.com/docs/plans/hobby]). **Never add pricing or a payment link while on Hobby.**
-2. **Privacy text.** Support › Privacy now describes the real backend (one cookie, Cloudflare Turnstile, Neon,
-   GitHub, retention periods, emails from your own account). It needs your review — ideally a legal one — before
-   launch. Then set `policyEffectiveDate` in `data/site-config.js` to the launch day (the text changed after
-   13 October 2026).
+2. **Privacy text — needs legal review.** Support › Privacy was narrowed on 15 October 2026 to what is verified:
+   it no longer says the apps have no crash reporting (the ML Kit question, defect 188, is open), it names the Mac's
+   Activity history (call names), and it describes the real backend (one cookie, Cloudflare Turnstile, Neon, GitHub,
+   emails sent from your Mac, where tokens go, retention). `policyEffectiveDate` is a **placeholder** on purpose, so
+   the page shows its DRAFT banner. After the review, set it to the launch day. Your **external** policy page
+   (chetan-website-delta.vercel.app/sidekick/privacy) still has the old claims ("no crash reporting", "QR scanner
+   reads the code on the phone itself", "not written to disk"): fix it or stop linking to it before launch.
 3. **Which mailbox sends the emails.** By default the signer on your Mac sends every email through **Mail.app**,
    from whichever account Mail uses by default (or `SK_MAIL_FROM`). Recipients see that address. Pick one you're
    happy to reply from.
 
-## 1. What each service costs, and how to turn it off
+## 1. Prove the token in the Mac app — before creating any account
+
+Everything after this costs time and creates accounts, so first prove the one thing nothing here could test: that a
+token made by this pipeline opens the real Mac app. No account, no network, no email:
+```sh
+node scripts/token-proof.mjs --label "Token proof"
+```
+It runs the API in memory, makes one approved sign-up and runs **one real signer cycle**: your issuer
+(`~/Desktop/ConnectSuite/scripts/issue-trial-token.mjs`), your key (`~/.sidekick-trial-key/private.pem`), the same
+`--label/--days 45/--out` arguments launchd will use. It prints the path of the `.sidekick-token` file (not the
+token). In the Mac app choose **Open token file…** (or Settings › About) and pick it.
+- **Accepted, with an end date 45 days out** → carry on with §2.
+- **Refused** → stop. The signer's issuer call or the app's format is the problem; don't create accounts yet.
+- Want Keychain mode for the key? Run it again with `SK_KEY_SOURCE=keychain` (the PEM stored as item
+  `sidekick-trial-key`). That mode has only been tested with a stand-in issuer; this run is its real test.
+- It adds one line to the issuer's `issued-tokens.tsv`, like any issue. The test sign-up lives only in memory.
+
+## 2. What each service costs, and how to turn it off
 
 | Service | What for | Cost | Card / phone? | At the free limit | Turn it off |
 |---|---|---|---|---|---|
@@ -33,9 +53,9 @@ Read `docs/backend-design.md` for how it works. Facts marked **[V]** were read i
 | **GitHub** (default DMG host) | Private release with the DMG | $0, no bandwidth limit, files < 2 GiB [V about-releases] | No | — | Delete the release or revoke the token |
 | *Cloudflare R2* (alternative) | DMG with an exact 10-minute link | $0 within 10 GB-month, egress free [V r2/pricing] | Enabling R2 needs a checkout to add an R2 subscription [V r2/get-started]; very likely a card [U] | Billed per use above the free tier [V] | Delete the bucket, then cancel the R2 subscription |
 | *Resend* (later, needs a domain) | Server-side email | $0 for 100/day, 3,000/month [V] | [U] | Sends stop at the quota [A] | Delete the API key |
-| **Mail.app on your Mac** (default email) | Sends every email | $0 | — | Your mail provider's own sending limits [U] (Gmail personal accounts are commonly cited at about 500/day) | Unload the signer (§6) |
+| **Mail.app on your Mac** (default email) | Sends every email | $0 | — | Your mail provider's own sending limits [U] (Gmail personal accounts are commonly cited at about 500/day) | Unload the signer (§7) |
 
-## 2. Create the accounts and keys (you, in a browser)
+## 3. Create the accounts and keys (you, in a browser)
 
 **a. Neon** — neon.com → sign up → **Create project** (Postgres 17; region **AWS US East (N. Virginia)**, next to
 Vercel's default function region [A]). In the project, create a second **branch** called `preview` (Free allows
@@ -72,9 +92,9 @@ openssl rand -hex 32   # ADMIN_AUTH_SECRET
 openssl rand -hex 32   # ADMIN_AUTH_SIGNER_SECRET
 openssl rand -hex 24   # CRON_SECRET
 ```
-Paste each straight into Vercel (next step) and into Keychain (§5); don't save them in a file or a chat.
+Paste each straight into Vercel (next step) and into Keychain (§6); don't save them in a file or a chat.
 
-## 3. Vercel environment variables
+## 4. Vercel environment variables
 
 Project › Settings › Environment Variables. Mark every **secret** one as **Sensitive**. Set Production and Preview
 **separately** (different database branch, different secrets, different `APP_ORIGIN`).
@@ -82,23 +102,23 @@ Project › Settings › Environment Variables. Mark every **secret** one as **S
 | Name | Secret? | Production | Preview | From |
 |---|---|---|---|---|
 | `APP_ORIGIN` | no | `https://<project>.vercel.app` | your preview **branch** host, `https://…-git-<branch>-….vercel.app` | Vercel › Domains / the deployment page. Links in emails are built from this, never from the request |
-| `SESSION_SECRET` | **yes** | new value | different value | §2d. ≥ 32 characters |
+| `SESSION_SECRET` | **yes** | new value | different value | §3d. ≥ 32 characters |
 | `SESSION_SECRET_PREVIOUS` | **yes** | only while rotating | — | the old `SESSION_SECRET`, for 24 h after a change |
-| `DATABASE_URL` | **yes** | Neon `main` | Neon `preview` | §2a |
-| `TURNSTILE_SITE_KEY` | no (public) | site key | same | §2b. Also read by the **build** — it must be set or the build stops |
-| `TURNSTILE_SECRET` | **yes** | secret key | same | §2b |
+| `DATABASE_URL` | **yes** | Neon `main` | Neon `preview` | §3a |
+| `TURNSTILE_SITE_KEY` | no (public) | site key | same | §3b. Also read by the **build** — it must be set or the build stops |
+| `TURNSTILE_SECRET` | **yes** | secret key | same | §3b |
 | `STORAGE_PROVIDER` | no | `github` (default) or `r2` | same | your choice |
-| `GITHUB_RELEASES_TOKEN` | **yes** | fine-grained token | same | §2c |
-| `GITHUB_RELEASES_REPO` | no | `<you>/sidekick-releases` | same | §2c |
+| `GITHUB_RELEASES_TOKEN` | **yes** | fine-grained token | same | §3c |
+| `GITHUB_RELEASES_REPO` | no | `<you>/sidekick-releases` | same | §3c |
 | `GITHUB_RELEASE_TAG` | no | optional (default `v2.0.1`) | | |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_BUCKET` | no / **yes** / no | only with `r2` | | §2c alternative |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_BUCKET` | no / **yes** / no | only with `r2` | | §3c alternative |
 | `R2_SECRET_ACCESS_KEY` | **yes** | only with `r2` | | |
 | `DOWNLOAD_URL_TTL` | no | `600` (R2 only; 60–3600) | | |
 | `EMAIL_PROVIDER` | no | `outbox` (default: your Mac sends) | same | `resend` only once you have a verified domain |
 | `EMAIL_PROVIDER_KEY`, `EMAIL_FROM` | **yes** / no | only with `resend` | | Resend dashboard |
-| `ADMIN_AUTH_SECRET` | **yes** | §2d | different | for `tools/admin` |
-| `ADMIN_AUTH_SIGNER_SECRET` | **yes** | §2d | different | for `tools/signer` |
-| `CRON_SECRET` | **yes** | §2d | different | Vercel sends it to the cron job automatically [V cron-jobs/manage-cron-jobs] |
+| `ADMIN_AUTH_SECRET` | **yes** | §3d | different | for `tools/admin` |
+| `ADMIN_AUTH_SIGNER_SECRET` | **yes** | §3d | different | for `tools/signer` |
+| `CRON_SECRET` | **yes** | §3d | different | Vercel sends it to the cron job automatically [V cron-jobs/manage-cron-jobs] |
 | `BETA_CAP` | no | `25` (default) | `25` | starting cap; `admin settings --cap` overrides it |
 | `RETENTION_SIGNUP_DAYS` | no | `365` (default) | | |
 | `RATE_LIMIT_SIGNUP_IP` etc. | no | optional, `N/seconds` | | defaults in `server/config.mjs` |
@@ -110,7 +130,7 @@ Vercel's 64 KB limit [V].
 Project settings: **Framework Preset: Other**. Build, install and output come from `vercel.json`
 (`node scripts/build-site.mjs`, `npm ci --omit=dev`, `dist`). Node 22 or later.
 
-## 4. Create the tables (once per database)
+## 5. Create the tables (once per database)
 
 On your Mac, from the repo, without leaving the URL in your shell history:
 ```sh
@@ -120,7 +140,7 @@ unset DATABASE_URL
 ```
 Repeat with the **production** string. It is safe to run twice.
 
-## 5. Your Mac: Keychain items for the signer and the admin CLI
+## 6. Your Mac: Keychain items for the signer and the admin CLI
 
 ```sh
 security add-generic-password -a "$USER" -s sidekick-signer-hmac -w   # paste ADMIN_AUTH_SIGNER_SECRET (Production)
@@ -133,7 +153,7 @@ The signer never reads it — it hands the **path** to the app's own issuer, exa
 the issuer on a file descriptor; it is tested with a stand-in issuer only, **not** with the real one [U]. Stay on
 file mode unless you test it.
 
-## 6. The signer (sends tokens and every email)
+## 7. The signer (sends tokens and every email)
 
 ```sh
 export SK_API_BASE=https://<project>.vercel.app
@@ -155,9 +175,9 @@ tail -f ~/Library/Logs/sidekick-signer.log
 Stop: `launchctl bootout gui/$(id -u)/com.sidekick.signer`. **Emails and tokens only go out while your Mac is awake
 and logged in.** People see "usually within a few hours" on the site.
 
-## 7. Test on a preview first
+## 8. Test on a preview first
 
-1. Push the branch yourself (`git push -u origin site/backend-2026-10-15` after removing the local push guard:
+1. Push the branch yourself (`git push -u origin site/closeout-2026-10-15` after removing the local push guard:
    `git config --unset remote.origin.pushurl`). Vercel builds a **preview**. (Pushing also publishes the earlier
    unpushed site commits this branch is built on.)
 2. `https://<preview host>/api/health` → `{"ok":true}`; `/api/releases` → the release facts with `null` size/hash.
@@ -167,19 +187,24 @@ and logged in.** People see "usually within a few hours" on the site.
    switch protection off for previews temporarily, otherwise test the signer on production before announcing [U].
 4. Sign up with your own address, run the signer (`SK_API_BASE=<preview>` and the **preview** secrets via
    `SK_SIGNER_SECRET=…`), click the confirm link, check the Download page, run the signer again, open the token email,
-   **paste the token into the real Mac app** (the one check nothing here could do), download the DMG and compare
-   its SHA-256.
-5. `node tools/admin/admin.mjs stats`, then `delete <your email>` to clean up.
+   paste the token into the Mac app (already proven in §1; this checks the email copy), download the DMG and compare
+   its SHA-256. The full click-by-click script, with what to look for in the Vercel logs, is **docs/GO-LIVE-TEST.md**.
+5. `node tools/admin/admin.mjs stats`, then `delete <your email>` to clean up (GO-LIVE-TEST step 10).
 
-## 8. Go-live checklist
+## 9. Go-live checklist
 
 - [ ] The staged DMG exists. Put its real size and hash in with **one command**, then commit both files:
       `node scripts/data-sync.mjs --from-dmg /path/to/Sidekick-2.0.1-arm64.dmg` (refuses a file with another name).
       Never type a hash by hand. (The DMG in `~/Desktop/Sidekick-Beta-Share-2026-10-12/` matched the old values;
       re-run the command on whichever file you actually upload.)
 - [ ] Same DMG uploaded to the GitHub release (or R2) under exactly that name.
-- [ ] `policyEffectiveDate` set to launch day; privacy text reviewed.
-- [ ] Production env vars set (§3), migration run (§4), `/api/health` OK.
+- [ ] §1 token proof accepted by the Mac app.
+- [ ] Privacy text legally reviewed; then `policyEffectiveDate` set to launch day (it is a placeholder; the DRAFT
+      banner disappears when it and the publisher fields are real). External policy page fixed or unlinked.
+- [ ] Android: `android.storeUrl` in `data/releases.json` set to the Google Play URL once one exists (until then
+      the site says "not available yet"; it never offers an APK), then `node scripts/data-sync.mjs`.
+- [ ] docs/GO-LIVE-TEST.md passed on the preview.
+- [ ] Production env vars set (§4), migration run (§5), `/api/health` OK.
 - [ ] Turnstile hostnames include the production host.
 - [ ] Signer running under launchd; `--check` clean; Mail automation allowed.
 - [ ] Full flow done once on production with your own address; test row deleted.
@@ -187,26 +212,33 @@ and logged in.** People see "usually within a few hours" on the site.
 - [ ] Nothing on the site mentions a price (Hobby rule).
 - [ ] `og:image` made absolute once you have a domain (Handoff §5).
 
-## 9. Everyday commands
+## 10. Everyday commands
 
 ```sh
 node tools/admin/admin.mjs stats
 node tools/admin/admin.mjs export --out ~/Desktop/signups.csv        # written mode 600
 node tools/admin/admin.mjs set-state someone@example.com approved
-node tools/admin/admin.mjs delete someone@example.com                # "delete my data" requests
+node tools/admin/admin.mjs delete someone@example.com                # "delete my data": sign-up, roadmap requests,
+                                                                     # feedback and the signer's local token copy
+node tools/admin/admin.mjs unsubscribe someone@example.com           # stops updates and roadmap emails
 node tools/admin/admin.mjs settings --cap 40 --allow @friends.example --deny spam@example.com
 node tools/admin/admin.mjs promote                                   # move waitlisted people up to the cap
 ```
-(`delete` and `set-state` take an email address or a signup id.)
+(`delete`, `unsubscribe` and `set-state` take an email address or a signup id.) After a `delete`, also remove that
+person's line from `~/.sidekick-trial-key/issued-tokens.tsv` by hand (the command reminds you); the privacy page
+says your Mac keeps that list.
 
-## 10. Undoing each decision
+## 11. Undoing each decision
 
 | Decision | To reverse |
 |---|---|
-| DMG on GitHub | `STORAGE_PROVIDER=r2` + R2 variables; redeploy |
-| Email from your Mac | Get a domain, verify it in Resend, set `EMAIL_PROVIDER=resend`, `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`; the server then sends at once and the signer only signs (`SK_MAILER=none`) |
+| DMG on GitHub | `STORAGE_PROVIDER=r2` + R2 variables; redeploy. **Also change Support › Privacy**, which names GitHub |
+| Email from your Mac | Get a domain, verify it in Resend, set `EMAIL_PROVIDER=resend`, `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`; the server then sends at once and the signer only signs (`SK_MAILER=none`). **Also change Support › Privacy**, which says emails are sent from your Mac |
 | Signer runs the app's issuer | After checking the token format in `desktop/src/shared/trial.ts`, a built-in signer could replace it; until then keep the issuer |
 | Auto-approval with a cap of 25 | `admin settings --cap 0` stops all automatic approvals (everyone waits); approve by hand with `set-state` |
 | Daily retention cron | Remove `crons` from `vercel.json`; run `node tools/admin/admin.mjs retention` by hand instead |
 | No-JS signup fails closed | Deliberate (Turnstile needs JavaScript). The page says so and keeps the answers |
+| Android "not available yet" | Set `android.storeUrl` (a play.google.com URL) in `data/releases.json`, run `node scripts/data-sync.mjs` |
+| Effective-date placeholder | Put the real date in `data/site-config.js` after the legal review |
+| Roadmap items removed (presets, notification actions, folder chooser) | Re-add their lines to `data/roadmap-data.js` from git history (fe0ed73), then `node tools/noscript.mjs` and `node scripts/data-sync.mjs` |
 | The whole backend | Delete the Vercel env vars → every endpoint answers 503 and the forms show their error; or redeploy `site/beta-2026-10-15` (no backend) |

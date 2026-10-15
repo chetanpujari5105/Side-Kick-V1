@@ -124,3 +124,23 @@ test('signer refuses to talk to anything but https (or localhost)', () => {
   assert.throws(() => makeClient({ base: 'https://example.com/evil?x=', keyId: 'signer', secret: 'x' }));
   assert.ok(makeClient({ base: 'http://localhost:8787', keyId: 'signer', secret: 'x' }));
 });
+
+test('token proof (OWNER-SETUP step 1) runs one real signer cycle in memory and names the token file', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const os = await import('node:os');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-signer-test-'));
+  try {
+    const { privateKey } = crypto.generateKeyPairSync('ed25519');
+    fs.writeFileSync(path.join(dir, 'k.pem'), privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
+    const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+    const env = { PATH: process.env.PATH, HOME: dir, SK_ISSUER: path.join(root, 'test/fixtures/fake-issuer.mjs'), SK_KEY_FILE: path.join(dir, 'k.pem'), SK_TOKENS_DIR: path.join(dir, 'tokens') };
+    const r = spawnSync(process.execPath, ['scripts/token-proof.mjs', '--label', 'Proof'], { cwd: root, env, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    const files = fs.readdirSync(path.join(dir, 'tokens'));
+    assert.equal(files.length, 1);
+    assert.ok(r.stdout.includes(files[0]), 'prints the token file path');
+    assert.ok(!/SIDEKICK-TRIAL-1\.\S{20}/.test(r.stdout + r.stderr), 'the token itself is not printed');
+    const bad = spawnSync(process.execPath, ['scripts/token-proof.mjs'], { cwd: root, env: { ...env, SK_ISSUER: path.join(dir, 'missing.mjs') }, encoding: 'utf8' });
+    assert.equal(bad.status, 2);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
