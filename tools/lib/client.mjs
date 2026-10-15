@@ -3,12 +3,23 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { signRequest } from '../../server/crypto.mjs';
 
+// A Vercel Preview behind Deployment Protection needs the project's "Protection Bypass for Automation" secret in
+// the x-vercel-protection-bypass header (vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/
+// protection-bypass-automation). SK_VERCEL_BYPASS_FILE names a file holding it (mode 600). Production needs none.
+function bypassHeader() {
+  const file = process.env.SK_VERCEL_BYPASS_FILE;
+  if (!file) return {};
+  if (fs.statSync(file).mode & 0o077) throw new Error('SK_VERCEL_BYPASS_FILE must be readable by you only (chmod 600)');
+  return { 'x-vercel-protection-bypass': fs.readFileSync(file, 'utf8').trim() };
+}
+
 export function makeClient({ base, keyId, secret, fetch: f = fetch, now = () => Date.now() }) {
+  const bypass = bypassHeader();
   if (!/^https:\/\/[A-Za-z0-9.-]+$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base || '')) throw new Error('SK_API_BASE must be https://<host> (or http://localhost for local testing)');
   return async function post(action, payload = {}) {
     const path = '/api/admin/' + action;
     const body = JSON.stringify(payload);
-    const res = await f(base + path, { method: 'POST', body, headers: { 'content-type': 'application/json', ...signRequest({ keyId, secret, method: 'POST', path, body, now: now() }) }, signal: AbortSignal.timeout(20000) });
+    const res = await f(base + path, { method: 'POST', body, headers: { 'content-type': 'application/json', ...bypass, ...signRequest({ keyId, secret, method: 'POST', path, body, now: now() }) }, signal: AbortSignal.timeout(20000) });
     let data = {};
     try { data = await res.json(); } catch {}
     return { status: res.status, ...data };

@@ -393,3 +393,19 @@ test('admin migrate: owner key only, runs every schema on the real SQL (PGlite),
   assert.equal((await r1.json()).version, 2);
   assert.equal((await call('admin', h.env.ADMIN_AUTH_SECRET)).status, 200, 'twice is fine');
 });
+
+test('client: the Vercel protection-bypass header comes from a mode-600 file only', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-bypass-')); dirs.push(dir);
+  const f = path.join(dir, 'bypass'); fs.writeFileSync(f, 'bypass-value-for-test\n', { mode: 0o600 });
+  const seen = [];
+  const fake = async (u, o) => { seen.push(o.headers); return new Response('{"ok":true}', { status: 200 }); };
+  process.env.SK_VERCEL_BYPASS_FILE = f;
+  try {
+    await makeClient({ base: ORIGIN, keyId: 'admin', secret: 'x'.repeat(64), fetch: fake })('stats');
+    assert.equal(seen[0]['x-vercel-protection-bypass'], 'bypass-value-for-test');
+    fs.chmodSync(f, 0o644);
+    assert.throws(() => makeClient({ base: ORIGIN, keyId: 'admin', secret: 'x'.repeat(64), fetch: fake }), /chmod 600/);
+  } finally { delete process.env.SK_VERCEL_BYPASS_FILE; }
+  await makeClient({ base: ORIGIN, keyId: 'admin', secret: 'x'.repeat(64), fetch: fake })('stats');
+  assert.equal(seen[1]['x-vercel-protection-bypass'], undefined, 'no header unless asked');
+});
