@@ -19,6 +19,11 @@ function limits(env) {
   return out;
 }
 
+// Cloudflare's documented test keys (developers.cloudflare.com/turnstile/troubleshooting/testing, read 2026-10-15):
+// they pass (or fail) for any domain and Cloudflare's sample answer names "localhost" as the hostname. Allowed for
+// Preview testing only; a Production deployment (VERCEL_ENV=production) refuses them.
+export const TURNSTILE_TEST_KEY = /^[123]x0{20,}[A-Z]{2}$/;
+
 export function loadConfig(env = process.env) {
   const problems = [];
   const need = (name, test = (v) => !!v) => { if (!test(env[name])) problems.push(name); return env[name]; };
@@ -32,6 +37,8 @@ export function loadConfig(env = process.env) {
   if (env.BETA_PAGE_URL !== undefined && !/^https:\/\/[A-Za-z0-9.-]+(\/[A-Za-z0-9._~%\/-]*)?$/.test(env.BETA_PAGE_URL)) problems.push('BETA_PAGE_URL');
   // PLAY_GATE (default on): no token and no invitation until the owner has added the person's Google account to
   // the Play test list (admin play-mark-added).
+  const turnstileTest = TURNSTILE_TEST_KEY.test(env.TURNSTILE_SECRET || '') || TURNSTILE_TEST_KEY.test(env.TURNSTILE_SITE_KEY || '');
+  if (turnstileTest && env.VERCEL_ENV === 'production') problems.push(TURNSTILE_TEST_KEY.test(env.TURNSTILE_SECRET || '') ? 'TURNSTILE_SECRET' : 'TURNSTILE_SITE_KEY');
   const playGate = env.PLAY_GATE === undefined || env.PLAY_GATE === '' || env.PLAY_GATE === 'on';
   if (!playGate && env.PLAY_GATE !== 'off') problems.push('PLAY_GATE');
   if (!['outbox', 'resend'].includes(emailProvider)) problems.push('EMAIL_PROVIDER');
@@ -42,7 +49,9 @@ export function loadConfig(env = process.env) {
     databaseUrl: env.DATABASE_URL,
     turnstileSecret: env.TURNSTILE_SECRET,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
-    turnstileHostname: typeof appOrigin === 'string' ? appOrigin.replace(/^https?:\/\//, '').replace(/:\d+$/, '') : null,
+    // With a test secret Cloudflare reports a stand-in hostname, so the hostname check is skipped (Preview only).
+    turnstileHostname: typeof appOrigin === 'string' && !turnstileTest ? appOrigin.replace(/^https?:\/\//, '').replace(/:\d+$/, '') : null,
+    turnstileTest,
     storageProvider,
     betaPageUrl,
     playGate,

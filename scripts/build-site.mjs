@@ -39,6 +39,7 @@ for (const check of [['scripts/data-sync.mjs', '--check'], ['tools/noscript.mjs'
 const siteKey = manual ? null : (local ? 'local-dev-fake' : process.env.TURNSTILE_SITE_KEY);
 if (!manual && !local && process.env.VERCEL && !siteKey) fail('TURNSTILE_SITE_KEY is not set for this environment (SITE_MODE=automated).');
 if (!manual && !local && siteKey && (siteKey === 'local-dev-fake' || !/^[0-9A-Za-z_-]{10,64}$/.test(siteKey))) fail('TURNSTILE_SITE_KEY does not look like a Turnstile site key.');
+if (!manual && !local && siteKey && process.env.VERCEL_ENV === 'production' && /^[123]x0{20,}[A-Z]{2}$/.test(siteKey)) fail('TURNSTILE_SITE_KEY is a Cloudflare test key; Production needs the real widget key.');
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT);

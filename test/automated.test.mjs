@@ -361,3 +361,14 @@ test('install steps: releases.json holds exactly the steps the Beta page showed 
     at = i;
   }
 });
+
+test('Turnstile test keys: allowed on Preview (no hostname check), refused on Production', () => {
+  const pre = loadConfig(fullEnv({ VERCEL_ENV: 'preview', TURNSTILE_SECRET: '1x0000000000000000000000000000000AA', TURNSTILE_SITE_KEY: '1x00000000000000000000AA' }));
+  assert.deepEqual(pre.problems, []);
+  assert.equal(pre.turnstileHostname, null);
+  const prod = loadConfig(fullEnv({ VERCEL_ENV: 'production', TURNSTILE_SECRET: '1x0000000000000000000000000000000AA', TURNSTILE_SITE_KEY: '1x00000000000000000000AA' }));
+  assert.ok(prod.problems.includes('TURNSTILE_SECRET'));
+  assert.ok(loadConfig(fullEnv({ VERCEL_ENV: 'production', TURNSTILE_SITE_KEY: '1x00000000000000000000AA' })).problems.includes('TURNSTILE_SITE_KEY'));
+  const real = loadConfig(fullEnv({ VERCEL_ENV: 'production', TURNSTILE_SECRET: '0x4AAAAAAAreal-looking-secret', TURNSTILE_SITE_KEY: '0x4AAAAAAAsitekey' }));
+  assert.equal(real.turnstileHostname, new URL(ORIGIN).hostname, 'real keys keep the hostname check');
+});
