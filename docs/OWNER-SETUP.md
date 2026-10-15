@@ -3,6 +3,10 @@
 Everything here is for **you** to do, in this order. Nothing has been created, deployed or pushed for you. No real
 key or secret exists anywhere in this repository; the tests make throwaway ones in memory.
 
+**The site runs without any of this today.** With `SITE_MODE=manual` (set in Vercel on 2026-10-15 for Preview and
+Production) the site is email-only: no database, no Turnstile, no cookies, and the build needs no secret. Everything
+below is for switching to `SITE_MODE=automated` later; `docs/MORNING.md` has the order of the switch.
+
 Read `docs/backend-design.md` for how it works. Facts marked **[V]** were read in the provider's own docs on
 2026-10-15; **[U]** were not confirmed.
 
@@ -108,11 +112,12 @@ Project › Settings › Environment Variables. Mark every **secret** one as **S
 
 | Name | Secret? | Production | Preview | From |
 |---|---|---|---|---|
+| `SITE_MODE` | no | `automated` (today: `manual`) | `automated` (today: `manual`) | Set it **last**, after every variable below exists, so a half-set project never builds the automated site. `manual` needs nothing else |
 | `APP_ORIGIN` | no | `https://<project>.vercel.app` | your preview **branch** host, `https://…-git-<branch>-….vercel.app` | Vercel › Domains / the deployment page. Links in emails are built from this, never from the request |
 | `SESSION_SECRET` | **yes** | new value | different value | §3d. ≥ 32 characters |
 | `SESSION_SECRET_PREVIOUS` | **yes** | only while rotating | — | the old `SESSION_SECRET`, for 24 h after a change |
 | `DATABASE_URL` | **yes** | Neon `main` | Neon `preview` | §3a |
-| `TURNSTILE_SITE_KEY` | no (public) | site key | same | §3b. Also read by the **build** — it must be set or the build stops |
+| `TURNSTILE_SITE_KEY` | no (public) | site key | same | §3b. Also read by the **build** in automated mode — it must be set or the build stops. Manual mode doesn't use it |
 | `TURNSTILE_SECRET` | **yes** | secret key | same | §3b |
 | `STORAGE_PROVIDER` | no | `github` (default) or `r2` | same | your choice |
 | `GITHUB_RELEASES_TOKEN` | **yes** | fine-grained token | same | §3c |
