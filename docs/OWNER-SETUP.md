@@ -16,12 +16,19 @@ Read `docs/backend-design.md` for how it works. Facts marked **[V]** were read i
    plan to sell is not addressed explicitly. If in doubt, ask Vercel support, or use Pro ($20 per developer seat a
    month [V vercel.com/docs/plans/hobby]). **Never add pricing or a payment link while on Hobby.**
 2. **Privacy text — needs legal review.** Support › Privacy was narrowed on 15 October 2026 to what is verified:
-   it no longer says the apps have no crash reporting (the ML Kit question, defect 188, is open), it names the Mac's
-   Activity history (call names), and it describes the real backend (one cookie, Cloudflare Turnstile, Neon, GitHub,
-   emails sent from your Mac, where tokens go, retention). `policyEffectiveDate` is a **placeholder** on purpose, so
+   the apps part now follows `ConnectSuite-overnight/docs/privacy-facts-2026-10-15.md` (ML Kit is gone since
+   2114c0f, so "no analytics or crash-reporting kit" is said with "checked the code and the builds; not yet measured
+   the traffic"; the Activity history's call names, file names and 2,000-entry limit; the diagnostic log; no clear
+   button; how to remove everything), and the website part describes the real backend (one cookie, Cloudflare
+   Turnstile, Neon, GitHub, emails sent from your Mac, where tokens go, retention). Defect 188 in `defects.md` still
+   says "open — ML Kit sends usage metrics"; the facts file calls that entry stale. Close it in the Mac repo once the
+   F9 traffic capture is done. `policyEffectiveDate` is a **placeholder** on purpose, so
    the page shows its DRAFT banner. After the review, set it to the launch day. Your **external** policy page
-   (chetan-website-delta.vercel.app/sidekick/privacy) still has the old claims ("no crash reporting", "QR scanner
-   reads the code on the phone itself", "not written to disk"): fix it or stop linking to it before launch.
+   (chetan-website-delta.vercel.app/sidekick/privacy) says "Notifications, messages, call lists, contacts and photos
+   … are not written to disk", which the facts file contradicts for call names (it discloses the Activity history
+   elsewhere on the same page), and it states "sends nothing" without the "not yet measured" limit: align it with
+   Support › Privacy or stop linking to it before launch. Also: the Sep 29 `app-release.apk` in the Mac repo still
+   carries ML Kit (facts file) — never share it.
 3. **Which mailbox sends the emails.** By default the signer on your Mac sends every email through **Mail.app**,
    from whichever account Mail uses by default (or `SK_MAIL_FROM`). Recipients see that address. Pick one you're
    happy to reply from.
