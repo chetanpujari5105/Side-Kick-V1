@@ -144,10 +144,10 @@ try {
   // Submit empty → client-side errors.
   await a.eval(click('button[type=submit]')); await sleep(400);
   txt = await a.text();
-  check('empty submit shows the error summary with Handoff strings', txt.includes('Please fix 5 things') && txt.includes('Enter your name.') && txt.includes("Choose your Mac's chip, or Not sure."));
+  check('empty submit shows the error summary with Handoff strings', txt.includes('Please fix 6 things') && txt.includes('Enter your name.') && txt.includes("Choose your Mac's chip, or Not sure.") && txt.includes('Enter the Google account email your phone uses for Google Play.'));
   check('focus moves to the error summary', await a.eval(`document.activeElement && document.activeElement.id`) === 'err-summary');
   // Fill and submit.
-  await a.eval(fill('#f-name', 'Alex Rivera')); await a.eval(fill('#f-email', 'alex@example.com')); await a.eval(fill('#f-phone', 'Pixel 8'));
+  await a.eval(fill('#f-name', 'Alex Rivera')); await a.eval(fill('#f-email', 'alex@example.com')); await a.eval(fill('#f-phone', 'Pixel 8')); await a.eval(fill('#f-google', 'alex.rivera@gmail.com'));
   await a.eval(click('input[name=macChip][value=apple]')); await a.eval(click('#f-privacy'));
   await a.eval(click('button[type=submit]'));
   await sleep(3500);
@@ -173,19 +173,26 @@ try {
   fs.writeFileSync(keyFile, privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
   const cfg = { ...loadSignerConfig({}), issuer: path.join(ROOT, 'test/fixtures/fake-issuer.mjs'), keyFile, tokensDir: path.join(dir, 'tokens') };
   const sent = [];
+  // PLAY_GATE=on (the default): the owner adds the Google account in Play Console, then marks it added.
+  const adminC = makeClient({ base: O, keyId: 'admin', secret: dev.secrets.ADMIN_AUTH_SECRET });
+  const pp = await adminC('play-pending');
+  check('play-pending lists the Google account from the form', pp.csv === 'alex.rivera@gmail.com\n', JSON.stringify(pp.csv));
+  check('play-mark-added', (await adminC('play-mark-added', { googleEmails: ['alex.rivera@gmail.com'] })).marked === 1);
   const r = await runCycle({ cfg, post: makeClient({ base: O, keyId: 'signer', secret: dev.secrets.ADMIN_AUTH_SIGNER_SECRET }), mail: async (m) => sent.push(m), log: () => {} });
   check('signer issued and posted one token, sent the queued emails', r.issued === 1 && r.posted === 1 && r.mailed >= 2, JSON.stringify(r));
   const tokenMail = sent.find(m => m.kind === 'token');
   const token = tokenMail.text.match(/SIDEKICK-TRIAL-1\.\S+/)[0];
   const [, pl, sg] = token.split('.');
   check('emailed token verifies with the throwaway public key', crypto.verify(null, Buffer.from(pl), publicKey, Buffer.from(sg, 'base64url')));
+  const inviteMail = sent.find(m => m.kind === 'invite');
+  check('invitation sent separately: Play link, no token', !!inviteMail && inviteMail.text.includes('play.google.com/apps/internaltest/') && !inviteMail.text.includes(token));
 
   // 4. A different browser (fresh profile context) opens the access link from the token email.
   const { result: { browserContextId } } = await send('Target.createBrowserContext');
   const b = await tab({ context: browserContextId });
   await b.go(O + '/Download.dc.html');
   check('without a session the Download page shows the expired state', (await b.text()).includes('Open the link again'));
-  await b.go(linkIn(tokenMail.text, '/api/access'));
+  await b.go(linkIn(inviteMail.text, '/api/access'));
   await b.eval(click('button[type=submit]')); await sleep(2500);
   txt = await b.text();
   check('access link → Download page says the token was emailed', txt.includes('We emailed it to you'));
@@ -194,13 +201,28 @@ try {
   check('download button → 302 to a short-lived file link (fake host)', !!dl && dev.storage.check(dl), dl ? new URL(dl).host : 'no request');
   check('download was logged', dev.repo.debugAll('downloads').length === 1);
 
+  // 4b. Updates: an announcement to a confirmed subscriber, and its one-use unsubscribe link in a browser.
+  await fetch(O + '/api/get-sidekick', { method: 'POST', headers: { 'content-type': 'application/json', origin: O }, body: JSON.stringify({ name: 'Una', email: 'una@example.com', macChip: 'apple', phoneModel: 'Pixel 7', googleEmail: 'una@gmail.com', privacyAccepted: true, marketingOptIn: true, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
+  const updT = ((await outbox()).filter(m => m.kind === 'confirm').map(m => m.text).join('\n').match(/confirm-email\?for=updates#t=([A-Za-z0-9_-]{43})/) || [])[1];
+  await fetch(O + '/api/confirm-email', { method: 'POST', headers: { 'content-type': 'application/json', origin: O }, body: JSON.stringify({ t: updT, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
+  check('announce --dry-run counts one subscriber', (await adminC('announce', { subject: 'Sidekick update', body: 'Hello.', dryRun: true })).recipients === 1);
+  await adminC('announce', { subject: 'Sidekick update', body: 'Hello.' });
+  const unsubUrl = linkIn((await outbox()).find(m => m.kind === 'announce').text, '/api/unsubscribe');
+  await b.go(unsubUrl);
+  txt = await b.text();
+  check('unsubscribe link opens a page with a button and no human check', txt.includes('Stop Sidekick updates') && !/Human check/.test(txt));
+  await b.eval(click('button[type=submit]')); await sleep(1500);
+  check('after the button: unsubscribed', (await b.text()).includes('Unsubscribed') && !dev.repo.debugAll('signups').find(s => s.email === 'una@example.com').marketingConfirmedAt);
+  await b.go('about:blank'); await b.go(unsubUrl); await b.eval(click('button[type=submit]')); await sleep(1500); // (same URL + #t: leave first, or it is only a fragment change)
+  check('the same link again: already used (410)', (await b.text()).includes('Link already used'));
+
   // 5. No JavaScript: the plain form is there and fails closed on the human check.
   const c = await tab({ noJs: true, context: (await send('Target.createBrowserContext')).result.browserContextId });
   await c.go(O + '/Get%20Sidekick.dc.html');
   txt = await c.text();
   check('no-JS: the plain signup form is visible, template text is not', txt.includes('Android phone model') && !txt.includes('{{'));
   await c.eval(fill('input[name=name]', 'Sam')); // eval still works with page scripts disabled
-  await send('Runtime.evaluate', { expression: `document.querySelector('.skf input[name=email]').value='sam@example.com';document.querySelector('.skf input[name=phoneModel]').value='Pixel';document.querySelector('.skf input[value=apple]').checked=true;document.querySelector('.skf input[name=privacyAccepted]').checked=true;document.querySelector('.skf form').submit();` }, c.sid);
+  await send('Runtime.evaluate', { expression: `document.querySelector('.skf input[name=email]').value='sam@example.com';document.querySelector('.skf input[name=phoneModel]').value='Pixel';document.querySelector('.skf input[name=googleEmail]').value='sam@gmail.com';document.querySelector('.skf input[value=apple]').checked=true;document.querySelector('.skf input[name=privacyAccepted]').checked=true;document.querySelector('.skf form').submit();` }, c.sid);
   await sleep(1500);
   txt = await c.text();
   check('no-JS submit: server page explains the human check needs JavaScript, answers kept', txt.includes('needs JavaScript') && (await c.eval(`document.querySelector('input[name=email]').value`)) === 'sam@example.com');
@@ -214,7 +236,7 @@ try {
   // (unchanged since 7e7042c): Home's SVG attributes hold {{ seg… }} until the template renders.
   const raw = [a, b, c].flatMap(t => t.errors);
   const preexisting = raw.filter(e => /\{\{ seg(W|H|Box|Path) \}\}/.test(e));
-  const errs = raw.filter(e => !preexisting.includes(e) && !/status of (401|403)/.test(e));
+  const errs = raw.filter(e => !preexisting.includes(e) && !/status of (401|403|410)/.test(e));
   check('known pre-existing warnings only: Home SVG template attributes', true, `${preexisting.length} warning(s) — not caused by this branch`);
   check('no console errors or CSP violations', errs.length === 0, [...new Set(errs)].join(' | ').slice(0, 1500));
   const leaks = dev.logs.filter(l => /alex@example\.com|SIDEKICK-TRIAL|127\.0\.0\.1/.test(l));
