@@ -1,6 +1,7 @@
-// Writes the no-JavaScript copies of the FAQ (Home.dc.html) and the roadmap (Roadmap.dc.html) from the same
-// sources the pages render from: the FAQ array in Home.dc.html's script, data/site-config.js and
-// data/roadmap-data.js. Run after editing any of them:
+// Writes the no-JavaScript copies of the FAQ (Home.dc.html), the roadmap (Roadmap.dc.html) and the unlisted
+// Beta page (Beta.dc.html) from the same sources the pages render from: the FAQ array in Home.dc.html's script,
+// the BETA function in Beta.dc.html's script, data/site-config.js, data/releases.json and data/roadmap-data.js.
+// Run after editing any of them:
 //   node tools/noscript.mjs          rewrite the generated blocks
 //   node tools/noscript.mjs --check  exit 1 if a block is out of date (use before deploying)
 import fs from 'node:fs';
@@ -32,9 +33,31 @@ const rmHtml = RM.phases.map(p => {
   return `<section style="padding-top:20px;border-top:1px solid rgba(23,20,46,0.14);"><h2 style="margin:0 0 12px;font:800 28px/1.1 'Bricolage Grotesque',sans-serif;">${esc(p.label)}: ${esc(p.title)}</h2><ul style="margin:0;padding-left:22px;font-size:17px;line-height:1.55;">\n${items}\n</ul></section>`;
 }).join('\n');
 
+// Beta: call Beta's own `const BETA = (R, C) => {...}` with release facts and config, as the page does.
+const beta = read('Beta.dc.html');
+const bm = beta.match(/const BETA = (\(R, C\) => \{[\s\S]*?\n {4}\});/);
+if (!bm) throw new Error('BETA function not found in Beta.dc.html');
+const { _comment, ...R } = JSON.parse(read('data/releases.json'));
+const T = vm.runInNewContext(`(${bm[1]})`, {})(R, C);
+const P = (t, extra = '') => `<p style="margin:0 0 14px;font-size:17px;line-height:1.6;${extra}">${t}</p>`;
+const H2 = (t) => `<h2 style="margin:28px 0 12px;font:800 30px/1.1 'Bricolage Grotesque',sans-serif;">${esc(t)}</h2>`;
+const H3 = (t) => `<h3 style="margin:20px 0 8px;font:600 20px/1.3 Inter,sans-serif;">${esc(t)}</h3>`;
+const OL = (items) => `<ol style="margin:0 0 14px;padding-left:22px;font-size:17px;line-height:1.6;">\n${items.map(s => `<li>${esc(s.text)}${s.code ? ` <code>${esc(s.code)}</code>` : ''}</li>`).join('\n')}\n</ol>`;
+const A = (href, label) => href ? P(`<a href="${esc(href)}" rel="noopener noreferrer" style="font-weight:600;">${esc(label)}</a>`) : '';
+const betaHtml = [
+  `<h1 style="margin:0 0 16px;font:800 52px/1 'Bricolage Grotesque',sans-serif;">Install the beta.</h1>`, P(esc(T.intro)),
+  H2(T.macTitle), P(esc(T.macNeed)), A(T.driveUrl, T.driveLabel), P(esc(T.driveText)),
+  T.file ? P(`File: <code>${esc(T.file)}</code>${T.size ? ` · Size: ${esc(T.size)}` : ''}`) : '',
+  T.sha ? P(`SHA-256: <code style="word-break:break-all;">${esc(T.sha)}</code>`) : '',
+  H3(T.checkTitle), OL(T.check), H3(T.installTitle), OL(T.install), P(`<strong>${esc(T.tokenTitle)}</strong> ${esc(T.token)}`),
+  H2(T.androidTitle), P(esc(T.androidNeed)), P(`<strong>${esc(T.playAccess)}</strong>`), A(T.playUrl, T.playLabel), P(esc(T.playText)), P(esc(T.noApk), 'font-weight:600;'),
+  H2(T.pairTitle), P(`${esc(T.pair)} <a href="Support.dc.html#setup" style="font-weight:600;">Full setup guide</a>`), P(esc(T.help))
+].filter(Boolean).join('\n');
+
 const blocks = [
   ['Home.dc.html', 'FAQ', `<noscript>\n<div style="border-bottom:1px solid rgba(23,20,46,0.14);">\n${faqHtml}\n</div>\n</noscript>`],
   ['Roadmap.dc.html', 'ROADMAP', `<noscript>\n<div style="display:flex;flex-direction:column;gap:28px;">\n${rmHtml}\n</div>\n</noscript>`],
+  ['Beta.dc.html', 'BETA', `<noscript>\n<div>\n${betaHtml}\n</div>\n</noscript>`],
 ];
 
 const check = process.argv.includes('--check');

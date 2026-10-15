@@ -8,6 +8,9 @@
 // 3. Walks every email link form through the real router on fake adapters: confirm, confirm?for=updates,
 //    confirm?for=notify and access. Each must be same-origin, carry its token only in the #fragment, match the
 //    page script's pattern, open a page whose form posts to a real route, and land on a page that exists.
+// 4. The unlisted Beta page: noindex/nofollow in its <head> and in vercel.json, no link to it from any page,
+//    component, server page, email or script, its only outside links are releases.json's Drive and Play test
+//    links, and no .apk anywhere. The Download page carries neither link.
 // Exits 1 on any problem. Imported by test/links.test.mjs.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -165,6 +168,33 @@ export async function checkLinks({ build = true } = {}) {
   ok('email', 'notify email has a link', notifyUrl);
   if (notifyUrl) await walk('confirm?for=notify', notifyUrl, '/api/confirm-email');
   for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/'), x.replace(/#t=.*/, '#t=…'));
+
+  // ── 4. the unlisted Beta page ─────────────────────────────────────────────
+  const BETA = 'Beta.dc.html';
+  const beta = src[BETA] || '';
+  ok('beta', `${BETA} is in dist/`, !!beta);
+  const head = beta.split('<x-dc>')[0];
+  ok('beta', `${BETA}: robots noindex, nofollow in the static <head>`, /<head>[\s\S]*<meta name="robots" content="noindex, nofollow">[\s\S]*<\/head>/.test(head));
+  const vj = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+  ok('beta', `${BETA}: vercel.json sends X-Robots-Tag noindex, nofollow`, (vj.headers || []).some(h => h.source === '/' + BETA && h.headers.some(x => x.key === 'X-Robots-Tag' && x.value === 'noindex, nofollow')));
+  const mentions = (t) => /Beta\.dc(\.html)?\b|\/Beta\b/.test(t);
+  const distText = [];
+  const walkDist = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const q = path.join(d, e.name); e.isDirectory() ? walkDist(q) : /\.(html|js|css|json|xml|txt)$/.test(e.name) && distText.push(q); } };
+  walkDist(DIST);
+  const linkers = distText.filter(f => path.basename(f) !== BETA && mentions(fs.readFileSync(f, 'utf8'))).map(f => path.relative(DIST, f));
+  ok('beta', `${BETA}: no other file in dist/ names it (unlisted)`, !linkers.length, linkers.join(', '));
+  const serverNames = Object.entries(serverPages).filter(([, h]) => mentions(typeof h === 'string' ? h : h.body)).map(([n]) => n);
+  ok('beta', `${BETA}: no server page names it`, !serverNames.length, serverNames.join(', '));
+  ok('beta', `${BETA}: no email names it`, !mails().some(m => mentions(m.text)));
+  ok('beta', `${BETA}: no sitemap or robots.txt in dist/`, !distText.some(f => /sitemap|robots\.txt/i.test(path.basename(f))));
+  const want = [releases.mac.betaDriveUrl, releases.android.playTestUrl].filter(Boolean).sort();
+  const outside = [...new Set([...beta.matchAll(/\shref="(https?:[^"]*)"/g)].map(m => m[1].replace(/&amp;/g, '&')))].sort();
+  ok('beta', `${BETA}: its outside links are exactly the Drive and Play test links`, want.length === 2 && JSON.stringify(outside) === JSON.stringify(want), outside.join(' '));
+  ok('beta', `${BETA}: the page script reads both links from release facts`, /R\.mac\.betaDriveUrl/.test(beta) && /R\.android\.playTestUrl/.test(beta));
+  ok('beta', `${BETA}: no .apk anywhere`, !/\.apk\b/i.test(beta));
+  ok('beta', `${BETA}: shows the SHA-256 from releases.json`, !!releases.mac.builds.arm64.sha256 && beta.includes(releases.mac.builds.arm64.sha256));
+  const dl = src['Download.dc.html'] || '';
+  ok('beta', 'Download.dc.html carries neither beta link', !want.some(u => dl.includes(u)) && !/betaDriveUrl|playTestUrl/.test(dl));
 
   return { rows, failures: rows.filter(r => !r.pass), checked, external: [...external].sort() };
 }
