@@ -1,6 +1,6 @@
 # Sidekick website — developer handoff
 
-Status: design + working front-end prototype. Pages are Design Components (`*.dc.html`) that open directly in a browser. Rebuild them as Astro or Next.js components using the tokens, structure and copy below. API calls go through `data/mock-api.js`, which is a **mock**.
+Status: design + working front-end prototype. Pages are Design Components (`*.dc.html`) that open directly in a browser. Rebuild them as Astro or Next.js components using the tokens, structure and copy below. In the source, API calls go through `data/mock-api.js`, which is a **mock**. **Backend (2026-10-15, branch `site/backend-2026-10-15`):** the API in §7 is built (`api/index.mjs`, `server/`); `npm run build` makes `dist/` with mocks off; see `docs/backend-design.md` and `docs/OWNER-SETUP.md`.
 
 ---
 
@@ -138,10 +138,10 @@ POST /api/feedback {message(3..2000), email?} → 202
 Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/signups/:id {tokenSentAt}
 ```
 
-**Token process (phase 1).** The owner issues each token on their own Mac from the signup list. The signing key never touches the server. The Download page says the token arrives by email. Hook: `issueToken(signup)` is a no-op stub for automating this later. Setting `tokenRequired:false` hides the token panel, the FAQ entry and token mentions in the copy.
+**Token process.** Built 2026-10-15: `tools/signer` on the owner's Mac polls `/api/admin/pending` (HMAC), runs the Mac app's own issuer, posts back only the signed token, and sends queued emails through Mail.app. The signing key never touches the server. Admin endpoints are `POST /api/admin/*` with HMAC (not the `GET/PATCH /admin/signups` sketched above); the CLI is `tools/admin`. Setting `tokenRequired:false` hides the token panel, the FAQ entry and token mentions in the copy.
 
 ### Environment variables
-`DATABASE_URL`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `DOWNLOAD_URL_TTL`, `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`, `ADMIN_AUTH_*`, `ANALYTICS_SITE_ID`, `RATE_LIMIT_*`, flags `RELEASE_STATE`, `TOKEN_REQUIRED`, `NOTARIZED`, `MOCKS_ENABLED`.
+As built (full table with sources in `docs/OWNER-SETUP.md` §3): `APP_ORIGIN`, `SESSION_SECRET` (+ `SESSION_SECRET_PREVIOUS` while rotating), `DATABASE_URL`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `STORAGE_PROVIDER` (`github` default | `r2`), `GITHUB_RELEASES_TOKEN`, `GITHUB_RELEASES_REPO`, `GITHUB_RELEASE_TAG`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `DOWNLOAD_URL_TTL`, `EMAIL_PROVIDER` (`outbox` default | `resend`), `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`, `ADMIN_AUTH_SECRET`, `ADMIN_AUTH_SIGNER_SECRET`, `CRON_SECRET`, `BETA_CAP`, `RETENTION_SIGNUP_DAYS`, `RATE_LIMIT_*`. Not used: `ANALYTICS_SITE_ID` (no analytics). The flags `releaseState`, `tokenRequired`, `notarized` stay in `data/site-config.js`; `mocksEnabled` is forced off by the build.
 
 ---
 
@@ -160,7 +160,7 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 3. **Privacy policy publisher details** — legal name, postal address, effective date, how changes are announced, data retention period, analytics provider, email provider. Needs a legal review.
 4. **Signing / notarization** — the Mac 2.0.0 build is ad-hoc signed and not notarized, so the site shows the Gatekeeper steps. The **APK is unsigned and cannot be installed**, and its size and SHA-256 are placeholders until the signed build exists.
 5. **Intel** — decided 2026-10-15: Apple silicon only. No x64 build is offered and the form has no Intel option.
-6. **Token process** — how tokens are delivered (pasted string or file?), how long it takes, whether one token works on more than one Mac, and its expiry. The repo mentions a 45-day trial; the site doesn't mention it until you confirm.
+6. **Token process** — decided in the Mac repo (2026-10-12): 45-day signed tokens, not bound to one Mac. Delivery is now by email from the signer, usually within a few hours (only while the owner's Mac is awake). The token email says it works for 45 days.
 7. **Real download files** uploaded to R2/S3, plus `SHA256SUMS.txt`.
 8. Pricing — nothing on the site mentions it.
 

@@ -49,9 +49,9 @@ Every API response carries `Cache-Control: no-store` and the security headers in
 | Method · path | Auth | Turnstile | Purpose |
 |---|---|---|---|
 | `POST /api/get-sidekick` | none | **yes** | Signup (JSON or plain form post) |
-| `GET  /api/confirm-email?t=` | link token | no (read-only page) | Shows a page with a Confirm button |
+| `GET  /api/confirm-email` (token in `#t=`) | — | no (read-only page) | Shows a page with a Confirm button |
 | `POST /api/confirm-email` | link token | **yes** | Confirms the email (and marketing, for that link's purpose), applies the approval rule, sets an "email" session |
-| `GET  /api/access?t=` | link token | no (read-only page) | Shows a page with an Open my downloads button |
+| `GET  /api/access` (token in `#t=`) | — | no (read-only page) | Shows a page with an Open my downloads button |
 | `POST /api/access` | link token | **yes** | Sets an "email" session from the emailed access link |
 | `GET  /api/session` | cookie | — | `{firstName, stage}` for the Download page; 401 without a session |
 | `GET  /api/download/:platform(/:arch)` | "email" session + approved | — | Logs, then 302 to a signed file URL |
@@ -92,10 +92,10 @@ buffers. Payload `{v:1, k:'form'|'email', n?:firstName, sid?:signupId, iat, exp}
   makes a new session).
 
 ### 3.3 Email links
-Random 32 bytes, base64url, sent only by email; the database stores SHA-256 of it. Purposes:
+Random 32 bytes, base64url, sent only by email, **after `#` in the link** (`/api/confirm-email#t=…`), so it never reaches a server log or a Referer header; the page's own nonce'd script moves it into the form and clears the address bar. The database stores SHA-256 of it. Purposes:
 `signup_confirm` (48 h, single use), `marketing_confirm` (7 days, single use), `roadmap_confirm` (7 days, single
 use), `access` (72 h, usable up to 10 times so a second device works). GET shows a small page whose button posts
-the token (mail scanners that prefetch links consume nothing). Links are built from `APP_ORIGIN`, never from the
+the token (mail scanners that prefetch links consume nothing; validity is checked on POST). Links are built from `APP_ORIGIN`, never from the
 request's `Host` header.
 
 ### 3.4 Approval
@@ -159,8 +159,8 @@ builds the real adapters from env once per instance.
 HMAC request signing: headers `x-sk-key` (`admin` or `signer`), `x-sk-ts` (ms), `x-sk-nonce` (16 random bytes,
 hex), `x-sk-sig` = hex HMAC-SHA256(secret, `METHOD \n PATH \n TS \n NONCE \n sha256hex(body)`). Rejected when the
 timestamp is more than 300 s away, the nonce was seen (stored in `admin_nonces`, unique), the signature differs
-(constant-time compare), or the key may not call that path. Two secrets: `SIGNER_HMAC_SECRET` may call only
-`pending`, `token`, `outbox`, `outbox-ack`; `ADMIN_HMAC_SECRET` may call everything.
+(constant-time compare), or the key may not call that path. Two secrets: `ADMIN_AUTH_SIGNER_SECRET` may call only
+`pending`, `token`, `outbox`, `outbox-ack`; `ADMIN_AUTH_SECRET` may call everything.
 
 | Path | Who | Does |
 |---|---|---|
@@ -196,7 +196,7 @@ like an email, a token, an IPv4/IPv6 address or a bearer secret before printing,
 Tests capture every log line and fail on any test email, token, IP or secret.
 
 Delete-my-data: in plain words on Support › Privacy (write to the support email from the signup address);
-`node tools/admin/admin.mjs delete --email …` removes the person and everything linked.
+`node tools/admin/admin.mjs delete <email>` removes the person and everything linked.
 
 ## 8. Headers
 
@@ -219,13 +219,13 @@ Astro/Next rebuild Handoff §8 already asks for.
 | Threat | Defence |
 |---|---|
 | Bots | Turnstile on every state-changing public endpoint, verified server-side, fail closed on error/timeout/hostname mismatch |
-| Signup abuse / email bombing | Per-IP and per-email limits in the database; confirm/access emails per address capped (3 an hour); unconfirmed rows deleted after 7 days |
+| Signup abuse / email bombing | Per-IP and per-email limits in the database; emails per address capped (3 an hour, 6 a day); unconfirmed rows deleted after 7 days |
 | Enumeration | Same status, body and cookie for new and existing emails; per-email 429 applies to every address alike; roadmap-notify and feedback always 202 |
 | Session takeover by typing someone's email | A form session never authorises a download (D-B7) |
 | Token theft | Token only in the email and the database; never in logs or responses other than to the signer's own post; erased from the outbox on send and from the signup 46 days after issue. Tokens can't be revoked early (app design) |
 | Replay (admin) | Timestamp window 300 s + single-use nonce + body hash in the signature |
 | Replay (links) | Single-use confirm links; access links capped at 10 uses and 72 h; Turnstile tokens single-use by Cloudflare |
-| Log leakage | Event-code logging + redaction + a test that scans every log line |
+| Log leakage | Event-code logging + redaction + a test that scans every log line; link tokens ride in the URL fragment so Vercel's own request logs never see them |
 | SSRF | No endpoint takes a URL. Outbound hosts are fixed: challenges.cloudflare.com, api.github.com, the R2 endpoint built from an account id that must match `^[0-9a-f]{32}$`, api.resend.com |
 | Header injection in emails | Address validated (no CR/LF, quotes, angle brackets, spaces), subjects are constants, names stripped of control characters; Mail.app gets values as `argv` |
 | CSRF on the no-JS form | State-changing posts check `Origin` against `APP_ORIGIN` when the browser sends it; signup carries no ambient authority; confirm/access need the emailed secret; cookie is SameSite=Lax |
