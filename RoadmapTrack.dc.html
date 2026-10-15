@@ -13,6 +13,7 @@
 <script src="data/releases.js"></script>
 <script src="data/roadmap-data.js"></script>
 <script src="data/mock-api.js"></script>
+<!--MANUAL{--><script src="data/mailto.js"></script><!--}MANUAL-->
 </helmet>
 <div ref="{{ rootRef }}" style="font-family:Inter,sans-serif;color:#17142E;display:flex;flex-direction:column;gap:36px;">
   <div role="group" aria-label="Filter roadmap by area" style="display:flex;flex-wrap:wrap;gap:8px;">
@@ -52,7 +53,11 @@
                       <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#55526B;">{{ it.category }}</span>
                     </div>
                     <sc-if value="{{ it.note }}"><p style="margin:0;font-size:14.5px;line-height:1.5;color:#55526B;">Caveat: {{ it.note }}</p></sc-if>
-                    <sc-if value="{{ showNotify }}">
+                    <!--MANUAL{--><sc-if value="{{ manualNotify }}">
+                      <a href="{{ it.mailto }}" style="align-self:flex-start;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;display:inline-flex;align-items:center;text-decoration:none;box-sizing:border-box;" style-hover="background:#C6FF33;">Email me when this ships</a>
+                      <span style="font-size:14px;line-height:1.5;color:#55526B;">Opens your email app with a message to us. We reply once, when it ships.</span>
+                    </sc-if><!--}MANUAL-->
+                    <!--AUTOMATED{--><sc-if value="{{ autoNotify }}">
                       <sc-if value="{{ it.sent }}">
                         <p role="status" style="margin:0;font-size:14.5px;line-height:1.5;color:#17142E;display:flex;gap:8px;align-items:flex-start;"><span style="width:10px;height:10px;margin-top:5px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;flex:none;"></span>Check your inbox and confirm. We'll send one email when this ships.</p>
                       </sc-if>
@@ -68,7 +73,7 @@
                           <sc-if value="{{ mocks }}"><span style="font-size:14px;line-height:1.5;color:#55526B;">This isn't connected yet during the beta, so nothing is sent.</span></sc-if>
                         </form>
                       </sc-if>
-                    </sc-if>
+                    </sc-if><!--}AUTOMATED-->
                   </div>
                 </sc-if>
               </li>
@@ -97,9 +102,9 @@ class Component extends DCLogic {
     }
   }
   componentWillUnmount() { this.ro && this.ro.disconnect(); clearInterval(this.t); }
-  componentDidUpdate() { if (!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) && window.SK_BOT) window.SK_BOT.ensure(this.bot, this.botRef.current); }
+  /*AUTOMATED{*/componentDidUpdate() { if (!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) && window.SK_BOT) window.SK_BOT.ensure(this.bot, this.botRef.current); }/*}AUTOMATED*/
   setN(id, patch) { this.setState(s => ({ notify: { ...s.notify, [id]: { ...(s.notify[id] || {}), ...patch } } })); }
-  async submit(e, id) {
+  /*AUTOMATED{*/async submit(e, id) {
     e.preventDefault();
     if (window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) return;
     const n = this.state.notify[id] || {};
@@ -114,12 +119,13 @@ class Component extends DCLogic {
       if (r && r.ok) this.setN(id, { sending: false, sent: true });
       else this.setN(id, { sending: false, error: "That didn't go through. Try again in a moment." });
     } catch (err) { this.setN(id, { sending: false, error: "That didn't go through. Try again in a moment." }); }
-  }
+  }/*}AUTOMATED*/
   renderVals() {
     const R = window.SK_ROADMAP || { phases: [], items: [], categories: [] };
     const limit = this.props.limit ?? 0;
     const showNotify = this.props.showNotify ?? true;
     const mocks = !!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled);
+    const manual = !!(window.SK_CONFIG && window.SK_CONFIG.siteMode === 'manual'); // SITE_MODE=manual: email-only beta
     const horizontal = this.state.w >= 880;
     const f = this.state.filter;
     const chips = ['All', ...R.categories].map(c => {
@@ -148,10 +154,11 @@ class Component extends DCLogic {
             sent: !mocks && !!n.sent, notSent: !(!mocks && !!n.sent), btnDisabled: mocks || !!n.sending, btn: mocks ? 'Not connected yet' : (n.sending ? 'Sending…' : 'Notify me'),
             toggle: () => this.setState(s => ({ open: s.open === it.id ? null : it.id })),
             onEmail: (e) => this.setN(it.id, { email: e.target.value, error: '' }),
-            submit: (e) => this.submit(e, it.id) };
+            mailto: manual ? (/*MANUAL{*/ (window.SK_MAILTO ? window.SK_MAILTO.notify(it.title) : null) ?? /*}MANUAL*/ null) : null,
+            submit: (e) => (/*AUTOMATED{*/ this.submit(e, it.id) ?? /*}AUTOMATED*/ null) };
         }) };
     });
-    return { rootRef: this.rootRef, botRef: this.botRef, real: !mocks, chips, phases, horizontal, vertical: !horizontal, showNotify, mocks, filterName: f,
+    return { rootRef: this.rootRef, botRef: this.botRef, real: !mocks, chips, phases, horizontal, vertical: !horizontal, showNotify, autoNotify: showNotify && !manual, manualNotify: showNotify && manual, mocks, filterName: f,
       cols: horizontal ? 'repeat(4, minmax(0,1fr))' : 'minmax(0,1fr)', gap: horizontal ? '20px' : '28px' };
   }
 }

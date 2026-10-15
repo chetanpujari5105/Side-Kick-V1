@@ -25,7 +25,7 @@
       </nav>
     </sc-if>
     <div style="display:flex;align-items:center;gap:8px;">
-      <sc-if value="{{ showPill }}"><a href="Get Sidekick.dc.html" style="height:46px;padding:0 22px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:15px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;white-space:nowrap;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Get Sidekick</a></sc-if>
+      <sc-if value="{{ showPill }}"><a href="Get Sidekick.dc.html" style="height:46px;padding:0 22px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:15px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;white-space:nowrap;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">{{ ctaLabel }}</a></sc-if>
       <sc-if value="{{ narrow }}">
         <button type="button" aria-label="Menu" aria-expanded="{{ menuOpen }}" aria-controls="sk-menu" onClick="{{ toggleMenu }}" style="width:46px;height:46px;border-radius:999px;border:1px solid rgba(23,20,46,0.15);background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;padding:0;">
           <span style="width:16px;height:1.5px;background:#17142E;"></span><span style="width:16px;height:1.5px;background:#17142E;"></span>
@@ -35,7 +35,7 @@
   </header>
   <sc-if value="{{ showMenu }}">
     <nav id="sk-menu" aria-label="Main" style="position:absolute;left:12px;right:12px;top:80px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);border-radius:24px;padding:10px;display:flex;flex-direction:column;box-shadow:0 24px 40px -24px rgba(23,20,46,0.35);">
-      <sc-if value="{{ compact }}"><a href="Get Sidekick.dc.html" onClick="{{ closeMenu }}" style="min-height:52px;padding:0 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;color:#17142E;text-decoration:none;font-size:18px;font-weight:600;" style-hover="background:#F6F3EC;">Get Sidekick<span style="font-family:'Material Symbols Rounded';font-size:20px;color:#55526B;font-weight:300;">chevron_right</span></a></sc-if>
+      <sc-if value="{{ compact }}"><a href="Get Sidekick.dc.html" onClick="{{ closeMenu }}" style="min-height:52px;padding:0 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;color:#17142E;text-decoration:none;font-size:18px;font-weight:600;" style-hover="background:#F6F3EC;">{{ ctaLabel }}<span style="font-family:'Material Symbols Rounded';font-size:20px;color:#55526B;font-weight:300;">chevron_right</span></a></sc-if>
       <sc-for list="{{ links }}" as="l" hint-placeholder-count="5">
         <a href="{{ l.href }}" onClick="{{ closeMenu }}" style="min-height:52px;padding:0 16px;border-radius:14px;display:flex;align-items:center;justify-content:space-between;color:#17142E;text-decoration:none;font-size:18px;font-weight:600;" style-hover="background:#F6F3EC;">{{ l.label }}<span style="font-family:'Material Symbols Rounded';font-size:20px;color:#55526B;font-weight:300;">chevron_right</span></a>
       </sc-for>
@@ -64,6 +64,7 @@ class Component extends DCLogic {
       ['privacy','Privacy','Support.dc.html#privacy'],['faq','FAQ','Home.dc.html#faq']
     ].map(([id,label,href]) => ({ label, href, current: id === active ? 'page' : undefined, color: id === active ? '#17142E' : '#55526B', border: id === active ? '2px solid #C6FF33' : '2px solid transparent' }));
     return {
+      ctaLabel: window.SK_CONFIG && window.SK_CONFIG.siteMode === 'manual' ? 'Request access' : 'Get Sidekick', // SITE_MODE=manual: email-only beta
       rootRef: this.rootRef, wide, narrow: !wide, links, compact, showPill: !compact,
       menuOpen: this.state.menuOpen ? 'true' : 'false',
       showMenu: !wide && this.state.menuOpen,

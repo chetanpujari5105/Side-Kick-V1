@@ -1,6 +1,8 @@
-// Sidekick website — config flags. The production build (scripts/build-site.mjs) rewrites mocksEnabled to false
-// and fills turnstileSiteKey from the TURNSTILE_SITE_KEY environment variable.
+// Sidekick website — config flags. The production build (scripts/build-site.mjs) sets siteMode from SITE_MODE and
+// mocksEnabled to false; in automated mode it fills turnstileSiteKey from TURNSTILE_SITE_KEY, in manual mode it
+// removes the key line.
 window.SK_CONFIG = {
+  siteMode: 'automated',       // 'manual' | 'automated'. The build sets it from SITE_MODE (manual: email only, no backend)
   releaseState: 'invite',      // 'invite' | 'public'
   tokenRequired: true,         // false → Download page hides the Access token block
   notarized: false,            // false → Download page shows the Gatekeeper "Open Anyway" steps

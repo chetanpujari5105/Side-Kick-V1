@@ -49,11 +49,13 @@
 class Component extends DCLogic {
   renderVals() {
     const L = (label, href) => ({ label, href });
+    // SITE_MODE=manual: Get Sidekick is the request-access email, and Privacy is this site's own page.
+    const manual = !!(window.SK_CONFIG && window.SK_CONFIG.siteMode === 'manual');
     return {
       cols: [
-        { title: 'Product', links: [L('Features','Home.dc.html#features'), L('How it works','Home.dc.html#how'), L("What's next",'Roadmap.dc.html'), L('Get Sidekick','Get Sidekick.dc.html')] },
+        { title: 'Product', links: [L('Features','Home.dc.html#features'), L('How it works','Home.dc.html#how'), L("What's next",'Roadmap.dc.html'), L(manual ? 'Request access' : 'Get Sidekick','Get Sidekick.dc.html')] },
         { title: 'Support', links: [L('Setup','Support.dc.html#setup'), L('Help','Support.dc.html#help'), L('Permissions','Support.dc.html#permissions'), L('Changelog','Support.dc.html#changelog')] },
-        { title: 'About', links: [L('Privacy','https://chetan-website-delta.vercel.app/sidekick/privacy'), L('Suggest a feature','Roadmap.dc.html#suggest'), L('Contact','Support.dc.html#help')] }
+        { title: 'About', links: [manual ? L('Privacy','Support.dc.html#privacy') : (/*AUTOMATED{*/ L('Privacy','https://chetan-website-delta.vercel.app/sidekick/privacy') ?? /*}AUTOMATED*/ null), L('Suggest a feature','Roadmap.dc.html#suggest'), L('Contact','Support.dc.html#help')] }
       ]
     };
   }
