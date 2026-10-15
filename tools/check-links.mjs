@@ -11,9 +11,15 @@
 // 4. The unlisted Beta page: noindex/nofollow in its <head> and in vercel.json, no link to it from any page,
 //    component, server page, email or script, its only outside links are releases.json's Drive and Play test
 //    links, and no .apk anywhere. The Download page carries neither link.
+// 5. SITE_MODE=manual (--mode manual): sections 2 and 3 do not apply (no API, no email links). Instead every mailto
+//    must go to the support address with only a subject and body; Get Sidekick, Download, the roadmap suggestion box
+//    and every roadmap item's Notify link must be the right email.
+//   node tools/check-links.mjs                 both modes
+//   node tools/check-links.mjs --mode manual   one mode
 // Exits 1 on any problem. Imported by test/links.test.mjs.
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { createApp } from '../server/app.mjs';
@@ -32,10 +38,35 @@ const O = 'https://sidekick-links.example.test';
 const COMPONENTS = ['SiteHeader.dc.html', 'SiteFooter.dc.html', 'MacWindow.dc.html', 'PhoneScreen.dc.html', 'RoadmapTrack.dc.html'];
 const EXTERNAL = /^(https?:|mailto:|tel:|data:)/i;
 
-export async function checkLinks({ build = true } = {}) {
+// The support address and the mail texts, read the way the pages read them.
+function mailSources() {
+  const sandbox = { window: {} };
+  vm.createContext(sandbox);
+  for (const f of ['data/site-config.js', 'data/roadmap-data.js', 'data/mailto.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox);
+  return { C: sandbox.window.SK_CONFIG, RM: sandbox.window.SK_ROADMAP, M: sandbox.window.SK_MAILTO };
+}
+const unamp = (s) => s.replace(/&amp;/g, '&');
+// A mailto we write: exactly the support address, and nothing but a subject and/or body that decode cleanly.
+export function mailtoProblem(link, to) {
+  const m = /^mailto:([^?]*)(?:\?(.*))?$/i.exec(link);
+  if (!m) return 'not a mailto';
+  if (decodeURIComponent(m[1]) !== to) return `addressed to ${m[1]}, not ${to}`;
+  if (!m[2]) return '';
+  for (const part of m[2].split('&')) {
+    const [k, v = ''] = part.split('=');
+    if (!['subject', 'body'].includes(k)) return `unexpected field ${k}`;
+    try { decodeURIComponent(v); } catch { return `${k} does not decode`; }
+    if (/[\s<>"]/.test(v)) return `${k} is not percent-encoded`;
+  }
+  return '';
+}
+
+export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const rows = [];
-  const ok = (area, what, pass, note = '') => rows.push({ area, what, pass: !!pass, note });
-  if (build) execFileSync(process.execPath, ['scripts/build-site.mjs'], { cwd: ROOT, env: { PATH: process.env.PATH }, stdio: 'pipe' });
+  const ok = (area, what, pass, note = '') => rows.push({ area, what: `[${mode}] ${what}`, pass: !!pass, note });
+  const manual = mode === 'manual';
+  const { C: CFG, RM, M } = mailSources();
+  if (build) execFileSync(process.execPath, ['scripts/build-site.mjs'], { cwd: ROOT, env: { PATH: process.env.PATH, SITE_MODE: mode }, stdio: 'pipe' });
 
   // The real router on fakes, for /api routes and the email walk.
   const rnd = (n) => crypto.randomBytes(n).toString('hex');
@@ -66,7 +97,7 @@ export async function checkLinks({ build = true } = {}) {
     if (!link || link.includes('{{') || EXTERNAL.test(link)) {
       if (EXTERNAL.test(link || '')) {
         external.add(link);
-        if (/^mailto:/i.test(link)) ok(area, `${from} → ${link}`, /^mailto:[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(link), 'mailto address shape');
+        if (/^mailto:/i.test(link)) { const bad = mailtoProblem(unamp(link), CFG.supportEmail); ok(area, `${from} → ${link.slice(0, 70)}`, !bad, bad || 'mailto: support address, subject/body only'); }
       }
       return;
     }
@@ -98,8 +129,8 @@ export async function checkLinks({ build = true } = {}) {
     for (const l of links) await resolve(p, l, 'dist');
   }
 
-  // ── 2. server pages and redirects ─────────────────────────────────────────
-  const serverPages = {
+  // ── 2. server pages and redirects (automated only: a manual site has no API) ──
+  const serverPages = manual ? {} : {
     ...Object.fromEntries(['confirm', 'updates', 'notify', 'access'].flatMap(pp => [[`linkPage(${pp})`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: true })], [`linkPage(${pp}, expired)`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: false })]])),
     messagePage: messagePage({ nonce: 'n', title: 't', text: 'x' }),
     signupFormPage: signupFormPage({ nonce: 'n', siteKey: 'k' })
@@ -117,6 +148,8 @@ export async function checkLinks({ build = true } = {}) {
     }
   }
   const nav = { accept: 'text/html', 'sec-fetch-mode': 'navigate' };
+  const mails = () => repo.debugOutbox();
+  if (!manual) {
   const loc = async (r, what) => {
     const l = r.headers.get('location') || '';
     const u = new URL(l, O);
@@ -147,7 +180,6 @@ export async function checkLinks({ build = true } = {}) {
     else ok('email', `${kind}: after the button`, post.status === 200, `HTTP ${post.status} (message page)`);
     for (const l of [...(await post.clone().text()).matchAll(/\shref="([^"]+)"/g)].map(m => m[1])) if (!EXTERNAL.test(l)) await resolve('Download.dc.html', l, 'email');
   }
-  const mails = () => repo.debugOutbox();
   const confirmMail = mails().find(m => m.kind === 'confirm');
   const [confirmUrl, updatesUrl] = urlsIn(confirmMail ? confirmMail.text : '');
   ok('email', 'confirm email has a confirm and an updates link', confirmUrl && updatesUrl);
@@ -168,6 +200,7 @@ export async function checkLinks({ build = true } = {}) {
   ok('email', 'notify email has a link', notifyUrl);
   if (notifyUrl) await walk('confirm?for=notify', notifyUrl, '/api/confirm-email');
   for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/'), x.replace(/#t=.*/, '#t=…'));
+  } // end automated-only sections 2 and 3
 
   // ── 4. the unlisted Beta page ─────────────────────────────────────────────
   const BETA = 'Beta.dc.html';
@@ -196,11 +229,32 @@ export async function checkLinks({ build = true } = {}) {
   const dl = src['Download.dc.html'] || '';
   ok('beta', 'Download.dc.html carries neither beta link', !want.some(u => dl.includes(u)) && !/betaDriveUrl|playTestUrl/.test(dl));
 
+  // ── 5. manual mode: the emails ────────────────────────────────────────────
+  if (manual) {
+    const hrefs = (page) => [...(src[page] || '').matchAll(/\shref="(mailto:[^"]*)"/g)].map(x => unamp(x[1]));
+    const want = (page, subject, what) => ok('manual', `${page}: ${what}`, hrefs(page).some(h => h.startsWith(`mailto:${CFG.supportEmail}?subject=${encodeURIComponent(subject)}&body=`)), hrefs(page).length + ' mailto link(s)');
+    want('Get Sidekick.dc.html', M.requestSubject, 'the request-access email');
+    want('Download.dc.html', M.requestSubject, 'the request-access email');
+    want('Roadmap.dc.html', 'Sidekick: feature suggestion', 'the suggestion email');
+    ok('manual', 'Download.dc.html says Beta by invitation', /Beta by invitation/.test(src['Download.dc.html'] || ''));
+    ok('manual', 'request email asks for name, chip, phone, Google account and consent',
+      (() => { const b = decodeURIComponent(M.request().split('&body=')[1]); return /name/i.test(b) && /chip/i.test(b) && /Apple silicon/.test(b) && /phone model/i.test(b) && /Google account/.test(b) && /Privacy/.test(b) && /agree/.test(b); })());
+    const bad = RM.items.map(i => [i.title, mailtoProblem(M.notify(i.title), CFG.supportEmail)]).filter(([, b]) => b);
+    ok('manual', `every roadmap item's Notify link is a valid email (${RM.items.length})`, RM.items.length > 0 && !bad.length, bad.map(b => b.join(': ')).join('; '));
+    ok('manual', 'RoadmapTrack builds Notify links from SK_MAILTO.notify', /SK_MAILTO\.notify\(it\.title\)/.test(src['RoadmapTrack.dc.html'] || ''));
+  }
+
   return { rows, failures: rows.filter(r => !r.pass), checked, external: [...external].sort() };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { rows, failures, checked, external } = await checkLinks();
+  const mi = process.argv.indexOf('--mode');
+  const modes = mi > 0 ? [process.argv[mi + 1]] : ['automated', 'manual'];
+  const runs = [];
+  for (const mode of modes) runs.push(await checkLinks({ mode }));
+  execFileSync(process.execPath, ['scripts/build-site.mjs', '--local'], { cwd: ROOT, stdio: 'pipe' }); // leave dist/ as npm run dev expects
+  const rows = runs.flatMap(r => r.rows), failures = runs.flatMap(r => r.failures), checked = runs.reduce((n, r) => n + r.checked, 0);
+  const external = [...new Set(runs.flatMap(r => r.external))].sort();
   const seen = new Set();
   for (const r of rows) { const k = r.area + r.what; if (seen.has(k) && r.pass) continue; seen.add(k); if (!r.pass || process.argv.includes('--all')) console.log(`${r.pass ? 'PASS' : 'FAIL'}  [${r.area}] ${r.what}${r.note ? '  (' + r.note + ')' : ''}`); }
   console.log(`\n${rows.length - failures.length}/${rows.length} checks passed (${checked} internal links). External links, listed and not fetched:`);
