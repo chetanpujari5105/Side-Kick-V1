@@ -1,7 +1,10 @@
-// Browser end-to-end check of the REAL pages against the real API code on fake adapters (scripts/dev-server.mjs),
-// in headless Chrome over the DevTools protocol, with the production CSP from vercel.json applied.
-//   node tools/browser-e2e.mjs
-// Uses a throwaway Ed25519 key and the test-only fake issuer. No network beyond 127.0.0.1.
+// Browser end-to-end check of the REAL pages (scripts/dev-server.mjs), in headless Chrome over the DevTools
+// protocol, with the production headers from vercel.json applied.
+//   node tools/browser-e2e.mjs                  SITE_MODE=automated: the real API code on fake adapters
+//   node tools/browser-e2e.mjs --mode manual    SITE_MODE=manual: every page at five widths with and without
+//                                               JavaScript, the mailto links, no form, no cookie, no storage, no
+//                                               /api request, nothing from another origin
+// Automated mode uses a throwaway Ed25519 key and the test-only fake issuer. No network beyond 127.0.0.1.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,7 +21,9 @@ const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok, detail }); };
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-const dev = await startDevServer({ port: PORT, quiet: true });
+const MODE = process.argv.includes('--mode') ? process.argv[process.argv.indexOf('--mode') + 1] : 'automated';
+if (!['manual', 'automated'].includes(MODE)) { console.error('--mode must be manual or automated'); process.exit(2); }
+const dev = await startDevServer({ port: PORT, quiet: true, mode: MODE });
 const O = dev.origin;
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-chrome-'));
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${CDP}`, `--user-data-dir=${prof}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', 'about:blank'], { stdio: 'ignore' });
@@ -55,7 +60,77 @@ const click = (sel) => `(() => { const el = document.querySelector(${JSON.string
 const outbox = async () => (await fetch(O + '/__dev/outbox')).json();
 const linkIn = (text, p) => (text.match(new RegExp(O.replace(/[.:/]/g, '\\$&') + p + '(?:\\?[a-z=]+)?#t=[A-Za-z0-9_-]+')) || [])[0];
 
+// SITE_MODE=manual: no backend, so no flow to walk; check what a visitor sees and that nothing leaves the site.
+async function manualChecks() {
+  const PAGES = ['/', '/Get%20Sidekick.dc.html', '/Download.dc.html', '/Roadmap.dc.html', '/Support.dc.html#setup', '/Support.dc.html#privacy', '/Beta.dc.html', '/404.dc.html'];
+  const WIDTHS = [360, 390, 768, 1280, 1440];
+  const t = await tab();
+  const width = (w) => send('Emulation.setDeviceMetricsOverride', { width: w, height: 900, deviceScaleFactor: 1, mobile: w < 800 }, t.sid);
+  const sweep = [];
+  for (const w of WIDTHS) {
+    await width(w);
+    for (const p of PAGES) {
+      await t.go(O + p);
+      const r = await t.eval(`({ over: document.documentElement.scrollWidth > window.innerWidth + 1, braces: document.body.innerText.includes('{{'), forms: document.querySelectorAll('form').length, cookie: document.cookie, stored: localStorage.length + sessionStorage.length })`);
+      if (!r || r.over || r.braces || r.forms || r.cookie || r.stored) sweep.push(`${w}px ${p} ${JSON.stringify(r)}`);
+    }
+  }
+  check(`viewport sweep: ${PAGES.length} pages × ${WIDTHS.join('/')} px — no sideways scroll, no raw template, no form, no cookie, no storage`, sweep.length === 0, sweep.join(' | ').slice(0, 1500));
+
+  await width(1280);
+  const href = (sel) => t.eval(`(() => { const a = document.querySelector(${JSON.stringify(sel)}); return a ? a.getAttribute('href') : null; })()`);
+  const parse = (h) => { if (!h || !h.startsWith('mailto:')) return null; const u = new URL(h); return { to: decodeURIComponent(u.pathname), subject: u.searchParams.get('subject') || '', body: u.searchParams.get('body') || '' }; };
+  const TO = 'chetanpujari.sitit@gmail.com';
+  await t.go(O + '/');
+  check('header CTA reads Request access and leads to Get Sidekick', (await t.eval(`[...document.querySelectorAll('header a')].some(a => a.textContent.trim() === 'Request access' && /Get(%20| )Sidekick\.dc\.html$/.test(a.getAttribute('href')))`)) === true);
+  check('footer: Request access, and Privacy is this site\'s own page', (await t.eval(`(() => { const f = document.querySelector('footer'); const a = [...f.querySelectorAll('a')]; return a.some(x => x.textContent.trim() === 'Request access') && a.some(x => x.textContent.trim() === 'Privacy' && x.getAttribute('href') === 'Support.dc.html#privacy') && !f.innerHTML.includes('chetan-website-delta'); })()`)) === true);
+  await t.go(O + '/Get%20Sidekick.dc.html');
+  let txt = await t.text();
+  const req = parse(await href('main a[href^="mailto:"][href*="subject="]'));
+  check('Get Sidekick is Request access: heading, steps, Apple silicon only', /Request access/.test(txt) && /Apple silicon/.test(txt) && /Intel Mac/.test(txt), txt.slice(0, 200));
+  check('request email: to the owner, subject, and a body asking for name, chip, phone, Google account and consent', !!req && req.to === TO && req.subject === 'Sidekick beta: request access' && /name/i.test(req.body) && /chip/i.test(req.body) && /Apple silicon/.test(req.body) && /phone model/i.test(req.body) && /Google account email/.test(req.body) && /agree/.test(req.body) && /Privacy/.test(req.body), JSON.stringify(req).slice(0, 300));
+  await t.go(O + '/Download.dc.html');
+  txt = await t.text();
+  check('Download says Beta by invitation, offers the same email, and no download button', /Beta by invitation/.test(txt) && (parse(await href('main a[href^="mailto:"][href*="subject="]')) || {}).subject === 'Sidekick beta: request access' && !/Download for Apple silicon/.test(txt) && /no APK/i.test(txt));
+  await t.go(O + '/Roadmap.dc.html');
+  await t.eval(click('section[aria-labelledby^="rm-phase-"] li button')); await sleep(500);
+  const title = await t.eval(`document.querySelector('section[aria-labelledby^="rm-phase-"] li button span').textContent.trim()`);
+  const note = parse(await href('section[aria-labelledby^="rm-phase-"] li a[href^="mailto:"]'));
+  check('Roadmap: an item\'s Notify me is an email naming that item', !!note && note.to === TO && note.subject.includes(title) && note.body.includes(title), JSON.stringify({ title, note }).slice(0, 300));
+  const sug = parse(await href('#suggest a[href^="mailto:"][href*="subject="]'));
+  check('Roadmap: Suggest a feature is an email', !!sug && sug.to === TO && sug.subject === 'Sidekick: feature suggestion');
+  await t.go(O + '/Support.dc.html#privacy');
+  txt = await t.text();
+  check('Support › Privacy matches manual mode', /stores nothing about you/.test(txt) && /sets no cookies/.test(txt) && /kept for one hour/.test(txt) && /Google Play test list/.test(txt) && !/sk_session|Turnstile|database run by Neon/.test(txt), txt.slice(txt.indexOf('This website'), txt.indexOf('This website') + 200));
+  check('Support › Privacy keeps the DRAFT (legal review) banner', /DRAFT/.test(txt));
+  const res = await fetch(O + '/Beta.dc.html');
+  check('Beta: noindex in <head> and in X-Robots-Tag', /<head>[\s\S]*<meta name="robots" content="noindex, nofollow">[\s\S]*<\/head>/.test(await res.text()) && res.headers.get('x-robots-tag') === 'noindex, nofollow');
+
+  // No JavaScript: the emails are plain links.
+  const c = await tab({ noJs: true, context: (await send('Target.createBrowserContext')).result.browserContextId });
+  const nojs = [];
+  for (const p of ['/Get%20Sidekick.dc.html', '/Download.dc.html', '/Roadmap.dc.html', '/Home.dc.html']) {
+    await c.go(O + p);
+    // Known and pre-existing (the same 13 at 84e05dd): Home without JavaScript shows these template fields raw.
+    const r = await c.eval(`({ raw: [...document.body.innerText.matchAll(/\\{\\{[^}]*\\}\\}/g)].map(m => m[0]).filter(x => !(${JSON.stringify(p)} === '/Home.dc.html' && /^\\{\\{ (t\\.label|tab\\.(kicker|title|body)|c|s\\.(n|title|body)|f|a|l\\.(tag|title|body)) \\}\\}$/.test(x))), mail: [...document.querySelectorAll('a[href^="mailto:"]')].filter(a => a.getClientRects().length).length })`);
+    if (!r || r.raw.length || (p !== '/Home.dc.html' && !r.mail)) nojs.push(`${p} ${JSON.stringify(r)}`);
+  }
+  check('no-JS: request, invite and suggestion emails are visible links; no new raw template (Home\'s 13 are pre-existing)', nojs.length === 0, nojs.join(' | '));
+
+  const cookies = (await send('Network.getAllCookies', {}, t.sid)).result?.cookies || [];
+  check('no cookie was set by any page', cookies.length === 0, cookies.map(k => k.name).join(','));
+  const all = [t, c].flatMap(x => x.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));
+  const foreign = [...new Set(all.filter(u => !u.startsWith(O)).map(u => new URL(u).origin))];
+  check('every request went to the site itself', foreign.length === 0 && all.length > 20, foreign.join(', ') + ` (${all.length} requests)`);
+  check('no request to /api', dev.apiHits.length === 0 && !all.some(u => new URL(u).pathname.startsWith('/api/')), dev.apiHits.join(', '));
+  const raw = [t, c].flatMap(x => x.errors);
+  const preexisting = raw.filter(e => /\{\{ seg(W|H|Box|Path) \}\}/.test(e));
+  const errs = raw.filter(e => !preexisting.includes(e));
+  check('no console errors or CSP violations (Home SVG template warnings are pre-existing)', errs.length === 0, [...new Set(errs)].join(' | ').slice(0, 1500));
+}
+
 try {
+  if (MODE === 'manual') await manualChecks(); else {
   // 1. Signup page in real mode; design-review switches have no effect.
   const a = await tab();
   await a.go(O + '/');
@@ -88,7 +163,8 @@ try {
   await a.eval(click('button[type=submit]')); await sleep(2500);
   txt = await a.text();
   check('after confirming: Download page with the Mac card, token on its way', txt.includes("You're") && txt.includes('Download for Apple silicon (.dmg)') && txt.includes('once it\'s ready'), (await a.eval('location.pathname')) + ' ' + txt.replace(/\s+/g, ' ').slice(0, 300));
-  check('no checksum invented (placeholder shown)', txt.includes('The checksum appears here once the beta build is staged.'));
+  const sha = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/releases.json'), 'utf8')).mac.builds.arm64.sha256;
+  check('checksum is exactly releases.json\'s (placeholder while it is null)', sha ? txt.includes(sha) : txt.includes('The checksum appears here once the beta build is staged.'), sha ? sha.slice(0, 12) + '…' : 'null');
 
   // 3. Signer on "the owner's Mac": throwaway key, fake issuer, posts token, sends the outbox.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-signer-'));
@@ -144,6 +220,7 @@ try {
   const leaks = dev.logs.filter(l => /alex@example\.com|SIDEKICK-TRIAL|127\.0\.0\.1/.test(l));
   check('server logs hold no email, token or IP', leaks.length === 0, leaks[0] || '');
   console.error('API calls per tab:', JSON.stringify([a, b, c].map(t => t.api)));
+  } // end automated
 } catch (e) {
   check('run completed', false, e.stack.split('\n').slice(0, 2).join(' '));
 } finally {
