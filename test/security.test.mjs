@@ -83,6 +83,16 @@ test('health and releases: no data; nulls stay null; Apple silicon only', async 
   assert.ok(!JSON.stringify(r).includes('x64'));
   assert.equal(r._comment, undefined);
   assert.equal(r.android.storeUrl, null);
+  assert.ok(!/\.apk/i.test(JSON.stringify(r)), 'no APK anywhere in the release facts');
+});
+
+test('release facts refuse an APK: Android is a store URL or nothing', async () => {
+  const { releaseProblems } = await import('../server/releases.mjs');
+  const base = JSON.parse(JSON.stringify((await import('../data/releases.json', { with: { type: 'json' } })).default));
+  assert.deepEqual(releaseProblems(base), []);
+  assert.ok(releaseProblems({ ...base, android: { ...base.android, build: { file: 'Sidekick.apk', signed: false } } }).some(p => p.startsWith('android.build')));
+  assert.ok(releaseProblems({ ...base, android: { ...base.android, storeUrl: 'https://example.com/sidekick.apk' } }).length > 0);
+  assert.deepEqual(releaseProblems({ ...base, android: { ...base.android, storeUrl: 'https://play.google.com/store/apps/details?id=example.sidekick' } }), []);
 });
 
 test('misconfiguration fails closed and names variables only', async () => {

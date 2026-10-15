@@ -15,12 +15,6 @@ window.SK_RELEASES = {
   },
   "android": {
     "minOS": "Android 10 or later",
-    "build": {
-      "file": "Sidekick-2.0.0.apk",
-      "bytes": null,
-      "sha256": null,
-      "signed": false
-    },
     "storeUrl": null
   },
   "changelog": [

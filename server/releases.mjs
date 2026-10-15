@@ -16,9 +16,7 @@ export function releaseProblems(r) {
     if (!hashOk(b.sha256)) p.push('mac.builds.arm64.sha256');
   }
   const a = r.android || {};
-  const ab = a.build || {};
-  if (!bytesOk(ab.bytes ?? null)) p.push('android.build.bytes');
-  if (!hashOk(ab.sha256 ?? null)) p.push('android.build.sha256');
+  if (a.build !== undefined) p.push('android.build is not allowed: this site never serves an APK (store URL or nothing)');
   if (a.storeUrl !== null && a.storeUrl !== undefined && !(typeof a.storeUrl === 'string' && /^https:\/\/play\.google\.com\/[A-Za-z0-9/?=&._-]*$/.test(a.storeUrl))) p.push('android.storeUrl must be null or https://play.google.com/…');
   if (!Array.isArray(r.changelog)) p.push('changelog');
   return p;

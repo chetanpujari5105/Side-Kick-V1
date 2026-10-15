@@ -1,5 +1,5 @@
 {
-  "_comment": "The one source of release facts. bytes and sha256 stay null until the staged files exist; fill them with: node scripts/data-sync.mjs --from-dmg <path>. Never type them by hand.",
+  "_comment": "The one source of release facts. bytes and sha256 stay null until the staged files exist; fill them with: node scripts/data-sync.mjs --from-dmg <path>. Never type them by hand. Android is a Google Play URL (storeUrl) or null for 'not available yet'; this site never serves an APK.",
   "version": "2.0.1",
   "mac": {
     "minOS": "macOS 11.0 (Big Sur) or later",
@@ -14,12 +14,6 @@
   },
   "android": {
     "minOS": "Android 10 or later",
-    "build": {
-      "file": "Sidekick-2.0.0.apk",
-      "bytes": null,
-      "sha256": null,
-      "signed": false
-    },
     "storeUrl": null
   },
   "changelog": [
