@@ -1,0 +1,31 @@
+{
+  "_comment": "GENERATED from data/roadmap-data.js by scripts/data-sync.mjs",
+  "ids": [
+    "health",
+    "reconnect",
+    "quiet",
+    "menubar",
+    "notifgroup",
+    "notifact",
+    "queue",
+    "destination",
+    "checksums",
+    "clipsearch",
+    "speed",
+    "resume",
+    "photos",
+    "imgclip",
+    "linkhand",
+    "presets",
+    "record",
+    "mediaaudio",
+    "appwindows",
+    "screenoff",
+    "webcam",
+    "camctl",
+    "mic",
+    "twomacs",
+    "ipad",
+    "iphone"
+  ]
+}

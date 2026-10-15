@@ -3,3 +3,6 @@ node_modules/
 *.dmg
 *.zip
 *.apk
+dist/
+.env*
+!.env.example

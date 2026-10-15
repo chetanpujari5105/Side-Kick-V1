@@ -1,0 +1,21 @@
+{
+  "name": "sidekick-site",
+  "private": true,
+  "type": "module",
+  "description": "Sidekick website: static pages plus the beta signup and download API (Vercel Functions).",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/",
+    "build": "node scripts/build-site.mjs",
+    "dev": "node scripts/dev-server.mjs",
+    "demo": "node scripts/demo-pipeline.mjs",
+    "migrate": "node scripts/migrate.mjs",
+    "check": "node tools/noscript.mjs --check && node scripts/data-sync.mjs --check"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.1.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}
