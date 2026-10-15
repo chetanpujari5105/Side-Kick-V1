@@ -33,6 +33,7 @@ export function loadConfig(env = process.env) {
     sessionSecrets: [sessionSecret, env.SESSION_SECRET_PREVIOUS].filter(v => typeof v === 'string' && v.length >= 32),
     databaseUrl: env.DATABASE_URL,
     turnstileSecret: env.TURNSTILE_SECRET,
+    turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
     turnstileHostname: typeof appOrigin === 'string' ? appOrigin.replace(/^https?:\/\//, '').replace(/:\d+$/, '') : null,
     storageProvider,
     github: { token: env.GITHUB_RELEASES_TOKEN, repo: env.GITHUB_RELEASES_REPO, tag: env.GITHUB_RELEASE_TAG || null },

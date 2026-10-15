@@ -10,8 +10,8 @@ export const MSG = {
   feature: 'Choose a roadmap item.'
 };
 
-const CONTROL = /[\u0000-\u001f\u007f-\u009f  ]/;
-const CONTROL_G = /[\u0000-\u001f\u007f-\u009f  ]/g;
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+const CONTROL_G = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g;
 
 export const cleanText = (v, max) => (typeof v === 'string' ? v : '').replace(CONTROL_G, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 
