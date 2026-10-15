@@ -18,8 +18,11 @@ import roadmap from '../server/roadmap-ids.json' with { type: 'json' };
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.txt': 'text/plain' };
 
-export async function startDevServer({ port = 8787, build = true, quiet = false, env = {} } = {}) {
-  if (build) execFileSync(process.execPath, [path.join(ROOT, 'scripts/build-site.mjs'), '--local'], { stdio: quiet ? 'ignore' : 'inherit' });
+// mode 'automated' (default): the real API on fake adapters. mode 'manual': the SITE_MODE=manual build, and every
+// /api/* request is a 404 that is also recorded in apiHits (a manual site must never make one).
+export async function startDevServer({ port = 8787, build = true, quiet = false, env = {}, mode = 'automated' } = {}) {
+  const manual = mode === 'manual';
+  if (build) execFileSync(process.execPath, manual ? [path.join(ROOT, 'scripts/build-site.mjs')] : [path.join(ROOT, 'scripts/build-site.mjs'), '--local'], { stdio: quiet ? 'ignore' : 'inherit', env: manual ? { PATH: process.env.PATH, SITE_MODE: 'manual' } : process.env });
   const DIST = path.join(ROOT, 'dist');
   const origin = `http://localhost:${port}`;
   const secrets = { SESSION_SECRET: crypto.randomBytes(32).toString('hex'), ADMIN_AUTH_SECRET: crypto.randomBytes(32).toString('hex'), ADMIN_AUTH_SIGNER_SECRET: crypto.randomBytes(32).toString('hex'), CRON_SECRET: crypto.randomBytes(16).toString('hex') };
@@ -31,10 +34,20 @@ export async function startDevServer({ port = 8787, build = true, quiet = false,
   const log = createLogger(l => { logs.push(l); if (!quiet) console.log(l); });
   const app = createApp({ config, repo, botCheck, storage, mailer: null, clock: systemClock, log, releases, roadmapIds: roadmap.ids });
   const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
-  const pageHeaders = Object.fromEntries(vercel.headers[0].headers.map(h => [h.key, h.value]));
+  // The same headers Vercel sends: the catch-all page rule, plus any rule for one exact path (e.g. /Beta.dc.html).
+  const rule = vercel.headers.find(h => h.source === '/((?!api/).*)');
+  if (!rule) throw new Error('vercel.json: the page header rule /((?!api/).*) is missing');
+  const pageHeaders = Object.fromEntries(rule.headers.map(h => [h.key, h.value]));
+  const exactHeaders = (p) => Object.fromEntries(vercel.headers.filter(h => h.source === p).flatMap(h => h.headers.map(x => [x.key, x.value])));
+  const apiHits = [];
 
   const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, origin);
+    if (u.pathname.startsWith('/api/') && manual) {
+      apiHits.push(req.method + ' ' + u.pathname);
+      res.writeHead(404, { 'content-type': 'text/plain' });
+      return res.end('No API in a SITE_MODE=manual build.');
+    }
     if (u.pathname.startsWith('/api/')) {
       const chunks = [];
       for await (const c of req) chunks.push(c);
@@ -57,16 +70,18 @@ export async function startDevServer({ port = 8787, build = true, quiet = false,
     if (p === '/') p = '/Home.dc.html';
     const f = path.join(DIST, p);
     const ok = f.startsWith(DIST + path.sep) && fs.existsSync(f) && fs.statSync(f).isFile();
-    res.writeHead(ok ? 200 : 404, { ...pageHeaders, 'Cache-Control': 'no-store', 'Content-Type': ok ? (TYPES[path.extname(f)] || 'application/octet-stream') : TYPES['.html'] });
+    res.writeHead(ok ? 200 : 404, { ...pageHeaders, ...exactHeaders(u.pathname), 'Cache-Control': 'no-store', 'Content-Type': ok ? (TYPES[path.extname(f)] || 'application/octet-stream') : TYPES['.html'] });
     fs.createReadStream(ok ? f : path.join(DIST, '404.html')).pipe(res);
   });
   await new Promise(r => server.listen(port, '127.0.0.1', r));
-  return { origin, server, repo, botCheck, storage, logs, secrets, config, close: () => new Promise(r => server.close(r)) };
+  return { origin, server, repo, botCheck, storage, logs, secrets, config, mode, apiHits, close: () => new Promise(r => server.close(r)) };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === new URL(import.meta.url).pathname) {
   const port = Number(process.env.PORT) || 8787;
   const env = process.env.ADMIN_AUTH_SIGNER_SECRET ? { ADMIN_AUTH_SIGNER_SECRET: process.env.ADMIN_AUTH_SIGNER_SECRET } : {};
-  const s = await startDevServer({ port, env });
-  console.log(`\nSidekick (real mode, fake adapters) at ${s.origin}\nEmails: ${s.origin}/__dev/outbox\nTo try tools/signer here, start this server with ADMIN_AUTH_SIGNER_SECRET set and give the signer the same value as SK_SIGNER_SECRET.\n`);
+  const mode = process.env.SITE_MODE === 'manual' ? 'manual' : 'automated';
+  const s = await startDevServer({ port, env, mode });
+  if (mode === 'manual') console.log(`\nSidekick (SITE_MODE=manual: email only, no API) at ${s.origin}\n`);
+  else console.log(`\nSidekick (real mode, fake adapters) at ${s.origin}\nEmails: ${s.origin}/__dev/outbox\nTo try tools/signer here, start this server with ADMIN_AUTH_SIGNER_SECRET set and give the signer the same value as SK_SIGNER_SECRET.\n`);
 }
