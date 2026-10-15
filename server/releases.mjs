@@ -15,6 +15,9 @@ export function releaseProblems(r) {
     if (!bytesOk(b.bytes)) p.push('mac.builds.arm64.bytes');
     if (!hashOk(b.sha256)) p.push('mac.builds.arm64.sha256');
   }
+  // Plain sentences, shown on the Beta page and copied into the invitation email.
+  const st = (r.mac || {}).installSteps;
+  if (!Array.isArray(st) || st.length < 1 || st.length > 12 || st.some(s => typeof s !== 'string' || s.length < 10 || s.length > 500 || /[<>\u0000-\u001f]/.test(s))) p.push('mac.installSteps must be 1–12 plain sentences');
   // The invited-beta links on the unlisted Beta page: null (not available) or https on exactly these hosts.
   if (!linkOn((r.mac || {}).betaDriveUrl, 'drive.google.com', /^\/drive\/folders\/[A-Za-z0-9_-]{10,100}$/)) p.push('mac.betaDriveUrl must be null or https://drive.google.com/drive/folders/…');
   const a = r.android || {};
