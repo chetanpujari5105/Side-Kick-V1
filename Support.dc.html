@@ -107,7 +107,7 @@ class Component extends DCLogic {
         S('4. Enter your beta token', { paras: [(C.mocksEnabled ? 'Paste the token the person who invited you sent you privately.' : 'Paste the token from our email, subject “Your Sidekick beta token”.') + ' Copy it, then press Paste token. It\'s a long piece of text that starts with SIDEKICK-TRIAL-1. It is not the checksum shown with the download. If you copy a whole message, Sidekick finds the token inside it. The token is checked on your Mac; nothing is sent anywhere.', 'When macOS asks whether Sidekick may find devices on your local network, allow it — that is how the Mac reaches the phone.'] }),
         S('5. Pair your phone', { paras: ['Install Sidekick on your phone first. ' + androidLine, 'Sidekick on the Mac shows a code. On the phone, open Sidekick, tap Get started, then on Connect your Mac tap Scan the code and point it at the Mac. Both check each other\'s certificate before anything else happens. From then on the link comes back by itself.'] }),
         S('Keep it connected', { paras: ['Some phone brands stop apps in the background to save battery. If notifications stop arriving after a while, allow Sidekick to run:'], items: [
-          I('All phones:', 'allow Sidekick when it asks to be excluded from battery optimisation.'),
+          I('All phones:', 'if Sidekick asks to be excluded from battery optimisation, allow it. Not every build asks.'),
           I('Samsung:', 'Settings › Battery › Background usage limits — make sure Sidekick isn\'t in Sleeping or Deep sleeping apps. Check again after a few days; One UI can add it back.'),
           I('Xiaomi, Redmi, POCO:', 'turn on Autostart, set battery saver to No restrictions and lock Sidekick in the recent apps view.'),
           I('OnePlus, OPPO, vivo:', 'look for Autostart, Protected apps or a similar setting and allow Sidekick.')] }),
@@ -137,11 +137,12 @@ class Component extends DCLogic {
           { a: 'Phone and call log', mono: 'READ_CALL_LOG · READ_PHONE_STATE · CALL_PHONE · ANSWER_PHONE_CALLS', b: 'Shows calls on the Mac and dials numbers you choose there.' },
           { a: 'Contacts', mono: 'READ_CONTACTS', b: 'Shows names instead of numbers in messages and calls.' },
           { a: 'Photos and videos', b: 'Lets the Mac browse your photo albums.' },
+          { a: 'Camera', mono: 'CAMERA', b: 'Reads the pairing code when you scan it. The picture stays on the phone.' },
           { a: 'Folders you choose', mono: 'Android folder picker', b: 'Lets the Mac browse the specific folders you share. Nothing else on the phone is visible.' },
           { a: 'Accessibility service', b: 'Turns clicks and typing on the Mac into taps and text on the phone while you mirror.' },
           { a: 'Screen sharing, each time', mono: 'MediaProjection', b: 'Android asks on the phone every time mirroring starts.' },
           { a: 'Sidekick\'s own notifications', mono: 'POST_NOTIFICATIONS', b: 'Lets the phone show Sidekick\'s notifications. Asking the phone to open an app needs it, and so does text copied on the Mac: the phone offers it in a notification.' },
-          { a: 'Battery optimisation exemption', b: 'Keeps the connection alive in the background.' }] }),
+          { a: 'Battery optimisation exemption', b: 'Keeps the connection alive in the background, in builds that ask for it.' }] }),
         S('On the Mac', { rows: [
           { a: 'Local Network', b: 'Lets the Mac connect to the phone on your network. macOS asks the first time.' },
           { a: 'Notifications', b: 'macOS may ask for this. Phone notifications show inside Sidekick\'s window either way; showing them as macOS notifications as well isn\'t confirmed working in this beta yet.' }] })
