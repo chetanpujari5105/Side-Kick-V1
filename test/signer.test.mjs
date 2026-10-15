@@ -1,5 +1,5 @@
 // Signer round trip with a throwaway Ed25519 key generated for this test run (never the owner's key).
-import { test } from 'node:test';
+import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -10,11 +10,14 @@ import { runCycle, makeMailer, loadSignerConfig } from '../tools/signer/signer.m
 import { makeClient } from '../tools/lib/client.mjs';
 
 const ISSUER = new URL('./fixtures/fake-issuer.mjs', import.meta.url).pathname;
+const dirs = [];
+after(() => { for (const d of dirs) fs.rmSync(d, { recursive: true, force: true }); });
 
 function world() {
   const h = setup();
   const { privateKey, publicKey } = crypto.generateKeyPairSync('ed25519');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-signer-test-'));
+  dirs.push(dir);
   const keyFile = path.join(dir, 'throwaway.pem');
   fs.writeFileSync(keyFile, privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
   const cfg = { ...loadSignerConfig({}), issuer: ISSUER, keySource: 'file', keyFile, tokensDir: path.join(dir, 'tokens'), days: '45', emlDir: path.join(dir, 'eml') };

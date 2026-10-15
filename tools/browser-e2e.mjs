@@ -150,6 +150,7 @@ try {
   const exited = new Promise(r => chrome.once('exit', r));
   chrome.kill(); await exited; await dev.close();
   try { fs.rmSync(prof, { recursive: true, force: true }); } catch {}
+  for (const d of fs.readdirSync(os.tmpdir()).filter(n => n.startsWith('sk-e2e-signer-'))) fs.rmSync(path.join(os.tmpdir(), d), { recursive: true, force: true });
 }
 const w = Math.max(...results.map(r => r.name.length));
 for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name.padEnd(w)}  ${r.detail}`);
