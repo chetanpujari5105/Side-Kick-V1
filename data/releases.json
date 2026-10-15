@@ -1,20 +1,22 @@
 {
-  "_comment": "The one source of release facts. bytes and sha256 stay null until the staged files exist; fill them with: node scripts/data-sync.mjs --from-dmg <path>. Never type them by hand. Android is a Google Play URL (storeUrl) or null for 'not available yet'; this site never serves an APK.",
+  "_comment": "The one source of release facts. bytes and sha256 stay null until the staged files exist; fill them with: node scripts/data-sync.mjs --from-dmg <path>. Never type them by hand. Android is a Google Play URL (storeUrl) or null for 'not available yet'; this site never serves an APK. betaDriveUrl (mac) is the owner's Google Drive folder for the invited beta and playTestUrl (android) is the Play internal-test opt-in link; both are shown only on the unlisted Beta page.",
   "version": "2.0.1",
   "mac": {
     "minOS": "macOS 11.0 (Big Sur) or later",
+    "betaDriveUrl": "https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL",
     "builds": {
       "arm64": {
         "label": "Apple silicon",
         "file": "Sidekick-2.0.1-arm64.dmg",
-        "bytes": null,
-        "sha256": null
+        "bytes": 121668061,
+        "sha256": "a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284"
       }
     }
   },
   "android": {
     "minOS": "Android 10 or later",
-    "storeUrl": null
+    "storeUrl": null,
+    "playTestUrl": "https://play.google.com/apps/internaltest/4700743324703460563"
   },
   "changelog": [
     {

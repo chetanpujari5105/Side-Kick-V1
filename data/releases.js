@@ -4,18 +4,20 @@ window.SK_RELEASES = {
   "version": "2.0.1",
   "mac": {
     "minOS": "macOS 11.0 (Big Sur) or later",
+    "betaDriveUrl": "https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL",
     "builds": {
       "arm64": {
         "label": "Apple silicon",
         "file": "Sidekick-2.0.1-arm64.dmg",
-        "bytes": null,
-        "sha256": null
+        "bytes": 121668061,
+        "sha256": "a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284"
       }
     }
   },
   "android": {
     "minOS": "Android 10 or later",
-    "storeUrl": null
+    "storeUrl": null,
+    "playTestUrl": "https://play.google.com/apps/internaltest/4700743324703460563"
   },
   "changelog": [
     {

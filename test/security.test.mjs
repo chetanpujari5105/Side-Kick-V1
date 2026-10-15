@@ -77,8 +77,12 @@ test('health and releases: no data; nulls stay null; Apple silicon only', async 
   const h = setup();
   assert.deepEqual(await (await h.call('GET', '/api/health')).json(), { ok: true });
   const r = await (await h.call('GET', '/api/releases')).json();
-  assert.equal(r.mac.builds.arm64.sha256, null);
-  assert.equal(r.mac.builds.arm64.bytes, null);
+  // Size and hash are null until data-sync --from-dmg reads the real file; then they are exactly what it read.
+  const src = (await import('../data/releases.json', { with: { type: 'json' } })).default.mac.builds.arm64;
+  assert.equal(r.mac.builds.arm64.sha256, src.sha256);
+  assert.equal(r.mac.builds.arm64.bytes, src.bytes);
+  assert.ok(src.sha256 === null || /^[0-9a-f]{64}$/.test(src.sha256));
+  assert.ok(src.bytes === null || (Number.isInteger(src.bytes) && src.bytes > 0));
   assert.deepEqual(Object.keys(r.mac.builds), ['arm64']);
   assert.ok(!JSON.stringify(r).includes('x64'));
   assert.equal(r._comment, undefined);
@@ -93,6 +97,42 @@ test('release facts refuse an APK: Android is a store URL or nothing', async () 
   assert.ok(releaseProblems({ ...base, android: { ...base.android, build: { file: 'Sidekick.apk', signed: false } } }).some(p => p.startsWith('android.build')));
   assert.ok(releaseProblems({ ...base, android: { ...base.android, storeUrl: 'https://example.com/sidekick.apk' } }).length > 0);
   assert.deepEqual(releaseProblems({ ...base, android: { ...base.android, storeUrl: 'https://play.google.com/store/apps/details?id=example.sidekick' } }), []);
+});
+
+test('release facts: the beta Drive and Play test links are https on exactly their hosts, or null', async () => {
+  const { releaseProblems } = await import('../server/releases.mjs');
+  const base = JSON.parse(JSON.stringify((await import('../data/releases.json', { with: { type: 'json' } })).default));
+  assert.equal(base.mac.betaDriveUrl, 'https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL');
+  assert.equal(base.android.playTestUrl, 'https://play.google.com/apps/internaltest/4700743324703460563');
+  assert.equal(base.android.storeUrl, null, 'the Play test link is not the public store link');
+  const drive = (v) => releaseProblems({ ...base, mac: { ...base.mac, betaDriveUrl: v } });
+  const play = (v) => releaseProblems({ ...base, android: { ...base.android, playTestUrl: v } });
+  assert.deepEqual(drive(null), []);
+  assert.deepEqual(play(null), []);
+  const { betaDriveUrl: _d, ...macNoLink } = base.mac;
+  const { playTestUrl: _p, ...androidNoLink } = base.android;
+  assert.ok(releaseProblems({ ...base, mac: macNoLink }).some(p => p.startsWith('mac.betaDriveUrl')), 'the key is required');
+  assert.ok(releaseProblems({ ...base, android: androidNoLink }).some(p => p.startsWith('android.playTestUrl')), 'the key is required');
+  for (const bad of [
+    'http://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
+    'https://drive.google.com.example.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
+    'https://evil.example/drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
+    'https://user@drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
+    'https://drive.google.com:8443/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
+    'https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL?usp=sharing',
+    'https://drive.google.com/file/d/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL/Sidekick.apk',
+    'https://docs.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
+    'javascript:alert(1)', '', 42
+  ]) assert.ok(drive(bad).some(p => p.startsWith('mac.betaDriveUrl')), `refused: ${bad}`);
+  for (const bad of [
+    'http://play.google.com/apps/internaltest/4700743324703460563',
+    'https://play.google.com.example.com/apps/internaltest/4700743324703460563',
+    'https://example.com/apps/internaltest/4700743324703460563',
+    'https://play.google.com/store/apps/details?id=example.sidekick',
+    'https://play.google.com/apps/internaltest/4700743324703460563#x',
+    'https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
+    'https://play.google.com/apps/internaltest/sidekick.apk', ''
+  ]) assert.ok(play(bad).some(p => p.startsWith('android.playTestUrl')), `refused: ${bad}`);
 });
 
 test('misconfiguration fails closed and names variables only', async () => {
