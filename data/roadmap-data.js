@@ -1,5 +1,8 @@
 // Sidekick roadmap — single source of truth. Edit here; layout reads it.
 // status: 'next' | 'design' | 'exploring' | 'later'
+// Only things the app does NOT do yet. Removed 2026-10-15 because the app already has them: mirror quality presets,
+// notification actions, transfer destination & folder chooser. Relabelled: screenshots (Save a still exists) and
+// resume (files sent to the phone already resume). Evidence: site-log-2026-10-15 Step 2, item 5.
 window.SK_ROADMAP = {
   heading: "What we're building next.",
   subline: "Sidekick keeps growing. This is the direction — plans can change, and nothing here is promised until it ships.",
@@ -17,18 +20,15 @@ window.SK_ROADMAP = {
     { id: 'quiet',       phase: 1, category: 'Reliability',    title: 'Lower background activity & quieter logs', benefit: "Gentler on your phone's battery, clearer diagnostics." },
     { id: 'menubar',     phase: 1, category: 'Mac experience', title: 'Menu-bar quick controls', benefit: 'Connection, battery, clipboard, transfers and mirror without opening the main window.' },
     { id: 'notifgroup',  phase: 1, category: 'Mac experience', title: 'Notification grouping & per-app filters', benefit: 'Less noise, easier to find what matters.' },
-    { id: 'notifact',    phase: 1, category: 'Mac experience', title: 'Better notification actions', benefit: 'Reply, dismiss or use other actions when Android offers them.', note: 'Not every notification offers actions.' },
     { id: 'queue',       phase: 1, category: 'Transfers',      title: 'Transfer queue', benefit: 'Send several items without one pending request blocking the rest.' },
-    { id: 'destination', phase: 1, category: 'Transfers',      title: 'Clear transfer destination & folder chooser', benefit: 'Know exactly where files land.' },
     { id: 'checksums',   phase: 1, category: 'Transfers',      title: 'Reliable checksums for large files', benefit: 'Integrity checking you can trust.' },
     { id: 'clipsearch',  phase: 1, category: 'Mac experience', title: 'Clipboard search, pinning & resend', benefit: 'Find and reuse what you copied.' },
     { id: 'speed',       phase: 2, category: 'Transfers',      title: 'Transfer speed, ETA & detailed progress', benefit: 'Know how long a transfer will take.' },
-    { id: 'resume',      phase: 2, category: 'Transfers',      title: 'Resume interrupted transfers', benefit: 'Pick up where a dropped transfer stopped.' },
+    { id: 'resume',      phase: 2, category: 'Transfers',      title: 'Resume files coming to your Mac', benefit: 'A dropped transfer from the phone picks up where it stopped, as files sent to the phone already do.' },
     { id: 'photos',      phase: 2, category: 'Transfers',      title: 'Richer photo browsing & previews', benefit: 'Multi-select and smoother browsing of large libraries.' },
     { id: 'imgclip',     phase: 2, category: 'Mac experience', title: 'Image clipboard support', benefit: 'Copy supported images between phone and Mac.', note: 'Size limits apply.' },
     { id: 'linkhand',    phase: 2, category: 'Mac experience', title: 'Safer link handoff', benefit: 'Open a phone link on your Mac only through an explicit action, never automatically.' },
-    { id: 'presets',     phase: 2, category: 'Mirror & media', title: 'Mirror quality presets', benefit: 'Choose low bandwidth, balanced or sharper.' },
-    { id: 'record',      phase: 2, category: 'Mirror & media', title: 'Mirror screenshots & local recording', benefit: 'Capture what you mirror, with clear controls and an on-screen indicator.' },
+    { id: 'record',      phase: 2, category: 'Mirror & media', title: 'Local recording of the mirror', benefit: 'Record what you mirror, with clear controls and an on-screen indicator. Saving a still already works.' },
     { id: 'mediaaudio',  phase: 3, category: 'Mirror & media', title: 'Phone media audio on your Mac', benefit: 'Hear supported playback through your Mac.', note: 'Android capture rules apply.' },
     { id: 'appwindows',  phase: 3, category: 'Mirror & media', title: 'Individual Android apps in their own Mac windows', benefit: 'Keep one phone app beside your work.' },
     { id: 'screenoff',   phase: 3, category: 'Mirror & media', title: 'Screen-off mirroring', benefit: 'Mirror while the phone screen stays dark.', note: 'Advanced, device-dependent mode.' },

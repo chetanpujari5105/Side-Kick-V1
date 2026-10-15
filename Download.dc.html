@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="./support.js"></script>
 </head>
 <body>
@@ -12,6 +15,7 @@
 <meta name="robots" content="noindex">
 <link href="fonts/fonts.css" rel="stylesheet">
 <script src="data/site-config.js"></script>
+<script src="data/releases.js"></script>
 <script src="data/mock-api.js"></script>
 <style>
 body{margin:0;background:#F6F3EC;color:#17142E;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
@@ -24,14 +28,29 @@ a:hover{color:#3A22B8;}
 <dc-import name="SiteHeader" active="" hint-size="100%,88px"></dc-import>
 <main id="main" style="max-width:1440px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(40px,5vw,72px);">
 
+<sc-if value="{{ checkEmail }}">
+  <section aria-labelledby="ce-h" style="display:flex;flex-direction:column;gap:24px;max-width:680px;min-height:52vh;justify-content:center;">
+    <h1 id="ce-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">Check your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">email</span></span>.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">We sent a link to the address you gave, {{ name }}. Open it to confirm your email, and your download page opens. It can take a few minutes, so check your spam folder too.</p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Nothing after an hour? Fill in the form again with the same email and we'll send a new link.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 28px;"><a href="Get Sidekick.dc.html" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Back to the form</a><a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Read the setup guide</a></div>
+  </section>
+</sc-if>
+<sc-if value="{{ waitlisted }}">
+  <section aria-labelledby="wl-h" style="display:flex;flex-direction:column;gap:24px;max-width:680px;min-height:52vh;justify-content:center;">
+    <h1 id="wl-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">You're on the <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">waitlist</span></span>.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Thanks for confirming your email, {{ name }}. The beta is full for now. We'll email you when a place opens — there's nothing else to do.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 28px;"><a href="Roadmap.dc.html" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">See what's coming</a></div>
+  </section>
+</sc-if>
 <sc-if value="{{ expired }}">
   <section aria-labelledby="exp-h" style="display:grid;grid-template-columns:{{ splitCols }};gap:clamp(32px,5vw,80px);align-items:center;min-height:52vh;">
     <div style="display:flex;flex-direction:column;gap:24px;max-width:600px;">
-      <h1 id="exp-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">This link has <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">expired</span></span>.</h1>
-      <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Download pages only work for a short while after you fill in the form, and only in the browser you used. Fill it in again and you'll be straight back here.</p>
+      <h1 id="exp-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;"><sc-if value="{{ siteDownloads }}">This link has <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">expired</span></span></sc-if><sc-if value="{{ inviteOnly }}">Downloads come by <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">invite</span></span></sc-if>.</h1>
+      <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;"><sc-if value="{{ siteDownloads }}">Your download page opens from the link in our email and stays open for a day in that browser. Open the link again, or fill in the form again with the same email and we'll send you a new one.</sc-if><sc-if value="{{ inviteOnly }}">Sidekick is in a small invited beta. The person who invited you sends you a private link to the Mac app and your beta token. This site doesn't serve the download.</sc-if></p>
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;">
-        <a href="Get Sidekick.dc.html" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Fill in the form again</a>
-        <a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Already installed? Setup guide</a>
+        <sc-if value="{{ siteDownloads }}"><a href="Get Sidekick.dc.html" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Fill in the form again</a></sc-if>
+        <a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;"><sc-if value="{{ siteDownloads }}">Already installed? Setup guide</sc-if><sc-if value="{{ inviteOnly }}">Read the setup guide</sc-if></a>
       </div>
     </div>
     <svg width="360" height="120" viewBox="0 0 360 120" aria-hidden="true" style="max-width:100%;justify-self:center;">
@@ -48,37 +67,32 @@ a:hover{color:#3A22B8;}
 <sc-if value="{{ valid }}" hint-placeholder-val="{{ true }}">
   <section aria-labelledby="dl-h" style="display:flex;flex-direction:column;gap:20px;max-width:900px;">
     <h1 id="dl-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">You're <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">in</span></span>, {{ name }}.</h1>
-    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;"><sc-if value="{{ apkManual }}">Here are both apps. Install the Mac app first, then the phone app, then pair them with one scan.</sc-if><sc-if value="{{ noApk }}">Here's the Mac app. Android: currently in invited testing on Google Play.</sc-if></p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;">Here is the Mac app. Install it first, then the phone app, then pair them with one scan. <sc-if value="{{ noAndroid }}">The Android app isn't available yet.</sc-if></p>
   </section>
 
   <div style="display:grid;grid-template-columns:{{ splitCols }};gap:20px;">
     <section aria-labelledby="mac-h" style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:22px;">
       <div style="display:flex;align-items:center;gap:16px;">
         <span aria-hidden="true" style="display:flex;flex-direction:column;align-items:center;"><span style="width:52px;height:34px;border-radius:5px;border:2px solid #17142E;box-sizing:border-box;display:block;background:#E8E2FF;"></span><span style="width:64px;height:4px;border-radius:0 0 4px 4px;background:#17142E;display:block;"></span></span>
-        <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="mac-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Mac</h2><span style="font-size:15px;color:#55526B;">Sidekick for Mac · macOS 11 or later</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="mac-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Mac</h2><span style="font-size:15px;color:#55526B;">Sidekick for Mac · Apple silicon · macOS 11.0 (Big Sur) or later</span></div>
       </div>
-      <fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;">
-        <legend style="font-size:15px;font-weight:600;padding-bottom:10px;">Which Mac do you have?</legend>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          <sc-for list="{{ archOpts }}" as="a" hint-placeholder-count="2">
-            <label style="min-height:48px;padding:0 18px;border-radius:999px;border:1.5px solid {{ a.border }};background:{{ a.bg }};display:flex;align-items:center;gap:10px;cursor:pointer;font-size:16px;font-weight:500;">
-              <input type="radio" name="arch" value="{{ a.id }}" checked="{{ a.checked }}" onChange="{{ a.pick }}" style="width:18px;height:18px;margin:0;accent-color:#5B3DF5;">{{ a.label }}
-            </label>
-          </sc-for>
-        </div>
-        <sc-if value="{{ intelWarn }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;background:#FDF3DC;border-radius:12px;padding:10px 14px;display:flex;gap:8px;"><span style="font-family:'Material Symbols Rounded';font-size:19px;color:#8A5A00;">warning</span>Intel build — not yet tested on Intel Macs.</p></sc-if>
-        <sc-if value="{{ unsureNote }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">You said you weren't sure. Apple menu › About This Mac shows “Chip” on Apple silicon and “Processor” on Intel.</p></sc-if>
-      </fieldset>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">For Macs with Apple silicon (M1 or later). Apple menu › About This Mac shows “Chip” on these Macs. If it shows “Processor” instead, that Mac has an Intel chip, which Sidekick doesn't support.</p>
       <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;font-size:15.5px;">
         <dt style="color:#55526B;">Version</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ ver }}</dd>
         <dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;word-break:break-all;">{{ mac.file }}</dd>
-        <dt style="color:#55526B;">Size</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ mac.size }}</dd>
-        <dt style="color:#55526B;">SHA-256</dt>
-        <dd style="margin:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start;"><code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#F6F3EC;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code>
-          <button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button></dd>
+        <sc-if value="{{ mac.size }}"><dt style="color:#55526B;">Size</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ mac.size }}</dd></sc-if>
       </dl>
-      <sc-if value="{{ notNotarized }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This build isn't notarized by Apple yet. macOS will warn you the first time you open it — step 1 below shows the way through.</p></sc-if>
-      <button type="button" onClick="{{ dlMac }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlMacLabel }}</button>
+      <sc-if value="{{ notNotarized }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This build isn't notarized by Apple yet. macOS will warn you the first time you open it. Step 2 of <a href="#getting-started" style="color:#5B3DF5;font-weight:600;text-underline-offset:3px;">Getting started</a>, just below, shows the way through.</p></sc-if>
+      <sc-if value="{{ siteDownloads }}"><button type="button" onClick="{{ dlMac }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlMacLabel }}</button></sc-if>
+      <sc-if value="{{ inviteOnly }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">During the beta, this site doesn't serve the download. The person who invited you sends you a private link to this file.</p></sc-if>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">{{ tokenNeed }}</p>
+      <div role="group" aria-labelledby="sum-h" style="border-radius:16px;background:#F6F3EC;border:1px dashed rgba(23,20,46,0.25);padding:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;">
+        <span id="sum-h" style="font-size:15px;font-weight:600;color:#17142E;">Checksum <span style="font-weight:400;color:#55526B;">(optional, to check your download)</span></span>
+        <span style="font-size:14.5px;line-height:1.5;color:#55526B;">This is not your beta token.</span>
+        <sc-if value="{{ noMacSha }}"><span style="font-size:14.5px;line-height:1.5;color:#55526B;">The checksum appears here once the beta build is staged.</span></sc-if>
+        <sc-if value="{{ mac.sha }}"><code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#FFFFFF;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code></sc-if>
+        <sc-if value="{{ mac.sha }}"><button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button></sc-if>
+      </div>
     </section>
 
     <section aria-labelledby="and-h" style="border-radius:28px;background:#E8E2FF;padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:22px;">
@@ -86,36 +100,42 @@ a:hover{color:#3A22B8;}
         <span aria-hidden="true" style="width:30px;height:50px;border-radius:8px;border:2px solid #17142E;box-sizing:border-box;display:block;background:#FFFFFF;"></span>
         <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="and-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Android</h2><span style="font-size:15px;color:#55526B;">Sidekick for Android · Android 10 or later</span></div>
       </div>
-      <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;font-size:15.5px;">
-        <dt style="color:#55526B;">Version</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ ver }}</dd>
-        <sc-if value="{{ apkManual }}"><dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ apk.file }}</dd></sc-if>
-        <sc-if value="{{ apk.size }}"><dt style="color:#55526B;">Size</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;">{{ apk.size }}</span></dd></sc-if>
-        <sc-if value="{{ apk.sha }}"><dt style="color:#55526B;">SHA-256</dt><dd style="margin:0;"><span style="font:500 13px 'JetBrains Mono',monospace;background:#FFFFFF;border:1px dashed rgba(23,20,46,0.35);border-radius:6px;padding:2px 8px;word-break:break-all;">{{ apk.sha }}</span></dd></sc-if>
-      </dl>
-      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;"><sc-if value="{{ apkManual }}">Download it on the phone itself, or on the Mac and send it across. You'll allow installs from that app once.</sc-if><sc-if value="{{ noApk }}">Android: currently in invited testing on Google Play.</sc-if></p>
-      <sc-if value="{{ apkManual }}"><button type="button" onClick="{{ dlApk }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlApkLabel }}</button></sc-if>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;"><sc-if value="{{ noAndroid }}">Not available yet. When it is, its Google Play link appears here.</sc-if><sc-if value="{{ androidStore }}">Install Sidekick on your phone from Google Play.</sc-if></p>
+      <sc-if value="{{ androidStore }}"><button type="button" onClick="{{ dlAndroid }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">open_in_new</span>{{ dlAndroidLabel }}</button></sc-if>
     </section>
   </div>
   <sc-if value="{{ toast }}"><p role="status" style="margin:-8px 0 0;font:500 14px 'JetBrains Mono',monospace;color:#55526B;">{{ toast }}</p></sc-if>
 
+  <section id="getting-started" aria-labelledby="gs-h" style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3.5vw,48px);display:flex;flex-direction:column;gap:18px;scroll-margin-top:24px;">
+    <h2 id="gs-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">Getting started</h2>
+    <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:12px;font-size:17px;line-height:1.55;max-width:760px;">
+      <li><strong>Download</strong> <sc-if value="{{ siteDownloads }}">Sidekick for your Mac with the button above.</sc-if><sc-if value="{{ inviteOnly }}">Sidekick for your Mac from the private link the person who invited you sent.</sc-if></li>
+      <li><strong>Open it.</strong> Open the .dmg, drag Sidekick into Applications, then open Sidekick from Applications.<sc-if value="{{ notNotarized }}"> macOS says it could not verify the app: choose <strong>Done</strong>. Open <strong>System Settings › Privacy &amp; Security</strong>, scroll to the message about Sidekick and choose <strong>Open Anyway</strong>, enter your Mac password, then choose <strong>Open Anyway</strong> again in the dialog that follows. You do this once, and you never need to turn off Gatekeeper.</sc-if></li>
+      <li><strong>Allow the keychain once.</strong> Sidekick shows a short note first: choose <strong>Continue</strong>. macOS may then ask for your Mac password for “Sidekick Safe Storage”. Type it and choose <strong>Always Allow</strong>. After you install a newer test build, macOS asks once more.</li>
+      <li><strong>Enter your beta token.</strong> <sc-if value="{{ siteDownloads }}">Copy it from our email “Your Sidekick beta token”</sc-if><sc-if value="{{ inviteOnly }}">Copy the token you were sent</sc-if>, then press <strong>Paste token</strong>. It's a long piece of text that starts with SIDEKICK-TRIAL-1, and it's not the checksum above. If you copy the whole email, Sidekick finds the token inside it. The token is checked on your Mac; nothing is sent anywhere.</li>
+      <li><strong>Allow your local network.</strong> When macOS asks whether Sidekick may find devices on your local network, choose <strong>Allow</strong>. Sidekick then shows a code to scan.</li>
+      <li><strong>Pair your phone.</strong> On the phone, open Sidekick and tap <strong>Get started</strong>, then on <strong>Connect your Mac</strong> tap <strong>Scan the code</strong> and point it at the code on your Mac.</li>
+    </ol>
+  </section>
+
   <sc-if value="{{ tokenRequired }}">
   <section aria-labelledby="tok-h" style="border-radius:28px;background:#17142E;color:#F6F3EC;padding:clamp(24px,3.5vw,48px);display:grid;grid-template-columns:{{ splitCols }};gap:32px;align-items:center;">
     <div style="display:flex;flex-direction:column;gap:16px;">
-      <span style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR ACCESS TOKEN</span>
-      <h2 id="tok-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">The Mac app asks for a token the first time it opens.</h2>
-      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">We email it to <strong style="color:#F6F3EC;">{{ email }}</strong>. Nothing to do on the phone.</p>
+      <span style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR BETA TOKEN</span>
+      <h2 id="tok-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">The Mac app asks for a beta token the first time it opens.</h2>
+      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">{{ tokenWho }}</p>
       <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:17px;line-height:1.5;">
         <li>Open Sidekick on your Mac.</li>
-        <li>Paste the token on the first-launch screen and choose Continue.</li>
-        <li>Need it again later? It's in <strong>Settings › About</strong>.</li>
+        <li>Copy the token, then press <strong>Paste token</strong> on the token screen. You can also paste it into the box and choose <strong>Use this token</strong>.</li>
+        <li><strong>Settings › About › Beta access</strong> shows when it ends (45 days). A new token goes in there too.</li>
       </ol>
-      <a href="Support.dc.html#help" style="color:#C6FF33;font-size:16px;font-weight:600;text-underline-offset:5px;min-height:44px;display:flex;align-items:center;">No email after a while? Get help</a>
+      <a href="Support.dc.html#help" style="color:#C6FF33;font-size:16px;font-weight:600;text-underline-offset:5px;min-height:44px;display:flex;align-items:center;">Token not working? Get help</a>
     </div>
     <div aria-hidden="true" style="border-radius:20px;background:#0A0A0A;border:1px solid rgba(255,255,255,0.10);padding:24px;display:flex;flex-direction:column;gap:14px;color:#F2F3F5;font-family:Inter,sans-serif;">
       <span style="display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;"><img src="LOGOS/head_logo.png" alt="" style="width:36px;height:18px;object-fit:contain;">Welcome to Sidekick</span>
-      <span style="font-size:13px;color:#9A9CA8;">Paste the access token from your email.</span>
-      <span style="height:44px;border-radius:12px;background:#1A1A1A;border:1px solid rgba(198,255,51,0.35);display:flex;align-items:center;padding:0 14px;font:500 13px 'JetBrains Mono',monospace;color:#C9CBD3;">sk1.eyJ2Ijox••••••••••••••••</span>
-      <span style="align-self:flex-end;height:36px;padding:0 16px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:13px;font-weight:600;display:flex;align-items:center;">Continue</span>
+      <span style="font-size:13px;color:#9A9CA8;">Enter your beta token.</span>
+      <span style="height:44px;border-radius:12px;background:#1A1A1A;border:1px solid rgba(198,255,51,0.35);display:flex;align-items:center;padding:0 14px;font:400 13px Inter,sans-serif;color:#6A6C78;">SIDEKICK-TRIAL-1…</span>
+      <span style="align-self:flex-end;height:36px;padding:0 16px;border-radius:999px;background:#C6FF33;color:#0B1002;font-size:13px;font-weight:600;display:flex;align-items:center;">Paste token</span>
     </div>
   </section>
   </sc-if>
@@ -140,23 +160,19 @@ a:hover{color:#3A22B8;}
           <li>Open Sidekick from Applications.</li>
           <sc-if value="{{ notNotarized }}">
             <li>macOS says it couldn't verify the app. Choose <strong>Done</strong>.</li>
-            <li>Open <strong>System Settings › Privacy &amp; Security</strong>, scroll to Security and choose <strong>Open Anyway</strong>. Confirm with your password.</li>
+            <li>Open <strong>System Settings › Privacy &amp; Security</strong>, scroll to the message about Sidekick and choose <strong>Open Anyway</strong>. Enter your Mac password, then choose <strong>Open Anyway</strong> again.</li>
           </sc-if>
-          <li>Allow Sidekick to find devices on your local network when macOS asks.</li>
+          <li>Choose <strong>Continue</strong> on Sidekick's note, and <strong>Always Allow</strong> if macOS asks for your password.</li>
+          <li>Enter your beta token, then allow Sidekick to find devices on your local network when macOS asks.</li>
         </ol>
         <sc-if value="{{ notNotarized }}"><p style="margin:0;font-size:14.5px;line-height:1.5;color:#55526B;">You only do this once. You never need to turn off Gatekeeper.</p></sc-if>
       </li>
       <li style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:28px;display:flex;flex-direction:column;gap:18px;">
         <span style="width:44px;height:44px;border-radius:50%;background:#17142E;color:#F6F3EC;font:600 16px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;">2</span>
         <h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:26px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">Install on your phone</h3>
-        <sc-if value="{{ apkManual }}"><div aria-hidden="true" style="border-radius:16px;background:#E8E2FF;height:220px;overflow:hidden;display:flex;justify-content:center;padding-top:18px;">
-          <div style="width:156px;height:328px;flex:none;"><div style="width:390px;height:820px;transform:scale(0.4);transform-origin:0 0;"><dc-import name="PhoneScreen" screen="install" hint-size="390px,820px"></dc-import></div></div>
-        </div></sc-if>
         <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:16.5px;line-height:1.5;">
-          <sc-if value="{{ noApk }}"><li>Android: currently in invited testing on Google Play.</li></sc-if>
-          <sc-if value="{{ apkManual }}"><li>Open the .apk from your phone's Downloads.</li>
-          <li>When Android asks, turn on <strong>Allow from this source</strong> for that app.</li>
-          <li>Go back and choose <strong>Install</strong>.</li></sc-if>
+          <sc-if value="{{ noAndroid }}"><li>The Android app isn't available yet. When it is, its Google Play link appears on this page.</li></sc-if>
+          <sc-if value="{{ androidStore }}"><li>Install Sidekick from Google Play with the button above.</li></sc-if>
         </ol>
       </li>
       <li style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:28px;display:flex;flex-direction:column;gap:18px;">
@@ -167,7 +183,7 @@ a:hover{color:#3A22B8;}
         </div>
         <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:16.5px;line-height:1.5;">
           <li>Put both on the same Wi-Fi, or join the phone's hotspot from the Mac.</li>
-          <li>On the Mac, choose <strong>Pair a phone</strong>. On the phone, <strong>Connect your Mac</strong> and scan the code.</li>
+          <li>Sidekick on the Mac shows a code. On the phone, tap <strong>Get started</strong>, then <strong>Scan the code</strong> on <strong>Connect your Mac</strong>.</li>
           <li>Grant permissions as you turn features on — notifications, messages, files. Each one says why it's needed.</li>
         </ol>
       </li>
@@ -188,45 +204,56 @@ a:hover{color:#3A22B8;}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;previewState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;valid&quot;,&quot;expired&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Design review&quot;}}">
 class Component extends DCLogic {
-  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, arch: null, copied: false, toast: '', busy: '' };
+  state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, copied: false, toast: '', busy: '' };
   componentDidMount() {
     this.onResize = () => this.setState({ w: window.innerWidth });
     window.addEventListener('resize', this.onResize);
+    // Real mode: ask the API who this is. The data scripts may arrive after the first render, so wait for them.
+    this.setState({ loading: true });
+    const start = Date.now();
+    const go = () => {
+      const C = window.SK_CONFIG;
+      if (C && C.mocksEnabled) return this.setState({ loading: false });
+      if (C && window.SK_API && window.SK_API.loadSession) return window.SK_API.loadSession().then(() => this.setState({ loading: false }));
+      if (Date.now() - start > 8000) return this.setState({ loading: false });
+      this.wait = setTimeout(go, 50);
+    };
+    go();
     if (!window.SK_RELEASES) { this.t = setInterval(() => { if (window.SK_RELEASES && window.SK_API) { clearInterval(this.t); this.forceUpdate(); } }, 60); }
   }
-  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearInterval(this.t); }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearInterval(this.t); clearTimeout(this.wait); }
   fmt(b) { return b ? (b / 1e6).toFixed(1) + ' MB' : null; }
   async dl(platform, arch) {
     this.setState({ busy: platform });
     const r = window.SK_API ? await window.SK_API.download(platform, arch) : null;
     if (r && r.url) window.location.href = r.url;
-    this.setState({ busy: '', toast: r && r.mock ? `MOCK — the real site redirects to a short-lived signed URL for the ${platform === 'mac' ? arch + ' .dmg' : '.apk'}.` : '' });
+    if (r && r.navigated) return;
+    this.setState({ busy: '', toast: r && r.mock ? `MOCK — the real site redirects to ${platform === 'mac' ? 'a short-lived signed URL for the ' + arch + ' .dmg' : 'the Google Play page'}.` : '' });
   }
   renderVals() {
-    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.0', mac: { builds: { arm64: {}, x64: {} } }, android: { build: {} } };
-    const pv = this.props.previewState ?? 'auto';
+    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.1', mac: { builds: { arm64: {} } }, android: { storeUrl: null } };
+    const mocks = !!C.mocksEnabled;
+    const pv = mocks ? (this.props.previewState ?? 'auto') : 'auto'; // preview states are design review only
     const sess = window.SK_API ? window.SK_API.session() : null;
     const demo = { name: 'Alex', email: 'alex@example.com', macChip: 'apple' };
     const s = pv === 'valid' ? (sess || demo) : (pv === 'expired' ? null : sess);
-    const chip = s ? s.macChip : 'apple';
-    const arch = this.state.arch || (chip === 'intel' ? 'x64' : 'arm64');
-    const b = R.mac.builds[arch] || {};
+    const stage = s ? (s.stage || 'approved') : null, loading = !!this.state.loading;
+    const b = R.mac.builds.arm64 || {}; // Apple silicon only; there is no Intel build
     const wide = this.state.w >= 900;
-    const archOpts = [['arm64', 'Apple silicon'], ['x64', 'Intel']].map(([id, label]) => ({ id, label, checked: arch === id,
-      border: arch === id ? '#5B3DF5' : 'rgba(23,20,46,0.22)', bg: arch === id ? '#E8E2FF' : '#FFFFFF', pick: () => this.setState({ arch: id, copied: false }) }));
-    const ab = R.android.build || {};
     return {
-      expired: !s, valid: !!s, name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
+      expired: !loading && !s, valid: stage === 'approved' || stage === 'token_sent', checkEmail: stage === 'check_email', waitlisted: stage === 'waitlisted',
+      tokenNeed: mocks ? 'You need a beta token from the person who invited you. Sidekick asks for it the first time you open it.' : 'You need your beta token: Sidekick asks for it the first time you open it. ' + (stage === 'token_sent' ? 'We emailed it to you.' : 'We email it to you once it\'s ready.'),
+      tokenWho: mocks ? 'The person who invited you sends it to you privately. Nothing to do on the phone.' : (stage === 'token_sent' ? 'We emailed it to you — look for “Your Sidekick beta token”. Nothing to do on the phone.' : 'We email it to you once it\'s ready, usually within a few hours. Nothing to do on the phone.'), name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
       splitCols: wide ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', stepCols: this.state.w >= 1100 ? 'repeat(3,minmax(0,1fr))' : 'minmax(0,1fr)',
-      archOpts, ver: R.version, intelWarn: arch === 'x64' && !C.intelBuildTested, unsureNote: chip === 'unsure' && !this.state.arch,
-      mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 },
-      apk: { file: ab.file, size: this.fmt(ab.bytes), sha: ab.sha256 }, apkManual: ab.signed === true, noApk: ab.signed !== true,
-      notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false,
-      copyMacLabel: this.state.copied ? 'Copied' : 'Copy SHA-256', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
+      ver: R.version,
+      mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 || null }, noMacSha: !b.sha256,
+      androidStore: !!R.android.storeUrl, noAndroid: !R.android.storeUrl, // Google Play or nothing: no .apk on this site
+      notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false, siteDownloads: !mocks || C.releaseState === 'public', inviteOnly: mocks && C.releaseState !== 'public',
+      copyMacLabel: this.state.copied ? 'Copied' : 'Copy checksum', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
       copyMac: () => { try { navigator.clipboard.writeText(b.sha256); } catch (e) {} this.setState({ copied: true }); },
-      dlMacLabel: this.state.busy === 'mac' ? 'Preparing…' : `Download for ${arch === 'arm64' ? 'Apple silicon' : 'Intel'} (.dmg)`,
-      dlApkLabel: this.state.busy === 'android' ? 'Preparing…' : 'Download for Android (.apk)',
-      dlMac: () => this.dl('mac', arch), dlApk: () => this.dl('android'), toast: this.state.toast,
+      dlMacLabel: this.state.busy === 'mac' ? 'Preparing…' : 'Download for Apple silicon (.dmg)',
+      dlAndroidLabel: this.state.busy === 'android' ? 'Opening…' : 'Get it on Google Play',
+      dlMac: () => this.dl('mac', 'arm64'), dlAndroid: () => this.dl('android'), toast: this.state.toast,
       trouble: [
         { label: "The phone can't find the Mac", href: 'Support.dc.html#help' },
         { label: 'My router might block devices (AP isolation)', href: 'Support.dc.html#help' },

@@ -334,7 +334,7 @@ class Component extends DCLogic {
       notes: [['Oat milk',1],['Tomatoes, the good ones',1],['Basil',0],['Sourdough',0],['Flowers for Lena',0],['Batteries (AA)',0]].map(([text,done],i)=>({
         text, bg: i===2 ? '#E9E5F7' : 'transparent', box: done ? '#2E2A4A' : '#8E8A99', fill: done ? '#2E2A4A' : 'transparent', strike: done ? 'line-through' : 'none', color: done ? '#8E8A99' : '#1B1B1F'
       })),
-      presets: [['720p · 4 Mbps','For weak Wi-Fi',0],['1080p · 8 Mbps','Default',1],['1080p · 20 Mbps','For an excellent network',0]].map(([name,note,on])=>({
+      presets: [['1080p · 60 FPS','Recommended',1],['720p · 30 FPS','Smooth on weak links',0],['480p · 30 FPS','Battery saving',0]].map(([name,note,on])=>({
         name, note, border: on ? 'rgba(198,255,51,0.35)' : 'rgba(255,255,255,0.06)', bg: on ? 'rgba(198,255,51,0.06)' : '#1A1A1A', dot: on ? '#C6FF33' : '#3A3C44'
       })),
       tools: [{icon:'image',label:'Capture'},{icon:'refresh',label:'Refresh'},{icon:'open_in_new',label:'Float'}],

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- UNLISTED: no page, header, footer, sitemap or email links here. Only invited testers get the address. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="./support.js"></script>
+<noscript><style>[data-js-only]{display:none!important}</style></noscript>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Install the Sidekick beta</title>
+<link href="fonts/fonts.css" rel="stylesheet">
+<script src="data/site-config.js"></script>
+<script src="data/releases.js"></script>
+<style>
+body{margin:0;background:#F6F3EC;color:#17142E;font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+a{color:#5B3DF5;}
+a:hover{color:#3A22B8;}
+:focus-visible{outline:2px solid #5B3DF5;outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+</style>
+</helmet>
+<dc-import name="SiteHeader" active="" hint-size="100%,88px"></dc-import>
+<main id="main" style="max-width:960px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(32px,4vw,56px);">
+
+<div data-js-only="1" style="display:flex;flex-direction:column;gap:clamp(32px,4vw,56px);">
+  <section aria-labelledby="beta-h" style="display:flex;flex-direction:column;gap:20px;">
+    <h1 id="beta-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">Install the <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">beta</span></span>.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">{{ t.intro }}</p>
+  </section>
+
+  <section aria-labelledby="mac-h" style="border-radius:28px;background:#FFFFFF;border:1px solid rgba(23,20,46,0.10);padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:20px;">
+    <h2 id="mac-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.03em;">{{ t.macTitle }}</h2>
+    <p style="margin:0;font-size:16px;line-height:1.55;color:#17142E;">{{ t.macNeed }}</p>
+    <sc-if value="{{ t.driveUrl }}"><a href="{{ t.driveUrl }}" rel="noopener noreferrer" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;text-decoration:none;box-sizing:border-box;">{{ t.driveLabel }}</a></sc-if>
+    <p style="margin:0;font-size:16px;line-height:1.55;color:#55526B;">{{ t.driveText }}</p>
+    <dl style="margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 20px;font-size:15.5px;">
+      <dt style="color:#55526B;">File</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;word-break:break-all;">{{ t.file }}</dd>
+      <sc-if value="{{ t.size }}"><dt style="color:#55526B;">Size</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;">{{ t.size }}</dd></sc-if>
+      <sc-if value="{{ t.sha }}"><dt style="color:#55526B;">SHA-256</dt><dd style="margin:0;font-family:'JetBrains Mono',monospace;font-size:13.5px;word-break:break-all;">{{ t.sha }}</dd></sc-if>
+    </dl>
+
+    <h3 style="margin:8px 0 0;font-size:20px;line-height:1.3;">{{ t.checkTitle }}</h3>
+    <ol style="margin:0;padding-left:22px;font-size:16px;line-height:1.6;display:flex;flex-direction:column;gap:6px;">
+      <sc-for list="{{ t.check }}" as="s" hint-placeholder-count="3"><li>{{ s.text }}<sc-if value="{{ s.code }}"> <code style="font-family:'JetBrains Mono',monospace;font-size:14px;background:#F6F3EC;border-radius:6px;padding:2px 6px;word-break:break-all;">{{ s.code }}</code></sc-if></li></sc-for>
+    </ol>
+
+    <h3 style="margin:8px 0 0;font-size:20px;line-height:1.3;">{{ t.installTitle }}</h3>
+    <ol style="margin:0;padding-left:22px;font-size:16px;line-height:1.6;display:flex;flex-direction:column;gap:6px;">
+      <sc-for list="{{ t.install }}" as="s" hint-placeholder-count="6"><li>{{ s.text }}</li></sc-for>
+    </ol>
+    <p style="margin:0;border-radius:16px;background:#F6F3EC;border:1px dashed rgba(23,20,46,0.25);padding:16px;font-size:16px;line-height:1.55;"><strong>{{ t.tokenTitle }}</strong> {{ t.token }}</p>
+  </section>
+
+  <section aria-labelledby="and-h" style="border-radius:28px;background:#E8E2FF;padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:20px;">
+    <h2 id="and-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.03em;">{{ t.androidTitle }}</h2>
+    <p style="margin:0;font-size:16px;line-height:1.55;">{{ t.androidNeed }}</p>
+    <p style="margin:0;font-size:16px;line-height:1.55;"><strong>{{ t.playAccess }}</strong></p>
+    <sc-if value="{{ t.playUrl }}"><a href="{{ t.playUrl }}" rel="noopener noreferrer" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;text-decoration:none;box-sizing:border-box;">{{ t.playLabel }}</a></sc-if>
+    <p style="margin:0;font-size:16px;line-height:1.55;">{{ t.playText }}</p>
+    <p style="margin:0;font-size:16px;line-height:1.55;font-weight:600;">{{ t.noApk }}</p>
+  </section>
+
+  <section aria-labelledby="pair-h" style="display:flex;flex-direction:column;gap:12px;">
+    <h2 id="pair-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.03em;">{{ t.pairTitle }}</h2>
+    <p style="margin:0;font-size:16px;line-height:1.55;">{{ t.pair }} <a href="Support.dc.html#setup" style="font-weight:600;">Full setup guide</a></p>
+    <p style="margin:0;font-size:16px;line-height:1.55;color:#55526B;">{{ t.help }}</p>
+  </section>
+</div>
+
+<!-- NOSCRIPT:BETA generated by tools/noscript.mjs; do not edit by hand -->
+<noscript>
+<div>
+<h1 style="margin:0 0 16px;font:800 52px/1 'Bricolage Grotesque',sans-serif;">Install the beta.</h1>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">For people invited to the Sidekick beta. Install the Mac app, then the phone app, then pair them with one scan.</p>
+<h2 style="margin:28px 0 12px;font:800 30px/1.1 'Bricolage Grotesque',sans-serif;">Mac</h2>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">Apple silicon only: a Mac with M1 or later, on macOS 11.0 (Big Sur) or later. Apple menu › About This Mac shows “Chip” on these Macs. If it shows “Processor”, this beta won't run on it.</p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;"><a href="https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL" rel="noopener noreferrer" style="font-weight:600;">Open the download folder (Google Drive)</a></p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">Download Sidekick-2.0.1-arm64.dmg from that folder.</p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">File: <code>Sidekick-2.0.1-arm64.dmg</code> · Size: 121.7 MB</p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">SHA-256: <code style="word-break:break-all;">a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284</code></p>
+<h3 style="margin:20px 0 8px;font:600 20px/1.3 Inter,sans-serif;">Check the download (optional)</h3>
+<ol style="margin:0 0 14px;padding-left:22px;font-size:17px;line-height:1.6;">
+<li>Open Terminal (Applications › Utilities). If you saved the file in Downloads, type this and press Return: <code>shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg</code></li>
+<li>If you saved it somewhere else, type shasum -a 256 and a space, drag the file into the Terminal window, and press Return.</li>
+<li>Compare the long line it prints with the SHA-256 above. Every character must match. If it doesn't, don't open the file: download it again, and tell the person who invited you if it still doesn't match.</li>
+</ol>
+<h3 style="margin:20px 0 8px;font:600 20px/1.3 Inter,sans-serif;">Install it</h3>
+<ol style="margin:0 0 14px;padding-left:22px;font-size:17px;line-height:1.6;">
+<li>Open Sidekick-2.0.1-arm64.dmg and drag Sidekick into Applications.</li>
+<li>Open Sidekick from Applications. macOS says it could not verify the app, because this beta isn't notarized by Apple yet. Choose Done.</li>
+<li>Open System Settings › Privacy &amp; Security, scroll to the message about Sidekick, click Open Anyway and enter your Mac password, then click Open Anyway again in the dialog that follows. You only do this once. Never turn off Gatekeeper: nothing here needs it.</li>
+<li>Sidekick shows a short note that macOS may ask for your Mac password. Click Continue. If macOS then asks to use “Sidekick Safe Storage” in your keychain, enter your password and click Always Allow. That is where Sidekick keeps the key your phone knows this Mac by.</li>
+<li>Sidekick asks for your beta token. Copy it and press Paste token, or press Open token file… and choose the file ending in .sidekick-token.</li>
+<li>If macOS asks whether Sidekick may find devices on your local network, click Allow. Sidekick then shows a code for your phone to scan.</li>
+</ol>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;"><strong>Your token.</strong> You receive a token separately, from the person who invited you: a long text starting SIDEKICK-TRIAL-1., or a file ending in .sidekick-token. Sidekick checks it on your Mac and sends it nowhere. The SHA-256 above is not your token.</p>
+<h2 style="margin:28px 0 12px;font:800 30px/1.1 'Bricolage Grotesque',sans-serif;">Android</h2>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">An Android phone on Android 10 or later, on the same Wi-Fi as your Mac.</p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;"><strong>The Google Play test link works only for Google accounts the developer has added to the test.</strong></p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;"><a href="https://play.google.com/apps/internaltest/4700743324703460563" rel="noopener noreferrer" style="font-weight:600;">Open the Google Play test link</a></p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">Open it on your phone while signed in to that Google account (the one your Play Store uses). Accept the invitation, then follow its link to Google Play and tap Install. While Sidekick is in testing, Play may show it under its package name instead of “Sidekick”. If the page says you can't join, send the person who invited you the Google account you use on the phone.</p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;font-weight:600;">There is no APK download. Sidekick for Android comes only from Google Play.</p>
+<h2 style="margin:28px 0 12px;font:800 30px/1.1 'Bricolage Grotesque',sans-serif;">Pair them</h2>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">Open Sidekick on the phone, tap Get started, then Scan the code, and scan the code on your Mac. <a href="Support.dc.html#setup" style="font-weight:600;">Full setup guide</a></p>
+<p style="margin:0 0 14px;font-size:17px;line-height:1.6;">Stuck? Write to chetanpujari.sitit@gmail.com.</p>
+</div>
+</noscript>
+<!-- /NOSCRIPT:BETA -->
+</main>
+<dc-import name="SiteFooter" hint-size="100%,420px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const R = window.SK_RELEASES || { mac: { builds: { arm64: {} } }, android: {} };
+    const C = window.SK_CONFIG || {};
+    // The page's words, in one place: tools/noscript.mjs renders this same object for browsers without JavaScript.
+    const BETA = (R, C) => {
+      const b = (R.mac && R.mac.builds && R.mac.builds.arm64) || {};
+      const file = b.file || 'the .dmg';
+      return {
+        intro: 'For people invited to the Sidekick beta. Install the Mac app, then the phone app, then pair them with one scan.',
+        macTitle: 'Mac',
+        macNeed: 'Apple silicon only: a Mac with M1 or later, on ' + (R.mac && R.mac.minOS || 'macOS 11.0 or later') + '. Apple menu › About This Mac shows “Chip” on these Macs. If it shows “Processor”, this beta won\'t run on it.',
+        driveUrl: R.mac && R.mac.betaDriveUrl || null,
+        driveLabel: 'Open the download folder (Google Drive)',
+        driveText: R.mac && R.mac.betaDriveUrl ? 'Download ' + file + ' from that folder.' : 'The download folder isn\'t available yet. Ask the person who invited you.',
+        file: b.file || null,
+        size: b.bytes ? (b.bytes / 1e6).toFixed(1) + ' MB' : null,
+        sha: b.sha256 || null,
+        checkTitle: 'Check the download (optional)',
+        check: b.sha256 ? [
+          { text: 'Open Terminal (Applications › Utilities). If you saved the file in Downloads, type this and press Return:', code: 'shasum -a 256 ~/Downloads/' + file },
+          { text: 'If you saved it somewhere else, type shasum -a 256 and a space, drag the file into the Terminal window, and press Return.', code: '' },
+          { text: 'Compare the long line it prints with the SHA-256 above. Every character must match. If it doesn\'t, don\'t open the file: download it again, and tell the person who invited you if it still doesn\'t match.', code: '' }
+        ] : [{ text: 'The SHA-256 appears here once the build is staged.', code: '' }],
+        installTitle: 'Install it',
+        install: [
+          { text: 'Open ' + file + ' and drag Sidekick into Applications.' },
+          { text: C.notarized ? 'Open Sidekick from Applications.' : 'Open Sidekick from Applications. macOS says it could not verify the app, because this beta isn\'t notarized by Apple yet. Choose Done.' },
+          C.notarized ? null : { text: 'Open System Settings › Privacy & Security, scroll to the message about Sidekick, click Open Anyway and enter your Mac password, then click Open Anyway again in the dialog that follows. You only do this once. Never turn off Gatekeeper: nothing here needs it.' },
+          { text: 'Sidekick shows a short note that macOS may ask for your Mac password. Click Continue. If macOS then asks to use “Sidekick Safe Storage” in your keychain, enter your password and click Always Allow. That is where Sidekick keeps the key your phone knows this Mac by.' },
+          { text: 'Sidekick asks for your beta token. Copy it and press Paste token, or press Open token file… and choose the file ending in .sidekick-token.' },
+          { text: 'If macOS asks whether Sidekick may find devices on your local network, click Allow. Sidekick then shows a code for your phone to scan.' }
+        ].filter(Boolean),
+        tokenTitle: 'Your token.',
+        token: 'You receive a token separately, from the person who invited you: a long text starting SIDEKICK-TRIAL-1., or a file ending in .sidekick-token. Sidekick checks it on your Mac and sends it nowhere. The SHA-256 above is not your token.',
+        androidTitle: 'Android',
+        androidNeed: 'An Android phone on ' + (R.android && R.android.minOS || 'Android 10 or later') + ', on the same Wi-Fi as your Mac.',
+        playAccess: 'The Google Play test link works only for Google accounts the developer has added to the test.',
+        playUrl: R.android && R.android.playTestUrl || null,
+        playLabel: 'Open the Google Play test link',
+        playText: R.android && R.android.playTestUrl ? 'Open it on your phone while signed in to that Google account (the one your Play Store uses). Accept the invitation, then follow its link to Google Play and tap Install. While Sidekick is in testing, Play may show it under its package name instead of “Sidekick”. If the page says you can\'t join, send the person who invited you the Google account you use on the phone.' : 'The Google Play test link isn\'t available yet. Ask the person who invited you.',
+        noApk: 'There is no APK download. Sidekick for Android comes only from Google Play.',
+        pairTitle: 'Pair them',
+        pair: 'Open Sidekick on the phone, tap Get started, then Scan the code, and scan the code on your Mac.',
+        help: 'Stuck? Write to ' + (C.supportEmail || 'the person who invited you') + '.'
+      };
+    };
+    return { t: BETA(R, C) };
+  }
+}
+</script>
+</body>
+</html>

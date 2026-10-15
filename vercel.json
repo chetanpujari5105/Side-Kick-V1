@@ -1,6 +1,35 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/build-site.mjs",
+  "installCommand": "npm ci --omit=dev",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/index.mjs": { "maxDuration": 15 }
+  },
   "rewrites": [
-    { "source": "/", "destination": "/Home.dc.html" }
+    { "source": "/", "destination": "/Home.dc.html" },
+    { "source": "/api/:path*", "destination": "/api/index?__route=:path*" }
+  ],
+  "crons": [
+    { "path": "/api/cron/retention", "schedule": "17 3 * * *" }
+  ],
+  "headers": [
+    {
+      "source": "/Beta.dc.html",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/((?!api/).*)",
+      "headers": [
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" }
+      ]
+    }
   ]
 }

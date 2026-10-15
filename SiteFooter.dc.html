@@ -25,7 +25,7 @@
           <rect x="172" y="8" width="38" height="24" rx="3" fill="none" stroke="#17142E" stroke-width="2"></rect>
           <line x1="166" y1="34" x2="216" y2="34" stroke="#17142E" stroke-width="2" stroke-linecap="round"></line>
         </svg>
-        <p style="margin:0;font-size:16px;line-height:1.55;color:#55526B;">Your Android phone, on your Mac — over your own Wi-Fi. For macOS 11 or later and Android 10 or later.</p>
+        <p style="margin:0;font-size:16px;line-height:1.55;color:#55526B;">Your Android phone, on your Mac — over your own Wi-Fi. For Macs with Apple silicon on macOS 11.0 (Big Sur) or later, and Android 10 or later.</p>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:clamp(32px,6vw,96px);">
         <sc-for list="{{ cols }}" as="c" hint-placeholder-count="3">
@@ -40,7 +40,7 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-top:24px;border-top:1px solid rgba(23,20,46,0.12);font-size:14px;color:#55526B;line-height:1.55;">
       <span>© 2026 Chetan Pujari</span>
-      <span style="max-width:640px;">The phone-to-Mac connection stays on your own network. This site sets no cookies and runs no analytics. See <a href="Support.dc.html#privacy" style="color:#5B3DF5;text-underline-offset:4px;">Privacy</a>.</span>
+      <span style="max-width:640px;">The phone-to-Mac connection stays on your own network. This site runs no analytics. See <a href="Support.dc.html#privacy" style="color:#5B3DF5;text-underline-offset:4px;">Privacy</a>.</span>
     </div>
   </div>
 </footer>
@@ -49,11 +49,13 @@
 class Component extends DCLogic {
   renderVals() {
     const L = (label, href) => ({ label, href });
+    // SITE_MODE=manual: Get Sidekick is the request-access email, and Privacy is this site's own page.
+    const manual = !!(window.SK_CONFIG && window.SK_CONFIG.siteMode === 'manual');
     return {
       cols: [
-        { title: 'Product', links: [L('Features','Home.dc.html#features'), L('How it works','Home.dc.html#how'), L("What's next",'Roadmap.dc.html'), L('Get Sidekick','Get Sidekick.dc.html')] },
+        { title: 'Product', links: [L('Features','Home.dc.html#features'), L('How it works','Home.dc.html#how'), L("What's next",'Roadmap.dc.html'), L(manual ? 'Request access' : 'Get Sidekick','Get Sidekick.dc.html')] },
         { title: 'Support', links: [L('Setup','Support.dc.html#setup'), L('Help','Support.dc.html#help'), L('Permissions','Support.dc.html#permissions'), L('Changelog','Support.dc.html#changelog')] },
-        { title: 'About', links: [L('Privacy','https://chetan-website-delta.vercel.app/sidekick/privacy'), L('Suggest a feature','Roadmap.dc.html#suggest'), L('Contact','Support.dc.html#help')] }
+        { title: 'About', links: [manual ? L('Privacy','Support.dc.html#privacy') : (/*AUTOMATED{*/ L('Privacy','https://chetan-website-delta.vercel.app/sidekick/privacy') ?? /*}AUTOMATED*/ null), L('Suggest a feature','Roadmap.dc.html#suggest'), L('Contact','Support.dc.html#help')] }
       ]
     };
   }

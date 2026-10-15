@@ -1,6 +1,6 @@
 # Sidekick website — developer handoff
 
-Status: design + working front-end prototype. Pages are Design Components (`*.dc.html`) that open directly in a browser. Rebuild them as Astro or Next.js components using the tokens, structure and copy below. API calls go through `data/mock-api.js`, which is a **mock**.
+Status: design + working front-end prototype. Pages are Design Components (`*.dc.html`) that open directly in a browser. Rebuild them as Astro or Next.js components using the tokens, structure and copy below. In the source, API calls go through `data/mock-api.js`, which is a **mock**. **Backend (2026-10-15, branch `site/backend-2026-10-15`):** the API in §7 is built (`api/index.mjs`, `server/`); `npm run build` makes `dist/` with mocks off; see `docs/backend-design.md` and `docs/OWNER-SETUP.md`.
 
 ---
 
@@ -85,28 +85,28 @@ Status chips: **Next up** lime with ink border · **In design** violet with whit
 ---
 
 ## 4. Copy deck (key strings; full copy lives in each file)
-- **Hero:** "Your Android phone, on your **Mac**." / "Mirror your screen, answer notifications, move files and share your clipboard — over your own Wi-Fi. No cloud. No account." / CTA "Get Sidekick" / "See how it works" / "For macOS 11 or later and Android 10 or later. Both apps required."
+- **Hero:** "Your Android phone, on your **Mac**." / "Mirror your screen, answer notifications, move files and share your clipboard — over your own Wi-Fi. No cloud. No account." / CTA "Get Sidekick" / "See how it works" / "For Macs with Apple silicon on macOS 11.0 (Big Sur) or later, and Android 10 or later. Both apps required."
 - **Tabs** (H2 "Do more without picking up your phone."): Mirror & control · Notifications & replies · Messages · Files & photos · Clipboard.
 - **How it works:** "Two apps. One local connection." Steps: Install both apps → Scan the QR code once → Use it. Chips: TLS 1.3 · Certificate pinning · No cloud relay · No account.
-- **Mosaic:** "The small stuff, handled." Reply from your Mac · Clipboard, both ways · See who's calling · Photos to Finder · A remote for what's playing · Ask the phone to open an app.
+- **Mosaic:** "The small stuff, handled." Reply from your Mac · Clipboard, both ways · See who's calling · Photos, saved to your Mac · A remote for what's playing · Ask the phone to open an app.
 - **Honest by design:** seven limits (mirroring consent, secure screens, call audio, clipboard, files, network, battery).
 - **Roadmap:** heading, subline and footnote are verbatim from the brief and live in `data/roadmap-data.js`.
 - **Form errors:** "Enter your name." · "Enter an email address like name@example.com." · "Choose your Mac's chip, or Not sure." · "Confirm you've read the Privacy Policy to continue." · Server: "We couldn't save your details. Nothing was sent…" · 429: "Too many tries in a short time…"
-- **Download:** "You're in, {first name}." · "Intel build — not yet tested on Intel Macs." · Token panel · Install & connect (3 steps) · "Something not working?"
+- **Download:** "You're in, {first name}." · "For Macs with Apple silicon (M1 or later)." · Token panel · Install & connect (3 steps) · "Something not working?"
 
 ---
 
 ## 5. Assets
-- `LOGOS/head_logo.png` (mask, transparent, from the repo). **Needs an SVG or optimised export** (895 KB as PNG).
-- `LOGOS/main_logo.png` (app tile, used in the Gatekeeper illustration).
+- `LOGOS/head_logo.png` (mask, transparent). **Optimised 2026-10-15:** 144×77, 18 KB (was 512×275, 165 KB; the 895 KB original is the unused `LOGOS/head_logo1.png`, kept out of the deployment). 144 px is 3× its largest use (48 CSS px). An SVG would still be better.
+- `LOGOS/main_logo.png` (app tile, used in the Gatekeeper illustration at 44 px). **Optimised 2026-10-15:** 132×132, 21 KB (was 1254×1254, 1.1 MB). The full-size originals are in git history and the app repo.
 - `fonts/` holds self-hosted, subset woff2 files (latin + latin-ext) for Bricolage Grotesque, Inter, JetBrains Mono and a Material Symbols Rounded subset of about 70 icons. `fonts/fonts.css` uses `font-display: swap` (the icon font uses `block`). Licences: OFL / Apache 2.0, so ship the licence files.
-- Needed: favicon set, OG image (1200×630), Apple touch icon.
+- **Placeholders added 2026-10-15** (replace with designed assets when ready): `favicon.ico` (16/32/48) and `icons/favicon-32.png` — the mask on the app tile's cream; `icons/apple-touch-icon.png` (180×180, opaque); `icons/og-image.png` (1200×630, rendered from the site's own fonts and colours). Every page links the icons in its static `<head>`; Home, Get Sidekick, Roadmap and Support also carry Open Graph and Twitter card tags. **`og:image` is relative until the domain is set** — most link previews need it absolute (`https://<domain>/icons/og-image.png`).
 - App screens are built in HTML, not screenshots. If you swap in real captures, they must contain only fictional data.
 
 ---
 
 ## 6. Data files
-- `data/site-config.js`: flags `releaseState`, `tokenRequired`, `intelBuildTested`, `notarized`, `mocksEnabled`, plus the placeholders for domain, support email and publisher. `SK_RELEASES` has the 2.0.0 facts from `docs/release-candidate-2026-10-12.md` and should be replaced by `GET /api/releases`.
+- `data/site-config.js`: flags `releaseState`, `tokenRequired`, `notarized`, `mocksEnabled`, plus the placeholders for domain, support email and publisher. `SK_RELEASES` has the 2.0.1 facts for the single Apple silicon build (`Sidekick-2.0.1-arm64.dmg`); its size and SHA-256 stay `null` until the staged DMG exists. It should be replaced by `GET /api/releases`.
 - `data/roadmap-data.js`: the only roadmap source, with fields `{id, phase, category, title, benefit, note?}`. Phase status and label come from `phases[]`.
 - `data/mock-api.js`: **MOCK.** Set `sessionStorage.sk_mock_outcome` to `success | server_error | rate_limited | invalid`.
 
@@ -116,7 +116,7 @@ Status chips: **Next up** lime with ink border · **In design** violet with whit
 
 ```
 POST /api/get-sidekick
-  body {name:string(1..120), email:string(email), macChip:'apple'|'intel'|'unsure',
+  body {name:string(1..120), email:string(email), macChip:'apple'|'unsure',
         phoneModel:string(1..120), privacyAccepted:true, marketingOptIn:boolean, captchaToken:string}
   200 {ok:true}  + Set-Cookie sk_session (HttpOnly, Secure, SameSite=Lax, signed, ~24h)
   400 {ok:false, fieldErrors:{[field]:message}}
@@ -125,12 +125,12 @@ POST /api/get-sidekick
   Rules: verify captcha → rate limit per IP + email → write row → THEN 200. Never 200 before the write commits.
   marketingOptIn=true sends a double-opt-in email; it is not stored as consented until confirmed.
 
-GET /api/download/:platform(/:arch)   platform=mac|android, arch=arm64|x64
+GET /api/download/:platform(/:arch)   platform=mac|android, arch=arm64
   requires sk_session; 302 → signed R2/S3 URL (TTL ~10 min); logs {signupId, platform, arch, ts}
   401 → client shows the expired-link state
 
 GET /api/releases
-  {version, mac:{minOS, notarized, builds:{arm64:{file,bytes,sha256}, x64:{file,bytes,sha256,tested}}},
+  {version, mac:{minOS, notarized, builds:{arm64:{file,bytes,sha256}}},
    android:{minOS, build:{file,bytes,sha256,signed}, storeUrl|null}, changelog:[{version,date,items[]}]}
 
 POST /api/roadmap-notify {email, featureId}   → 202; sends a confirm email; one notification per feature
@@ -138,15 +138,16 @@ POST /api/feedback {message(3..2000), email?} → 202
 Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/signups/:id {tokenSentAt}
 ```
 
-**Token process (phase 1).** The owner issues each token on their own Mac from the signup list. The signing key never touches the server. The Download page says the token arrives by email. Hook: `issueToken(signup)` is a no-op stub for automating this later. Setting `tokenRequired:false` hides the token panel, the FAQ entry and token mentions in the copy.
+**Token process.** Built 2026-10-15: `tools/signer` on the owner's Mac polls `/api/admin/pending` (HMAC), runs the Mac app's own issuer, posts back only the signed token, and sends queued emails through Mail.app. The signing key never touches the server. Admin endpoints are `POST /api/admin/*` with HMAC (not the `GET/PATCH /admin/signups` sketched above); the CLI is `tools/admin`. Setting `tokenRequired:false` hides the token panel, the FAQ entry and token mentions in the copy.
 
 ### Environment variables
-`DATABASE_URL`, `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `DOWNLOAD_URL_TTL`, `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`, `ADMIN_AUTH_*`, `ANALYTICS_SITE_ID`, `RATE_LIMIT_*`, flags `RELEASE_STATE`, `TOKEN_REQUIRED`, `INTEL_BUILD_TESTED`, `NOTARIZED`, `MOCKS_ENABLED`.
+As built (full table with sources in `docs/OWNER-SETUP.md` §4): `APP_ORIGIN`, `SESSION_SECRET` (+ `SESSION_SECRET_PREVIOUS` while rotating), `DATABASE_URL`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `STORAGE_PROVIDER` (`github` default | `r2`), `GITHUB_RELEASES_TOKEN`, `GITHUB_RELEASES_REPO`, `GITHUB_RELEASE_TAG`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `DOWNLOAD_URL_TTL`, `EMAIL_PROVIDER` (`outbox` default | `resend`), `EMAIL_PROVIDER_KEY`, `EMAIL_FROM`, `ADMIN_AUTH_SECRET`, `ADMIN_AUTH_SIGNER_SECRET`, `CRON_SECRET`, `BETA_CAP`, `RETENTION_SIGNUP_DAYS`, `RATE_LIMIT_*`. Not used: `ANALYTICS_SITE_ID` (no analytics). The flags `releaseState`, `tokenRequired`, `notarized` stay in `data/site-config.js`; `mocksEnabled` is forced off by the build.
 
 ---
 
 ## 8. Build notes
 - The prototype switches responsive layouts in JS (inline styles only). In production, use CSS media and container queries and render on the server so content reads **without JS**. FAQ answers and roadmap items should be server-rendered `<details>` or open by default.
+  - **Interim (2026-10-15):** Home's FAQ and the Roadmap page carry a generated `<noscript>` copy (FAQ as `<details>`, roadmap as lists by phase), and a `<noscript>` style hides their `data-js-only` templates. Run `node tools/noscript.mjs` after editing the FAQ array, `data/roadmap-data.js` or `data/site-config.js`; `--check` exits 1 if a copy is stale. Everything else still needs JS: header and footer (`dc-import`), Home's feature tabs, steps, security chips, app tiles and limits list, all of Support, the forms, the Download page's valid state and 404's text.
 - Test at 360 / 390 / 768 / 1024 / 1440 and at 200% zoom. There is no horizontal overflow. The tab list scrolls sideways on its own row.
 - Motion: hero rise and line draw play once. The pulse runs only on the lime dot. Tabs crossfade over 200ms. The diagram draws when it scrolls into view. Everything is off under `prefers-reduced-motion`.
 - Never put the real file URLs in page source.
@@ -157,10 +158,10 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 1. **Domain** — placeholder `[sidekick-domain.example]`.
 2. **Support email** — placeholder.
 3. **Privacy policy publisher details** — legal name, postal address, effective date, how changes are announced, data retention period, analytics provider, email provider. Needs a legal review.
-4. **Signing / notarization** — the Mac 2.0.0 build is ad-hoc signed and not notarized, so the site shows the Gatekeeper steps. The **APK is unsigned and cannot be installed**, and its size and SHA-256 are placeholders until the signed build exists.
-5. **Intel build** — it has never run on an Intel Mac. Decide whether to ship it with the label or drop it.
-6. **Token process** — how tokens are delivered (pasted string or file?), how long it takes, whether one token works on more than one Mac, and its expiry. The repo mentions a 45-day trial; the site doesn't mention it until you confirm.
-7. **Real download files** uploaded to R2/S3, plus `SHA256SUMS.txt`.
+4. **Signing / notarization** — the Mac 2.0.0 build is ad-hoc signed and not notarized, so the site shows the Gatekeeper steps. Android: this site never serves an APK. `releases.json` holds only `android.storeUrl` (a play.google.com URL, or null → "not available yet"); `releaseProblems` refuses any `android.build`. The Mac DMG's size and SHA-256 stay null until `node scripts/data-sync.mjs --from-dmg <path>` is run.
+5. **Intel** — decided 2026-10-15: Apple silicon only. No x64 build is offered and the form has no Intel option.
+6. **Token process** — decided in the Mac repo (2026-10-12): 45-day signed tokens, not bound to one Mac. Delivery is now by email from the signer, usually within a few hours (only while the owner's Mac is awake). The token email says it works for 45 days.
+7. **Real download file**: the DMG on the private GitHub release (default) or R2 — see docs/OWNER-SETUP.md.
 8. Pricing — nothing on the site mentions it.
 
 ## 10. Couldn't verify / deliberate deviations
@@ -172,4 +173,4 @@ Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/sign
 - Android app labels used ("Connect your Mac", "Allow from this source", "Start now") match the repo checklist and stock Android, but may differ by OEM skin.
 
 ## 11. Follow-ups
-- **Self-host React to remove unpkg.** `support.js` loads `react@18.3.1` and `react-dom@18.3.1` from unpkg.com on every page, so unpkg receives each visitor's request details. Serve both files from this site instead, then remove unpkg from the "This website" paragraph in Support › Privacy (`Support.dc.html`).
+- ~~**Self-host React to remove unpkg.**~~ **Done 2026-10-15.** `support.js` now loads `vendor/react-18.3.1/react.production.min.js` and `react-dom.production.min.js` from this site (byte-identical to unpkg's, still checked against the same SRI hashes; React's MIT licence is in `vendor/react-18.3.1/LICENSE`). Its Babel loader is disabled — no page uses a JSX x-import — so no page contacts a third-party origin. `support.js` is generated: re-apply the patch (marked at the top of the file) if it is regenerated. Support › Privacy no longer mentions unpkg.
