@@ -37,7 +37,7 @@ test('signer round trip: approved person → issuer signs → token stored → t
   await w.h.confirm();
   const lines = [];
   const r = await runCycle({ cfg: w.cfg, post: w.post, mail: w.mail, log: (l) => lines.push(l) });
-  assert.deepEqual(r, { issued: 1, reused: 0, posted: 1, failed: 0, mailed: 2, mailFailed: 0 }, 'confirm email + token email');
+  assert.deepEqual(r, { issued: 1, reused: 0, posted: 1, failed: 0, mailed: 3, mailFailed: 0, deferred: false }, 'confirm email + invitation + token email');
   const tokenMail = w.sent.find(m => m.kind === 'token');
   const token = tokenMail.text.match(/SIDEKICK-TRIAL-1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}/)[0];
   assert.ok(w.verify(token), 'the emailed token verifies with the throwaway public key');
@@ -49,7 +49,7 @@ test('signer round trip: approved person → issuer signs → token stored → t
   assert.equal((fs.statSync(file).mode & 0o777).toString(8), '600');
   assert.equal(JSON.parse(Buffer.from(token.split('.')[1], 'base64url')).label, 'Alex Rivera');
   // A second cycle has nothing to do.
-  assert.deepEqual(await runCycle({ cfg: w.cfg, post: w.post, mail: w.mail }), { issued: 0, reused: 0, posted: 0, failed: 0, mailed: 0, mailFailed: 0 });
+  assert.deepEqual(await runCycle({ cfg: w.cfg, post: w.post, mail: w.mail }), { issued: 0, reused: 0, posted: 0, failed: 0, mailed: 0, mailFailed: 0, deferred: false });
   for (const l of lines) assert.ok(!l.includes('SIDEKICK-TRIAL') && !l.includes('@'), l);
 });
 

@@ -18,6 +18,9 @@
 //   SK_TOKEN_DAYS       default 45
 //   SK_MAILER           mailapp (default) | eml (write .eml files to SK_EML_DIR for sending by hand) | none
 //   SK_MAIL_FROM        optional sender address for Mail.app (must be one of the owner's Mail accounts)
+//   SK_MAIL_PER_HOUR    default 30 — emails sent per rolling hour, all kinds; transactional ones go first
+//   SK_MAIL_PER_DAY     default 400 — per rolling 24 hours, under Gmail's documented consumer limit (docs/OWNER-SETUP.md)
+//   SK_STATE_DIR        default ~/Library/Application Support/sidekick-signer — sent-times.json (send times only, mode 600)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -42,7 +45,11 @@ export function loadSignerConfig(env = process.env) {
     days: Number(env.SK_TOKEN_DAYS) > 0 ? String(Number(env.SK_TOKEN_DAYS)) : '45',
     mailer: env.SK_MAILER || 'mailapp',
     emlDir: env.SK_EML_DIR || path.join(HOME, 'Sidekick-outbox'),
-    mailFrom: env.SK_MAIL_FROM || null
+    mailFrom: env.SK_MAIL_FROM || null,
+    perHour: Number.isInteger(Number(env.SK_MAIL_PER_HOUR)) && Number(env.SK_MAIL_PER_HOUR) >= 0 && env.SK_MAIL_PER_HOUR !== undefined && env.SK_MAIL_PER_HOUR !== '' ? Number(env.SK_MAIL_PER_HOUR) : 30,
+    perDay: Number.isInteger(Number(env.SK_MAIL_PER_DAY)) && Number(env.SK_MAIL_PER_DAY) >= 0 && env.SK_MAIL_PER_DAY !== undefined && env.SK_MAIL_PER_DAY !== '' ? Number(env.SK_MAIL_PER_DAY) : 400,
+    // null: the budget is kept for this cycle only (tests, the demo). main() fills in the real folder.
+    stateDir: env.SK_STATE_DIR || null
   };
 }
 
@@ -83,9 +90,29 @@ export function makeMailer(cfg, { exec = execFile } = {}) {
   });
 }
 
+// The sending budget: the times of emails sent in the last 24 hours, nothing else (no address, no subject).
+const DAY_MS = 86400000, HOUR_MS = 3600000;
+function readTimes(cfg, now) {
+  if (!cfg.stateDir) return [];
+  try { const a = JSON.parse(fs.readFileSync(path.join(cfg.stateDir, 'sent-times.json'), 'utf8')); return Array.isArray(a) ? a.filter(t => Number.isFinite(t) && t > now - DAY_MS) : []; }
+  catch { return []; }
+}
+function writeTimes(cfg, times) {
+  if (!cfg.stateDir) return;
+  fs.mkdirSync(cfg.stateDir, { recursive: true, mode: 0o700 });
+  const f = path.join(cfg.stateDir, 'sent-times.json'), tmp = f + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(times), { mode: 0o600 });
+  fs.renameSync(tmp, f);
+  fs.chmodSync(f, 0o600);
+}
+export function mailBudget(cfg, times, now) {
+  const lastHour = times.filter(t => t > now - HOUR_MS).length;
+  return Math.max(0, Math.min(cfg.perHour - lastHour, cfg.perDay - times.length));
+}
+
 // One cycle. `post` is a signed admin client; `issue` and `mail` are injectable for tests.
-export async function runCycle({ cfg, post, issue = (o) => runIssuer(cfg, o), mail, pem = null, log = console.log }) {
-  const out = { issued: 0, reused: 0, posted: 0, failed: 0, mailed: 0, mailFailed: 0 };
+export async function runCycle({ cfg, post, issue = (o) => runIssuer(cfg, o), mail, pem = null, log = console.log, now = () => Date.now() }) {
+  const out = { issued: 0, reused: 0, posted: 0, failed: 0, mailed: 0, mailFailed: 0, deferred: false };
   const pending = await post('pending');
   if (pending.status !== 200) throw new Error(`pending: HTTP ${pending.status}`);
   if (pending.pending.length) fs.mkdirSync(cfg.tokensDir, { recursive: true, mode: 0o700 });
@@ -108,19 +135,29 @@ export async function runCycle({ cfg, post, issue = (o) => runIssuer(cfg, o), ma
     } catch (e) { out.failed++; log(`token for ${p.signupId}: ${e.message}`); }
   }
   if (mail) {
-    const ob = await post('outbox');
+    const times = readTimes(cfg, now());
+    const budget = mailBudget(cfg, times, now());
+    if (budget === 0) { out.deferred = true; return out; }
+    // The server hands out transactional emails first, announcements after, and never more than we may send.
+    const ob = await post('outbox', { max: Math.min(20, budget) });
     if (ob.status !== 200) throw new Error(`outbox: HTTP ${ob.status}`);
     for (const m of ob.messages) {
       if (!normaliseEmail(m.to) || /[\r\n]/.test(m.subject)) { await post('outbox-ack', { id: m.id, ok: false, errorCode: 'bad-address' }); out.mailFailed++; continue; }
-      try { await mail(m); await post('outbox-ack', { id: m.id, ok: true }); out.mailed++; }
+      try {
+        await mail(m);
+        times.push(now()); writeTimes(cfg, times);
+        await post('outbox-ack', { id: m.id, ok: true }); out.mailed++;
+      }
       catch (e) { await post('outbox-ack', { id: m.id, ok: false, errorCode: 'send-failed' }); out.mailFailed++; log(`email ${m.id} (${m.kind}): ${e.message}`); }
     }
+    out.deferred = mailBudget(cfg, times, now()) === 0;
   }
   return out;
 }
 
 async function main() {
   const cfg = loadSignerConfig();
+  cfg.stateDir = cfg.stateDir || path.join(HOME, 'Library/Application Support/sidekick-signer');
   cfg.secret = cfg.secret || secretFrom('SK_SIGNER_SECRET', 'sidekick-signer-hmac');
   const problems = [];
   if (!cfg.base) problems.push('SK_API_BASE is not set');
