@@ -2,11 +2,12 @@
 
 Open `Home.dc.html` through any static server (e.g. `npx serve .`) — not via file://.
 
-## Backend (built — branch site/backend-2026-10-15)
-- `npm test` (76 tests, no network) · `npm run demo` (whole pipeline on fakes) · `npm run dev` (real pages + API on fakes at http://localhost:8787) · `node tools/browser-e2e.mjs` (headless Chrome).
+## Backend (built on site/backend-2026-10-15; close-out on site/closeout-2026-10-15)
+- `npm test` (82 tests, no network) · `npm run demo` (whole pipeline on fakes) · `npm run dev` (real pages + API on fakes at http://localhost:8787) · `node tools/browser-e2e.mjs` (headless Chrome).
 - `npm run build` makes `dist/`: mocks off, real API client, no Design review bar. Vercel runs it (see `vercel.json`).
 - Release facts live in `data/releases.json` only; `node scripts/data-sync.mjs` regenerates `data/releases.js`, and `--from-dmg <path>` fills the real size and SHA-256.
-- Design: `docs/backend-design.md`. Turning it on: `docs/OWNER-SETUP.md`.
+- `npm run check`: no-JS copies, release data and `node tools/check-links.mjs` (every internal link, fragment and email link form on the built site, offline).
+- Design: `docs/backend-design.md`. Turning it on: `docs/OWNER-SETUP.md` (step 1 is `node scripts/token-proof.mjs`, before any account). Testing a deployment: `docs/GO-LIVE-TEST.md`.
 
 ## Connecting your backend (original notes for the mock)
 1. In `data/site-config.js` set `mocksEnabled: false`.
