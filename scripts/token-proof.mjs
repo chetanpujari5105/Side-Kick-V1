@@ -38,8 +38,9 @@ else if (!fs.existsSync(cfg.keyFile)) problems.push(`key file not found at ${cfg
 if (problems.length) { console.error('Not ready:\n- ' + problems.join('\n- ')); process.exit(2); }
 
 const now = Date.now();
-const { signup } = await repo.upsertSignup({ email: 'token-proof@example.invalid', emailNorm: 'token-proof@example.invalid', name: label, macChip: 'apple', phoneModel: 'n/a', marketingOptIn: false }, now);
+const { signup } = await repo.upsertSignup({ email: 'token-proof@example.invalid', emailNorm: 'token-proof@example.invalid', name: label, macChip: 'apple', phoneModel: 'n/a', googleEmail: 'token-proof@example.invalid', marketingOptIn: false }, now);
 await repo.confirmSignup(signup.id, now, 25);
+await repo.markPlayAdded(['token-proof@example.invalid'], now); // PLAY_GATE is on by default: the owner's play-mark-added step
 const post = makeClient({ base: O, keyId: 'signer', secret: env.ADMIN_AUTH_SIGNER_SECRET, fetch: (u, o) => app.fetch(new Request(u, o)) });
 const res = await runCycle({ cfg, post, pem, mail: null, log: (m) => console.error(m) }); // no email: the token stays in the outbox, unsent
 const file = path.join(cfg.tokensDir, `${signup.id}.sidekick-token`);

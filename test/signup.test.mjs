@@ -127,7 +127,7 @@ test('no-JS form: errors come back as an accessible HTML page with the Handoff s
 test('no-JS form: Turnstile cannot run without JavaScript, so it fails closed with a plain explanation', async () => {
   const h = setup();
   h.botCheck.mode = 'fail';
-  const r = await h.call('POST', '/api/get-sidekick', { form: { name: 'Alex', email: 'alex@example.com', macChip: 'apple', phoneModel: 'Pixel 8', privacyAccepted: 'on' }, headers: { origin: ORIGIN, accept: 'text/html' } });
+  const r = await h.call('POST', '/api/get-sidekick', { form: { name: 'Alex', email: 'alex@example.com', macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'alex@gmail.com', privacyAccepted: 'on' }, headers: { origin: ORIGIN, accept: 'text/html' } });
   assert.equal(r.status, 403);
   const page = await r.text();
   assert.match(page, /needs JavaScript/);
@@ -136,7 +136,7 @@ test('no-JS form: Turnstile cannot run without JavaScript, so it fails closed wi
 
 test('no-JS form: success is a 303 redirect to a fixed page with the session cookie', async () => {
   const h = setup();
-  const r = await h.call('POST', '/api/get-sidekick', { form: { name: 'Alex', email: 'alex@example.com', macChip: 'unsure', phoneModel: 'Pixel 8', privacyAccepted: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX', next: 'https://evil.example/' }, headers: { origin: ORIGIN, accept: 'text/html' } });
+  const r = await h.call('POST', '/api/get-sidekick', { form: { name: 'Alex', email: 'alex@example.com', macChip: 'unsure', phoneModel: 'Pixel 8', googleEmail: 'alex@gmail.com', privacyAccepted: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX', next: 'https://evil.example/' }, headers: { origin: ORIGIN, accept: 'text/html' } });
   assert.equal(r.status, 303);
   assert.equal(r.headers.get('location'), '/check-email.html');
   assert.ok(cookieOf(r));

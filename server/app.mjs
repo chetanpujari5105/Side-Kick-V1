@@ -13,14 +13,16 @@ const LINK = {
   signup_confirm: { ttl: 48 * H, uses: 1 },
   marketing_confirm: { ttl: 7 * 24 * H, uses: 1 },
   roadmap_confirm: { ttl: 7 * 24 * H, uses: 1 },
-  access: { ttl: 72 * H, uses: 10 }
+  access: { ttl: 72 * H, uses: 10 },
+  unsubscribe: { ttl: 365 * 24 * H, uses: 1 }
 };
-const ALLOWED = ['approved', 'issued', 'delivered'];
-const STAGE = { pending_email: 'check_email', approved: 'approved', issued: 'approved', delivered: 'token_sent', waitlisted: 'waitlisted', denied: 'waitlisted' };
+const ALLOWED = ['approved', 'play_added', 'issued', 'delivered'];
+const STAGE = { pending_email: 'check_email', approved: 'approved', play_added: 'approved', issued: 'approved', delivered: 'token_sent', waitlisted: 'waitlisted', denied: 'waitlisted' };
 const SETTABLE = ['pending_email', 'approved', 'waitlisted', 'denied'];
 const SIGNER_PATHS = new Set(['pending', 'token', 'outbox', 'outbox-ack']);
 const CLAIM_TTL = 15 * 60 * 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
 
 export function createApp({ config, repo, botCheck, storage, mailer = null, clock, log, releases, roadmapIds = [] }) {
   const relProblems = releaseProblems(releases);
@@ -139,7 +141,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     if (!await human(form ? data['cf-turnstile-response'] : data.captchaToken, request))
       return asPage ? html(403, messagePage({ nonce, title: 'Human check failed', text: 'We couldn\'t confirm you\'re not a bot. It needs JavaScript: go back, turn it on and try again.' }).body, nonce) : json(403, { ok: false, error: 'BOT_CHECK_FAILED' });
     const peek = await repo.peekLink(sha256hex(t), now());
-    if (!peek || ((path === 'access') !== (peek.purpose === 'access'))) return gone();
+    if (!peek || peek.purpose === 'unsubscribe' || ((path === 'access') !== (peek.purpose === 'access'))) return gone();
     const link = await repo.useLink(sha256hex(t), now());
     if (!link) return gone();
     log.info('link.used', { purpose: link.purpose });
@@ -163,6 +165,29 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     const cookie = setSession({ k: 'email', sid: s.id });
     const stage = STAGE[s.state] || 'check_email';
     return asPage ? redirect(303, '/Download.dc.html', { 'set-cookie': cookie }) : json(200, { ok: true, stage }, { 'set-cookie': cookie });
+  }
+
+  // ── unsubscribe (update emails) ────────────────────────────────────────────
+  // The link in each update email: GET is a page that changes nothing; POST with the one-use token stops updates.
+  // No human check: the unguessable token is the permission, and a person leaving a list shouldn't meet a puzzle.
+  async function unsubscribePost(request) {
+    if (!originAllowed(request, config.appOrigin)) return json(403, { ok: false, error: 'BAD_ORIGIN' });
+    const { data, form } = await readBody(request);
+    const asPage = form || wantsHtml(request);
+    const nonce = newNonce();
+    const gone = () => asPage ? html(410, messagePage({ nonce, title: 'Link already used', text: 'This unsubscribe link has been used or has expired. If you still get update emails, reply to one with "unsubscribe" and we\'ll remove you.' }).body, nonce) : json(410, { ok: false, error: 'LINK_EXPIRED' });
+    const ra = await limited('link_ip', clientIp(request));
+    if (ra) return asPage ? html(429, messagePage({ nonce, title: 'Too many tries', text: RATE_TEXT }).body, nonce) : tooMany(ra);
+    const t = typeof data.t === 'string' ? data.t : '';
+    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return gone();
+    const peek = await repo.peekLink(sha256hex(t), now());
+    if (!peek || peek.purpose !== 'unsubscribe') return gone();
+    const link = await repo.useLink(sha256hex(t), now());
+    if (!link) return gone();
+    const s = await repo.getSignup(link.refId);
+    if (s) await repo.unsubscribe(s.emailNorm, now());
+    log.info('link.used', { purpose: 'unsubscribe' });
+    return asPage ? html(200, messagePage({ nonce, title: 'Unsubscribed', text: 'We won\'t send you Sidekick update emails any more. Emails about your own beta place, if you have one, still come.' }).body, nonce) : json(200, { ok: true, stage: 'unsubscribed' });
   }
 
   // ── session, download, releases ────────────────────────────────────────────
@@ -258,21 +283,28 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     log.info('admin.call', { action });
     switch (action) {
       case 'pending': {
-        const rows = await repo.claimPending(now(), 10, CLAIM_TTL);
+        const rows = await repo.claimPending(now(), 10, CLAIM_TTL, { gate: config.playGate });
         return json(200, { ok: true, pending: rows.map(r => ({ signupId: r.id, label: tokenLabel(r.name) })) });
       }
       case 'token': {
         if (typeof data.signupId !== 'string' || !UUID.test(data.signupId) || !isTokenShaped(data.token)) return json(400, { ok: false, error: 'BAD_TOKEN' });
-        const r = await repo.storeToken(data.signupId, data.token, now());
+        const r = await repo.storeToken(data.signupId, data.token, now(), { gate: config.playGate });
         if (r === 'not_found') return json(404, { ok: false, error: 'NOT_FOUND' });
         if (r === 'conflict') return json(409, { ok: false, error: 'ALREADY_ISSUED' });
         const s = await repo.getSignup(data.signupId);
-        await queueMail(emails.token({ name: s.name, token: data.token, accessUrl: url('/api/access', await newLink('access', s.id)) }), { to: s.emailNorm, signupId: s.id, capped: false });
+        // Two emails: the invitation (where the apps come from) and the token on its own.
+        const isStatic = config.storageProvider === 'static';
+        const macUrl = isStatic ? config.betaPageUrl : url('/api/access', await newLink('access', s.id));
+        await queueMail(emails.invite({ name: s.name, macUrl, macIsBetaPage: isStatic, release: releases, googleEmail: s.googleEmail }), { to: s.emailNorm, signupId: s.id, capped: false });
+        await queueMail(emails.token({ name: s.name, token: data.token }), { to: s.emailNorm, signupId: s.id, capped: false });
         log.info('token.stored', { signupId: s.id });
         return json(200, { ok: true });
       }
       case 'outbox': {
-        const rows = await repo.claimOutbox(now(), 20, CLAIM_TTL);
+        // The signer asks for at most what its hourly sending budget allows (max), never more than 20.
+        const max = data.max === undefined ? 20 : data.max;
+        if (!Number.isInteger(max) || max < 0) return json(400, { ok: false, error: 'BAD_MAX' });
+        const rows = max === 0 ? [] : await repo.claimOutbox(now(), Math.min(20, max), CLAIM_TTL);
         return json(200, { ok: true, messages: rows.map(m => ({ id: m.id, kind: m.kind, to: m.toEmail, subject: m.subject, text: m.text })) });
       }
       case 'outbox-ack': {
@@ -319,6 +351,37 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         if (Object.keys(patch).length) await repo.setSettings(patch);
         return json(200, { ok: true, settings: await repo.getSettings(config.betaCapDefault) });
       }
+      case 'play-pending': {
+        // The Google accounts to add to the Play test list: one per line, ready to upload as a CSV.
+        const rows = await repo.playPending();
+        return json(200, { ok: true, count: rows.length, csv: rows.map(r => r.googleEmail + '\n').join('') });
+      }
+      case 'play-mark-added': {
+        if (!Array.isArray(data.googleEmails) || data.googleEmails.length > 1000) return json(400, { ok: false, error: 'BAD_LIST' });
+        const list = data.googleEmails.map(e => normaliseEmail(String(e)));
+        if (list.some(e => !e)) return json(400, { ok: false, error: 'BAD_LIST' });
+        const r = await repo.markPlayAdded(list, now());
+        log.info('admin.play_added', r);
+        return json(200, { ok: true, ...r });
+      }
+      case 'announce': {
+        // Update emails: only people who asked for them AND confirmed by email. Each copy gets a one-use
+        // unsubscribe link. The signer sends them from the owner's Mail.app within its hourly budget.
+        const subject = typeof data.subject === 'string' ? data.subject.trim() : '';
+        const body = typeof data.body === 'string' ? data.body : '';
+        if (!subject || subject.length > 150 || CONTROL.test(subject)) return json(400, { ok: false, error: 'BAD_SUBJECT' });
+        if (!body.trim() || body.length > 10000 || /\u0000/.test(body)) return json(400, { ok: false, error: 'BAD_BODY' });
+        const people = await repo.announceRecipients();
+        if (data.dryRun === true) return json(200, { ok: true, recipients: people.length, queued: 0 });
+        let queued = 0;
+        for (const p of people) {
+          const u = url('/api/unsubscribe', await newLink('unsubscribe', p.id));
+          await queueMail(emails.announce({ subject, body, unsubscribeUrl: u }), { to: p.emailNorm, signupId: p.id, capped: false });
+          queued++;
+        }
+        log.info('admin.announced', { queued });
+        return json(200, { ok: true, recipients: people.length, queued });
+      }
       case 'promote': return json(200, { ok: true, promoted: await repo.promote(now(), config.betaCapDefault) });
       case 'retention': return json(200, { ok: true, ...(await runRetention()) });
       default: return json(404, { ok: false, error: 'NOT_FOUND' });
@@ -345,6 +408,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     switch (parts[0]) {
       case 'get-sidekick': if (parts.length === 1) return only('POST', () => getSidekick(request)); break;
       case 'confirm-email': if (parts.length === 1) return m === 'GET' ? linkGet(request, 'confirm') : only('POST', () => linkPost(request, 'confirm')); break;
+      case 'unsubscribe': if (parts.length === 1) return m === 'GET' ? (() => { const nonce = newNonce(); return html(200, linkPage({ purpose: 'unsubscribe', nonce, siteKey: null, valid: true }), nonce); })() : only('POST', () => unsubscribePost(request)); break;
       case 'access': if (parts.length === 1) return m === 'GET' ? linkGet(request, 'access') : only('POST', () => linkPost(request, 'access')); break;
       case 'session': if (parts.length === 1) return only('GET', () => getSession(request)); break;
       case 'download': return only('GET', () => download(request, parts.slice(1)));
@@ -377,8 +441,8 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
 }
 
 function toCsv(rows) {
-  const cols = ['id', 'created_at', 'state', 'name', 'email', 'mac_chip', 'phone_model', 'marketing_confirmed_at', 'confirmed_at', 'approved_at', 'token_issued_at', 'token_emailed_at', 'downloads'];
-  const pick = (r) => [r.id, r.createdAt, r.state, r.name, r.email, r.macChip, r.phoneModel, r.marketingConfirmedAt, r.confirmedAt, r.approvedAt, r.tokenIssuedAt, r.tokenEmailedAt, r.downloads];
+  const cols = ['id', 'created_at', 'state', 'name', 'email', 'mac_chip', 'phone_model', 'google_email', 'marketing_confirmed_at', 'confirmed_at', 'approved_at', 'play_added_at', 'token_issued_at', 'token_emailed_at', 'downloads'];
+  const pick = (r) => [r.id, r.createdAt, r.state, r.name, r.email, r.macChip, r.phoneModel, r.googleEmail, r.marketingConfirmedAt, r.confirmedAt, r.approvedAt, r.playAddedAt, r.tokenIssuedAt, r.tokenEmailedAt, r.downloads];
   const cell = (v) => {
     let s = v instanceof Date ? v.toISOString() : v === null || v === undefined ? '' : String(v);
     if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // spreadsheet formula injection

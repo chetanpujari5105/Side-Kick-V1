@@ -5,6 +5,8 @@ export const MSG = {
   email: 'Enter an email address like name@example.com.',
   chip: "Choose your Mac's chip, or Not sure.",
   phone: 'Enter your phone model, for example the name in Settings › About phone.',
+  googleEmpty: 'Enter the Google account email your phone uses for Google Play.',
+  google: 'Enter a Google account email like name@gmail.com.',
   privacy: "Confirm you've read the Privacy Policy to continue.",
   message: 'Write at least 3 characters, and at most 2,000.',
   feature: 'Choose a roadmap item.'
@@ -42,13 +44,18 @@ export function validateSignup(body) {
   const rawPhone = typeof body.phoneModel === 'string' ? body.phoneModel : '';
   const phoneModel = cleanText(rawPhone, 200);
   if (!phoneModel || phoneModel.length > 120 || CONTROL.test(rawPhone.replace(/[\t ]/g, ''))) fieldErrors.phoneModel = MSG.phone;
+  // The Google account the owner adds to the Play test list. Same strict address rule as the email field.
+  const rawGoogle = typeof body.googleEmail === 'string' ? body.googleEmail.trim() : '';
+  const googleEmail = normaliseEmail(rawGoogle);
+  if (!rawGoogle) fieldErrors.googleEmail = MSG.googleEmpty;
+  else if (!googleEmail || !/^[a-z0-9]/.test(googleEmail)) fieldErrors.googleEmail = MSG.google; // also keeps the Play CSV free of formulas
   if (!truthy(body.privacyAccepted)) fieldErrors.privacyAccepted = MSG.privacy;
   if (Object.keys(fieldErrors).length) return { ok: false, fieldErrors };
-  return { ok: true, value: { name, email: rawEmail, emailNorm: email, macChip, phoneModel, marketingOptIn: truthy(body.marketingOptIn) } };
+  return { ok: true, value: { name, email: rawEmail, emailNorm: email, macChip, phoneModel, googleEmail, marketingOptIn: truthy(body.marketingOptIn) } };
 }
 
 // The page's own field keys differ from the API's for two fields; map server errors back for the page.
-export const PAGE_FIELD = { name: 'name', email: 'email', macChip: 'chip', phoneModel: 'phone', privacyAccepted: 'privacy' };
+export const PAGE_FIELD = { name: 'name', email: 'email', macChip: 'chip', phoneModel: 'phone', googleEmail: 'google', privacyAccepted: 'privacy' };
 
 export function validateFeedback(body) {
   const message = typeof body.message === 'string' ? body.message.trim() : '';
