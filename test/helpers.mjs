@@ -65,7 +65,7 @@ export function setup(over = {}) {
   function linkFrom(to, path = '/api/confirm-email') {
     const msgs = repo.debugOutbox().filter(m => m.toEmail === to && m.text.includes(ORIGIN + path));
     if (!msgs.length) return null;
-    const m = msgs[msgs.length - 1].text.match(new RegExp(path.replace(/\//g, '\\/') + '\\?t=([A-Za-z0-9_-]+)'));
+    const m = msgs[msgs.length - 1].text.match(new RegExp(path.replace(/\//g, '\\/') + '(?:\\?[a-z=]+)?#t=([A-Za-z0-9_-]+)'));
     return m && m[1];
   }
 

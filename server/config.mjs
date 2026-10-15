@@ -5,7 +5,8 @@ export const DEFAULT_LIMITS = {
   notify_ip: [20, 3600], notify_email: [5, 86400],
   feedback_ip: [5, 3600],
   download: [30, 3600],
-  mail_address: [3, 3600] // emails we send to one address per hour, whatever triggers them
+  mail_address: [3, 3600], // emails we send to one address per hour, whatever triggers them
+  mail_address_day: [6, 86400] // …and per day
 };
 
 function limits(env) {

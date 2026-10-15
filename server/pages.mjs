@@ -12,7 +12,7 @@ input[type=text],input[type=email]{height:54px;padding:0 16px;border-radius:14px
 input[aria-invalid=true]{border-color:#D9432F;background:#FFF8F6}.err{color:#B3341F;font-size:14.5px}.hint{color:#55526B;font-size:14.5px}
 fieldset{border:0;margin:0;padding:0}legend{font-weight:600;font-size:15px;padding:0 0 8px}.row{display:flex;gap:10px;align-items:flex-start}
 button{min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;cursor:pointer}
-.m0{margin:0}.alert{border-radius:16px;background:#FCEBE7;border:1.5px solid #D9432F;padding:16px 18px}.alert a{color:#B3341F}`;
+[hidden]{display:none!important}.m0{margin:0}.alert{border-radius:16px;background:#FCEBE7;border:1.5px solid #D9432F;padding:16px 18px}.alert a{color:#B3341F}`;
 
 function shell({ title, nonce, body, siteKey }) {
   const ts = siteKey && siteKey !== 'local-dev-fake' ? `<script nonce="${nonce}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : '';
@@ -26,7 +26,7 @@ const widget = (siteKey) => siteKey === 'local-dev-fake' ? '<p class="hint m0">H
   : siteKey ? `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}"></div>` : '';
 
 // purpose: 'confirm' | 'updates' | 'notify' | 'access'
-export function linkPage({ purpose, t, nonce, siteKey, valid }) {
+export function linkPage({ purpose, nonce, siteKey, valid }) {
   const copy = {
     confirm: ['Confirm your email', 'One click to finish signing up for the Sidekick beta.', 'Confirm my email', '/api/confirm-email'],
     updates: ['Confirm Sidekick updates', 'One click and we\'ll email you Sidekick updates. Every update has a one-click unsubscribe link.', 'Yes, email me updates', '/api/confirm-email'],
@@ -35,9 +35,11 @@ export function linkPage({ purpose, t, nonce, siteKey, valid }) {
   }[purpose];
   if (!valid) return shell({ title: 'Link expired', nonce, body: `<h1>This link has expired.</h1><p>Links in our emails work for a limited time and some only once. Fill in the <a href="/Get%20Sidekick.dc.html">Get Sidekick form</a> again with the same email and we'll send a new one.</p>` });
   return shell({ title: copy[0], nonce, siteKey, body: `<h1>${esc(copy[0])}</h1><form class="card" method="post" action="${copy[3]}">
-<p class="m0">${esc(copy[1])}</p><input type="hidden" name="t" value="${esc(t)}">${widget(siteKey)}
+<p class="m0">${esc(copy[1])}</p><input type="hidden" name="t" id="t" value="">${widget(siteKey)}
+<p class="alert m0" id="nolink" hidden>This page needs the whole link from our email. Open the email again and use its link, or copy all of it into the address bar.</p>
 <noscript><p class="alert m0">The human check needs JavaScript. Turn it on and reload this page, or <a href="/Support.dc.html#help">ask us for help</a>.</p></noscript>
-<button type="submit">${esc(copy[2])}</button></form>` });
+<button type="submit">${esc(copy[2])}</button></form>
+<script nonce="${nonce}">(function(){var m=location.hash.match(/[#&]t=([A-Za-z0-9_-]{43})(?:&|$)/);if(m){document.getElementById('t').value=m[1];history.replaceState(null,'',location.pathname+location.search);}else{document.getElementById('nolink').hidden=false;}})();</script>` });
 }
 
 export function messagePage({ nonce, title, text, status = 200 }) {

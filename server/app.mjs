@@ -54,11 +54,12 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     await repo.createLink({ hash: sha256hex(t), purpose, refId, expiresAt: now() + LINK[purpose].ttl, maxUses: LINK[purpose].uses }, now());
     return t;
   }
-  const url = (path, t, extra = '') => `${config.appOrigin}${path}?t=${t}${extra}`;
+  // The token rides in the #fragment, which browsers never send: it stays out of request logs and Referer headers.
+  const url = (path, t, extra = '') => `${config.appOrigin}${path}${extra ? '?' + extra : ''}#t=${t}`;
 
   // Queues an email (always) and sends it at once when a server-side provider is configured.
   async function queueMail(msg, { to, signupId = null, capped = true }) {
-    if (capped && await limited('mail_address', 'mail:' + to)) { log.info('mail.capped', { kind: msg.kind }); return; }
+    if (capped && ((await limited('mail_address', 'mail:' + to)) || (await limited('mail_address_day', 'mailday:' + to)))) { log.info('mail.capped', { kind: msg.kind }); return; }
     const id = await repo.enqueue({ signupId, kind: msg.kind, toEmail: to, subject: msg.subject, text: msg.text }, now());
     log.info('mail.queued', { kind: msg.kind, signupId: signupId || undefined });
     if (mailer) {
@@ -99,10 +100,12 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
       const s = result.signup;
       if (s.state === 'pending_email') {
         const t = await newLink('signup_confirm', s.id);
-        const u = s.marketingRequestedAt && !s.marketingConfirmedAt ? url('/api/confirm-email', await newLink('marketing_confirm', s.id), '&for=updates') : null;
+        const u = s.marketingRequestedAt && !s.marketingConfirmedAt ? url('/api/confirm-email', await newLink('marketing_confirm', s.id), 'for=updates') : null;
         await queueMail(emails.confirm({ name: s.name, confirmUrl: url('/api/confirm-email', t), updatesUrl: u }), { to: s.emailNorm, signupId: s.id });
       } else if (ALLOWED.includes(s.state)) {
         await queueMail(emails.access({ name: s.name, accessUrl: url('/api/access', await newLink('access', s.id)) }), { to: s.emailNorm, signupId: s.id });
+      } else {
+        await queueMail(emails.waitlist({ name: s.name }), { to: s.emailNorm, signupId: s.id }); // waitlisted and denied read the same
       }
     } catch (e) {
       log.error('signup.store_failed', { code: 'db' });
@@ -114,13 +117,13 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
   }
 
   // ── email links ────────────────────────────────────────────────────────────
+  // GET never sees the token (it is in the fragment) and changes nothing; the page's own script moves the token
+  // into the form. Validity is checked on POST.
   async function linkGet(request, path) {
-    const t = new URL(request.url).searchParams.get('t') || '';
+    const f = new URL(request.url).searchParams.get('for');
+    const purpose = path === 'access' ? 'access' : f === 'updates' ? 'updates' : f === 'notify' ? 'notify' : 'confirm';
     const nonce = newNonce();
-    const link = /^[A-Za-z0-9_-]{43}$/.test(t) ? await repo.peekLink(sha256hex(t), now()) : null;
-    const purpose = !link ? 'confirm' : { signup_confirm: 'confirm', marketing_confirm: 'updates', roadmap_confirm: 'notify', access: 'access' }[link.purpose];
-    const okPath = link && ((path === 'access') === (link.purpose === 'access'));
-    return html(okPath ? 200 : 410, linkPage({ purpose, t, nonce, siteKey: config.turnstileSiteKey, valid: !!okPath }), nonce);
+    return html(200, linkPage({ purpose, nonce, siteKey: config.turnstileSiteKey, valid: true }), nonce);
   }
 
   async function linkPost(request, path) {
@@ -210,7 +213,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     if (ra) return tooMany(ra);
     try {
       const { row } = await repo.addNotify(v.value, now());
-      if (!row.confirmedAt) await queueMail(emails.notify({ confirmUrl: url('/api/confirm-email', await newLink('roadmap_confirm', row.id)) }), { to: v.value.email });
+      if (!row.confirmedAt) await queueMail(emails.notify({ confirmUrl: url('/api/confirm-email', await newLink('roadmap_confirm', row.id), 'for=notify') }), { to: v.value.email });
     } catch { log.error('notify.store_failed'); return json(503, { ok: false, error: 'SERVICE_UNAVAILABLE' }); }
     return json(202, { ok: true });
   }

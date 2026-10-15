@@ -27,7 +27,7 @@ const app = createApp({ config: loadConfig(env), repo, botCheck: bot, storage, m
 const call = (method, p, { json, cookie, ip = '198.51.100.1' } = {}) => app.fetch(new Request(O + p, { method, redirect: 'manual',
   headers: { origin: O, 'x-real-ip': ip, ...(json ? { 'content-type': 'application/json' } : {}), ...(cookie ? { cookie } : {}) }, body: json ? JSON.stringify(json) : undefined }));
 const cookie = (r) => (r.headers.get('set-cookie') || '').split(';')[0];
-const linkFor = (to, p) => { const m = repo.debugOutbox().filter(x => x.toEmail === to && x.text.includes(O + p)).pop(); return m && m.text.match(new RegExp(p.replace(/\//g, '\\/') + '\\?t=([A-Za-z0-9_-]+)'))[1]; };
+const linkFor = (to, p) => { const m = repo.debugOutbox().filter(x => x.toEmail === to && x.text.includes(O + p)).pop(); return m && m.text.match(new RegExp(p.replace(/\//g, '\\/') + '(?:\\?[a-z=]+)?#t=([A-Za-z0-9_-]+)'))[1]; };
 const rows = [];
 const step = (name, ok, note = '') => rows.push([ok ? 'PASS' : 'FAIL', name, note]);
 const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
@@ -71,7 +71,7 @@ try {
   step('token email carries a token that verifies (throwaway key)', crypto.verify(null, Buffer.from(tok.split('.')[1]), publicKey, Buffer.from(tok.split('.')[2], 'base64url')));
   step('waitlist email sent, no token for the waitlisted person', inbox.some(m => m.kind === 'waitlist' && m.to === 'cleo@example.com') && !inbox.some(m => m.kind === 'token' && m.to === 'cleo@example.com'));
 
-  const at = tokenMail.text.match(/access\?t=([A-Za-z0-9_-]+)/)[1];
+  const at = tokenMail.text.match(/access#t=([A-Za-z0-9_-]+)/)[1];
   r = await call('POST', '/api/access', { json: { t: at, captchaToken: CAP }, ip: '203.0.113.50' });
   const s = cookie(r);
   r = await call('GET', '/api/session', { cookie: s });

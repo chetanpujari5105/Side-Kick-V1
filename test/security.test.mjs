@@ -56,7 +56,7 @@ test('security headers on every kind of response', async () => {
     await h.call('GET', '/api/health'),
     await h.call('GET', '/api/releases'),
     await h.signup(),
-    await h.call('GET', '/api/confirm-email?t=nope'),
+    await h.call('GET', '/api/confirm-email'),
     await h.call('GET', '/api/download/mac/arm64', { headers: { accept: 'text/html' } }),
     await h.call('GET', '/api/nothing-here'),
     await h.admin('/api/admin/stats')
@@ -115,7 +115,7 @@ test('header injection: CR/LF and display-name tricks in email or name never rea
   // Links in emails come from APP_ORIGIN even if the Host header lies.
   await h.call('POST', '/api/get-sidekick', { json: h.signupBody({ email: 'host@example.com' }), headers: { origin: ORIGIN, host: 'evil.example', 'x-forwarded-host': 'evil.example' } });
   const msg = h.repo.debugOutbox().find(m => m.toEmail === 'host@example.com');
-  assert.ok(msg.text.includes(ORIGIN + '/api/confirm-email?t='));
+  assert.ok(msg.text.includes(ORIGIN + '/api/confirm-email#t='));
   assert.ok(!msg.text.includes('evil.example'));
   assert.ok(!/[\r\n]/.test(msg.subject));
 });
@@ -192,7 +192,7 @@ test('no secret, token, email or IP in any log line or public response', async (
 test('server-rendered pages never use no-referrer (Chrome would then send Origin: null on their own form posts)', async () => {
   const h = setup();
   await h.signup();
-  const page = await h.call('GET', '/api/confirm-email?t=' + h.linkFrom('alex@example.com'));
+  const page = await h.call('GET', '/api/confirm-email');
   assert.equal(page.headers.get('referrer-policy'), 'strict-origin');
   const nul = await h.call('POST', '/api/confirm-email', { form: { t: h.linkFrom('alex@example.com'), 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' }, headers: { origin: 'null', accept: 'text/html' } });
   assert.equal(nul.status, 403, 'an opaque origin is still refused');

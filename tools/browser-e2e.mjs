@@ -53,7 +53,7 @@ async function tab({ noJs = false, context } = {}) {
 const fill = (sel, val) => `(() => { const el = document.querySelector(${JSON.stringify(sel)}); const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(val)}); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
 const click = (sel) => `(() => { const el = document.querySelector(${JSON.stringify(sel)}); if (!el) return false; el.click(); return true; })()`;
 const outbox = async () => (await fetch(O + '/__dev/outbox')).json();
-const linkIn = (text, p) => (text.match(new RegExp(O.replace(/[.:/]/g, '\\$&') + p + '\\?t=[A-Za-z0-9_-]+')) || [])[0];
+const linkIn = (text, p) => (text.match(new RegExp(O.replace(/[.:/]/g, '\\$&') + p + '(?:\\?[a-z=]+)?#t=[A-Za-z0-9_-]+')) || [])[0];
 
 try {
   // 1. Signup page in real mode; design-review switches have no effect.

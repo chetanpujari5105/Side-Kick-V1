@@ -9,7 +9,8 @@ test('confirm link: GET is a page that changes nothing; POST confirms once; reus
   const h = setup();
   await h.signup();
   const t = h.linkFrom('alex@example.com');
-  const page = await h.call('GET', '/api/confirm-email?t=' + t);
+  assert.ok(h.repo.debugOutbox().at(-1).text.includes(ORIGIN + '/api/confirm-email#t=' + t), 'the token rides in the fragment');
+  const page = await h.call('GET', '/api/confirm-email');
   assert.equal(page.status, 200);
   assert.match(page.headers.get('content-type'), /text\/html/);
   assert.match(page.headers.get('content-security-policy'), /nonce-/);
@@ -70,7 +71,7 @@ test('marketing is consent only after its own emailed link is used (double opt-i
   await h.confirm();
   row = await h.repo.getSignupByEmail('alex@example.com');
   assert.equal(row.marketingConfirmedAt, null, 'confirming the address is not consent to updates');
-  const t = h.linkFrom('alex@example.com', '/api/confirm-email').length && h.repo.debugOutbox().map(m => m.text).join('\n').match(/confirm-email\?t=([A-Za-z0-9_-]+)&for=updates/);
+  const t = h.repo.debugOutbox().map(m => m.text).join('\n').match(/confirm-email\?for=updates#t=([A-Za-z0-9_-]+)/);
   assert.ok(t, 'a separate updates link was sent');
   const r = await h.call('POST', '/api/confirm-email', { json: { t: t[1], captchaToken: CAP }, headers: { origin: ORIGIN } });
   assert.equal(r.status, 200);
@@ -186,7 +187,7 @@ test('re-signup with a confirmed address emails a fresh access link to the inbox
   assert.equal((await s.json()).session.stage, 'check_email', 'the requester learns nothing');
   assert.equal(h.repo.debugOutbox().length, before + 1);
   const t = h.linkFrom('alex@example.com', '/api/access');
-  const page = await h.call('GET', '/api/access?t=' + t);
+  const page = await h.call('GET', '/api/access');
   assert.equal(page.status, 200);
   const a = await h.call('POST', '/api/access', { form: { t, 'cf-turnstile-response': CAP }, headers: { origin: ORIGIN, accept: 'text/html' } });
   assert.equal(a.status, 303);
@@ -217,12 +218,12 @@ test('the whole pipeline: signup → confirm → signer token → token email �
   const ob = await (await h.admin('/api/admin/outbox', {}, { key: 'signer' })).json();
   const mail = ob.messages.find(m => m.kind === 'token');
   assert.ok(mail.text.includes(token), 'the token is in the email');
-  assert.ok(mail.text.includes(ORIGIN + '/api/access?t='), 'with a link to the download page');
+  assert.ok(mail.text.includes(ORIGIN + '/api/access#t='), 'with a link to the download page');
   assert.equal((await h.admin('/api/admin/outbox-ack', { id: mail.id, ok: true }, { key: 'signer' })).status, 200);
   const row = await h.repo.getSignupByEmail('alex@example.com');
   assert.equal(row.state, 'delivered');
   assert.equal(h.repo.debugOutbox().find(m => m.id === mail.id).text, '', 'sent email text is erased');
-  const at = mail.text.match(/access\?t=([A-Za-z0-9_-]+)/)[1];
+  const at = mail.text.match(/access#t=([A-Za-z0-9_-]+)/)[1];
   const a = await h.call('POST', '/api/access', { json: { t: at, captchaToken: CAP }, headers: { origin: ORIGIN } });
   assert.equal(a.status, 200);
   const d = await h.call('GET', '/api/download/mac/arm64', { cookie: cookieOf(a) });
@@ -241,4 +242,32 @@ test('signer claim expires so a crashed run is retried; bad tokens are refused',
   for (const bad of ['', 'not a token', 'SIDEKICK-TRIAL-1.abc.def', 'a'.repeat(64), fakeToken() + '\r\nBcc: x@example.com', fakeToken().replace('SIDEKICK-TRIAL-1', 'SIDEKICK-LICENCE-1')]) {
     assert.equal((await h.admin('/api/admin/token', { signupId: first[0].signupId, token: bad }, { key: 'signer' })).status, 400, JSON.stringify(bad.slice(0, 20)));
   }
+});
+
+test('emails per address are also capped per day', async () => {
+  const h = setup({ env: { RATE_LIMIT_MAIL_ADDRESS: '100/3600', RATE_LIMIT_MAIL_ADDRESS_DAY: '4/86400', RATE_LIMIT_SIGNUP_EMAIL: '100/3600' } });
+  for (let i = 0; i < 6; i++) { await h.signup({}, { ip: '192.0.2.' + i }); h.clock.advance(3600 * 1000); }
+  assert.equal(h.repo.debugOutbox().filter(m => m.toEmail === 'alex@example.com').length, 4);
+});
+
+test('a waitlisted person who signs up again is told again (nothing else, same response)', async () => {
+  const h = setup({ env: { BETA_CAP: '0' } });
+  await h.signup();
+  await h.confirm();
+  const n = h.repo.debugOutbox().filter(m => m.kind === 'waitlist').length;
+  const r = await h.signup({}, { ip: '192.0.2.77' });
+  assert.equal(r.status, 200);
+  assert.equal(h.repo.debugOutbox().filter(m => m.kind === 'waitlist').length, n + 1);
+  assert.equal(h.repo.debugOutbox().filter(m => m.kind === 'access').length, 0, 'no access link while waitlisted');
+});
+
+test('link pages: the token never reaches the server on GET, and the page script clears it from the address bar', async () => {
+  const h = setup();
+  const page = await (await h.call('GET', '/api/confirm-email?for=updates')).text();
+  assert.match(page, /Confirm Sidekick updates/);
+  assert.match(page, /<input type="hidden" name="t" id="t" value="">/);
+  assert.match(page, /location\.hash\.match/);
+  assert.match(page, /history\.replaceState/);
+  const nonce = page.match(/<script nonce="([^"]+)">\(function/)[1];
+  assert.ok(nonce.length >= 16);
 });
