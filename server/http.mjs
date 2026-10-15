@@ -22,7 +22,9 @@ export function json(status, body, extra = {}) {
 
 export function html(status, markup, nonce, extra = {}) {
   const csp = `default-src 'none'; script-src 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; style-src 'nonce-${nonce}'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`;
-  const h = new Headers({ ...SECURITY_HEADERS, 'content-type': 'text/html; charset=utf-8', 'content-security-policy': csp });
+  // strict-origin, not no-referrer: with no-referrer Chrome sends `Origin: null` on the page's own form POST, which
+  // the Origin check rightly refuses. strict-origin still never sends the path or query (where link tokens live).
+  const h = new Headers({ ...SECURITY_HEADERS, 'referrer-policy': 'strict-origin', 'content-type': 'text/html; charset=utf-8', 'content-security-policy': csp });
   for (const [k, v] of Object.entries(extra)) {
     if (Array.isArray(v)) v.forEach(x => h.append(k, x)); else if (v !== undefined) h.set(k, v);
   }

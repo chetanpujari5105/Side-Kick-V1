@@ -28,11 +28,26 @@ a:hover{color:#3A22B8;}
 <dc-import name="SiteHeader" active="" hint-size="100%,88px"></dc-import>
 <main id="main" style="max-width:1440px;margin:0 auto;padding:clamp(24px,4vw,56px) clamp(20px,4.5vw,64px) clamp(64px,8vw,120px);box-sizing:border-box;display:flex;flex-direction:column;gap:clamp(40px,5vw,72px);">
 
+<sc-if value="{{ checkEmail }}">
+  <section aria-labelledby="ce-h" style="display:flex;flex-direction:column;gap:24px;max-width:680px;min-height:52vh;justify-content:center;">
+    <h1 id="ce-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">Check your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">email</span></span>.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">We sent a link to the address you gave, {{ name }}. Open it to confirm your email, and your download page opens. It can take a few minutes, so check your spam folder too.</p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Nothing after an hour? Fill in the form again with the same email and we'll send a new link.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 28px;"><a href="Get Sidekick.dc.html" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Back to the form</a><a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Read the setup guide</a></div>
+  </section>
+</sc-if>
+<sc-if value="{{ waitlisted }}">
+  <section aria-labelledby="wl-h" style="display:flex;flex-direction:column;gap:24px;max-width:680px;min-height:52vh;justify-content:center;">
+    <h1 id="wl-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">You're on the <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">waitlist</span></span>.</h1>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Thanks for confirming your email, {{ name }}. The beta is full for now. We'll email you when a place opens — there's nothing else to do.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px 28px;"><a href="Roadmap.dc.html" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">See what's coming</a></div>
+  </section>
+</sc-if>
 <sc-if value="{{ expired }}">
   <section aria-labelledby="exp-h" style="display:grid;grid-template-columns:{{ splitCols }};gap:clamp(32px,5vw,80px);align-items:center;min-height:52vh;">
     <div style="display:flex;flex-direction:column;gap:24px;max-width:600px;">
       <h1 id="exp-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;"><sc-if value="{{ siteDownloads }}">This link has <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">expired</span></span></sc-if><sc-if value="{{ inviteOnly }}">Downloads come by <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">invite</span></span></sc-if>.</h1>
-      <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;"><sc-if value="{{ siteDownloads }}">Download pages only work for a short while after you fill in the form, and only in the browser you used. Fill it in again and you'll be straight back here.</sc-if><sc-if value="{{ inviteOnly }}">Sidekick is in a small invited beta. The person who invited you sends you a private link to the Mac app and your beta token. This site doesn't serve the download.</sc-if></p>
+      <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;"><sc-if value="{{ siteDownloads }}">Your download page opens from the link in our email and stays open for a day in that browser. Open the link again, or fill in the form again with the same email and we'll send you a new one.</sc-if><sc-if value="{{ inviteOnly }}">Sidekick is in a small invited beta. The person who invited you sends you a private link to the Mac app and your beta token. This site doesn't serve the download.</sc-if></p>
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;">
         <sc-if value="{{ siteDownloads }}"><a href="Get Sidekick.dc.html" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font-size:17px;font-weight:600;display:flex;align-items:center;text-decoration:none;transition:transform .15s, box-shadow .15s;box-sizing:border-box;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;color:#17142E;">Fill in the form again</a></sc-if>
         <a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;"><sc-if value="{{ siteDownloads }}">Already installed? Setup guide</sc-if><sc-if value="{{ inviteOnly }}">Read the setup guide</sc-if></a>
@@ -70,7 +85,7 @@ a:hover{color:#3A22B8;}
       <sc-if value="{{ notNotarized }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This build isn't notarized by Apple yet. macOS will warn you the first time you open it. Step 2 of <a href="#getting-started" style="color:#5B3DF5;font-weight:600;text-underline-offset:3px;">Getting started</a>, just below, shows the way through.</p></sc-if>
       <sc-if value="{{ siteDownloads }}"><button type="button" onClick="{{ dlMac }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>{{ dlMacLabel }}</button></sc-if>
       <sc-if value="{{ inviteOnly }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">During the beta, this site doesn't serve the download. The person who invited you sends you a private link to this file.</p></sc-if>
-      <p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">You need a beta token from the person who invited you. Sidekick asks for it the first time you open it.</p>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">{{ tokenNeed }}</p>
       <div role="group" aria-labelledby="sum-h" style="border-radius:16px;background:#F6F3EC;border:1px dashed rgba(23,20,46,0.25);padding:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;">
         <span id="sum-h" style="font-size:15px;font-weight:600;color:#17142E;">Checksum <span style="font-weight:400;color:#55526B;">(optional, to check your download)</span></span>
         <span style="font-size:14.5px;line-height:1.5;color:#55526B;">This is not your beta token.</span>
@@ -113,7 +128,7 @@ a:hover{color:#3A22B8;}
     <div style="display:flex;flex-direction:column;gap:16px;">
       <span style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR BETA TOKEN</span>
       <h2 id="tok-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(30px,3vw,42px);line-height:1.02;font-weight:800;letter-spacing:-0.035em;">The Mac app asks for a beta token the first time it opens.</h2>
-      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">The person who invited you sends it to you privately. Nothing to do on the phone.</p>
+      <p style="margin:0;font-size:17px;line-height:1.6;color:#C9C6DA;">{{ tokenWho }}</p>
       <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-size:17px;line-height:1.5;">
         <li>Open Sidekick on your Mac.</li>
         <li>Paste the token on the first-launch screen and choose Continue.</li>
@@ -202,32 +217,48 @@ class Component extends DCLogic {
   componentDidMount() {
     this.onResize = () => this.setState({ w: window.innerWidth });
     window.addEventListener('resize', this.onResize);
+    // Real mode: ask the API who this is. The data scripts may arrive after the first render, so wait for them.
+    this.setState({ loading: true });
+    const start = Date.now();
+    const go = () => {
+      const C = window.SK_CONFIG;
+      if (C && C.mocksEnabled) return this.setState({ loading: false });
+      if (C && window.SK_API && window.SK_API.loadSession) return window.SK_API.loadSession().then(() => this.setState({ loading: false }));
+      if (Date.now() - start > 8000) return this.setState({ loading: false });
+      this.wait = setTimeout(go, 50);
+    };
+    go();
     if (!window.SK_RELEASES) { this.t = setInterval(() => { if (window.SK_RELEASES && window.SK_API) { clearInterval(this.t); this.forceUpdate(); } }, 60); }
   }
-  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearInterval(this.t); }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearInterval(this.t); clearTimeout(this.wait); }
   fmt(b) { return b ? (b / 1e6).toFixed(1) + ' MB' : null; }
   async dl(platform, arch) {
     this.setState({ busy: platform });
     const r = window.SK_API ? await window.SK_API.download(platform, arch) : null;
     if (r && r.url) window.location.href = r.url;
+    if (r && r.navigated) return;
     this.setState({ busy: '', toast: r && r.mock ? `MOCK — the real site redirects to a short-lived signed URL for the ${platform === 'mac' ? arch + ' .dmg' : '.apk'}.` : '' });
   }
   renderVals() {
     const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.1', mac: { builds: { arm64: {} } }, android: { build: {} } };
-    const pv = this.props.previewState ?? 'auto';
+    const mocks = !!C.mocksEnabled;
+    const pv = mocks ? (this.props.previewState ?? 'auto') : 'auto'; // preview states are design review only
     const sess = window.SK_API ? window.SK_API.session() : null;
     const demo = { name: 'Alex', email: 'alex@example.com', macChip: 'apple' };
     const s = pv === 'valid' ? (sess || demo) : (pv === 'expired' ? null : sess);
+    const stage = s ? (s.stage || 'approved') : null, loading = !!this.state.loading;
     const b = R.mac.builds.arm64 || {}; // Apple silicon only; there is no Intel build
     const wide = this.state.w >= 900;
     const ab = R.android.build || {};
     return {
-      expired: !s, valid: !!s, name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
+      expired: !loading && !s, valid: stage === 'approved' || stage === 'token_sent', checkEmail: stage === 'check_email', waitlisted: stage === 'waitlisted',
+      tokenNeed: mocks ? 'You need a beta token from the person who invited you. Sidekick asks for it the first time you open it.' : 'You need your beta token: Sidekick asks for it the first time you open it. ' + (stage === 'token_sent' ? 'We emailed it to you.' : 'We email it to you once it\'s ready.'),
+      tokenWho: mocks ? 'The person who invited you sends it to you privately. Nothing to do on the phone.' : (stage === 'token_sent' ? 'We emailed it to you — look for “Your Sidekick beta token”. Nothing to do on the phone.' : 'We email it to you once it\'s ready, usually within a few hours. Nothing to do on the phone.'), name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
       splitCols: wide ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', stepCols: this.state.w >= 1100 ? 'repeat(3,minmax(0,1fr))' : 'minmax(0,1fr)',
       ver: R.version,
       mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 || null }, noMacSha: !b.sha256,
       apk: { file: ab.file, size: this.fmt(ab.bytes), sha: ab.sha256 }, apkManual: ab.signed === true, noApk: ab.signed !== true,
-      notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false, siteDownloads: C.releaseState === 'public', inviteOnly: C.releaseState !== 'public',
+      notNotarized: !C.notarized, tokenRequired: C.tokenRequired !== false, siteDownloads: !mocks || C.releaseState === 'public', inviteOnly: mocks && C.releaseState !== 'public',
       copyMacLabel: this.state.copied ? 'Copied' : 'Copy checksum', copyMacIcon: this.state.copied ? 'check' : 'content_copy',
       copyMac: () => { try { navigator.clipboard.writeText(b.sha256); } catch (e) {} this.setState({ copied: true }); },
       dlMacLabel: this.state.busy === 'mac' ? 'Preparing…' : 'Download for Apple silicon (.dmg)',

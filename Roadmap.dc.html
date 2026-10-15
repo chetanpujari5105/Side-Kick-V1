@@ -114,7 +114,8 @@ a:hover{color:#3A22B8;}
           <input id="sg-email" type="email" autoComplete="email" value="{{ email }}" onChange="{{ onEmail }}" aria-invalid="{{ emInv }}" aria-describedby="{{ emDesc }}" style="height:54px;padding:0 16px;border-radius:14px;border:1.5px solid {{ emBorder }};font:400 17px Inter,sans-serif;color:#17142E;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;">
           <sc-if value="{{ emErr }}"><span id="sg-em-e" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ emErr }}</span></sc-if>
         </div>
-        <sc-if value="{{ failed }}"><p role="alert" style="margin:0;font-size:15px;line-height:1.5;color:#B3341F;">That didn't go through, and nothing was saved. Try again in a moment.</p></sc-if>
+        <sc-if value="{{ real }}"><div role="group" aria-label="Human check" ref="{{ botRef }}" style="min-height:65px;font-size:14.5px;color:#55526B;"></div></sc-if>
+        <sc-if value="{{ failed }}"><p role="alert" style="margin:0;font-size:15px;line-height:1.5;color:#B3341F;">{{ failText }}</p></sc-if>
         <sc-if value="{{ mocks }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;">This isn't connected yet during the beta, so nothing you type here is sent.</p></sc-if>
         <button type="submit" disabled="{{ btnDisabled }}" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">{{ btn }}</button>
       </form>
@@ -127,8 +128,11 @@ a:hover{color:#3A22B8;}
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, msg: '', email: '', tried: false, status: 'idle' };
-  componentDidMount() { this.onResize = () => this.setState({ w: window.innerWidth }); window.addEventListener('resize', this.onResize); }
-  componentWillUnmount() { window.removeEventListener('resize', this.onResize); }
+  botRef = React.createRef();
+  bot = {};
+  componentDidMount() { this.onResize = () => this.setState({ w: window.innerWidth }); window.addEventListener('resize', this.onResize); const t0 = Date.now(); const tryBot = () => { if (window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) return; if (window.SK_BOT) return this.componentDidUpdate(); if (Date.now() - t0 < 8000) this.botWait = setTimeout(tryBot, 100); }; tryBot(); }
+  componentDidUpdate() { if (!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) && window.SK_BOT) window.SK_BOT.ensure(this.bot, this.botRef.current); }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); clearTimeout(this.botWait); }
   errs() {
     const e = {};
     if (this.state.msg.trim().length < 3) e.msg = 'Write a few words about your idea.';
@@ -140,8 +144,10 @@ class Component extends DCLogic {
     if (window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) return;
     const e = this.errs();
     if (Object.keys(e).length) { this.setState({ tried: true }); return; }
+    const captchaToken = window.SK_BOT ? window.SK_BOT.token(this.bot) : null;
+    if (!captchaToken) { this.setState({ status: 'bot' }); return; }
     this.setState({ status: 'sending' });
-    try { const r = await window.SK_API.feedback(this.state.msg.trim(), this.state.email.trim() || undefined); this.setState({ status: r && r.ok ? 'sent' : 'failed' }); }
+    try { const r = await window.SK_API.feedback(this.state.msg.trim(), this.state.email.trim() || undefined, captchaToken); if (window.SK_BOT) window.SK_BOT.reset(this.bot); this.setState({ status: r && r.ok ? 'sent' : (r && r.status === 403 ? 'bot' : 'failed') }); }
     catch (err) { this.setState({ status: 'failed' }); }
   }
   renderVals() {
@@ -156,7 +162,8 @@ class Component extends DCLogic {
       msgErr: e.msg || '', emErr: e.email || '', msgInv: e.msg ? 'true' : 'false', emInv: e.email ? 'true' : 'false',
       msgDesc: e.msg ? 'sg-msg-e' : undefined, emDesc: e.email ? 'sg-em-e' : undefined,
       msgBorder: e.msg ? '#D9432F' : 'rgba(23,20,46,0.22)', emBorder: e.email ? '#D9432F' : 'rgba(23,20,46,0.22)',
-      sent, notSent: !sent, failed: this.state.status === 'failed',
+      sent, notSent: !sent, failed: this.state.status === 'failed' || this.state.status === 'bot', real: !mocks, botRef: this.botRef,
+      failText: this.state.status === 'bot' ? 'Complete the human check above, then send it again. Nothing was saved.' : 'That didn\'t go through, and nothing was saved. Try again in a moment.',
       sending: this.state.status === 'sending', btnDisabled: mocks || this.state.status === 'sending', btn: mocks ? 'Not connected yet' : (this.state.status === 'sending' ? 'Sending…' : 'Send suggestion'),
       submit: ev => this.submit(ev), again: () => this.setState({ msg: '', email: '', tried: false, status: 'idle' })
     };

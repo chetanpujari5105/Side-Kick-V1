@@ -98,12 +98,12 @@ class Component extends DCLogic {
     const email = C.supportEmail, policyDraft = [C.publisher, C.publisherAddress, C.supportEmail, C.policyEffectiveDate].some(unset);
     return {
       setup: { label: 'Setup', pre: 'Set up ', mark: 'Sidekick', post: '.', intro: 'About ten clicks on the Mac and a few taps on the phone. You only pair once.', sections: [
-        S('What you need', { items: [I('A Mac', 'with Apple silicon (M1 or later) and macOS 11.0 (Big Sur) or later. Intel Macs aren\'t supported.'), I('An Android phone', 'with Android 10 or later.'), I('The same network', '— both on one Wi-Fi, or the Mac joined to the phone\'s hotspot.'), I('Both apps', '— the Mac app from the private link the person who invited you sends. Android: currently in invited testing on Google Play.')].concat(C.tokenRequired ? [I('A beta token', '— the person who invited you sends it to you privately.')] : []) }),
+        S('What you need', { items: [I('A Mac', 'with Apple silicon (M1 or later) and macOS 11.0 (Big Sur) or later. Intel Macs aren\'t supported.'), I('An Android phone', 'with Android 10 or later.'), I('The same network', '— both on one Wi-Fi, or the Mac joined to the phone\'s hotspot.'), I('Both apps', C.mocksEnabled ? '— the Mac app from the private link the person who invited you sends. Android: currently in invited testing on Google Play.' : '— the Mac app from your download page (the link is in our email). Android: currently in invited testing on Google Play.')].concat(C.tokenRequired ? [I('A beta token', C.mocksEnabled ? '— the person who invited you sends it to you privately.' : '— we email it to you once you\'re in.')] : []) }),
         S('Getting started', { paras: ['Five steps, in this order. You only do them once.'] }),
-        S('1. Download', { paras: ['Download Sidekick for your Mac from the private link the person who invited you sent.'] }),
+        S('1. Download', { paras: [C.mocksEnabled ? 'Download Sidekick for your Mac from the private link the person who invited you sent.' : 'Download Sidekick for your Mac from your download page. The link to it is in our email.'] }),
         S('2. Open it', { paras: ['Open the .dmg, drag Sidekick into Applications, then open Sidekick.', C.notarized ? 'macOS opens it normally.' : 'This build isn\'t notarized by Apple yet, so macOS says it couldn\'t verify the app. Choose Done, then open System Settings › Privacy & Security, scroll to Security and choose Open Anyway. You only do this once, and you never need to turn off Gatekeeper.', 'When macOS asks whether Sidekick may find devices on your local network, allow it — that is how the Mac reaches the phone.'] }),
         S('3. Type your Mac password once', { paras: ['macOS asks for it the first time. Type it and choose Always Allow.'] }),
-        S('4. Enter your beta token', { paras: ['Paste the token the person who invited you sent you privately. It\'s a long piece of text that starts with SIDEKICK-TRIAL-1. It is not the checksum shown with the download.'] }),
+        S('4. Enter your beta token', { paras: [(C.mocksEnabled ? 'Paste the token the person who invited you sent you privately.' : 'Paste the token from our email, subject “Your Sidekick beta token”.') + ' It\'s a long piece of text that starts with SIDEKICK-TRIAL-1. It is not the checksum shown with the download.'] }),
         S('5. Pair your phone', { paras: ['Install Sidekick on your phone first. Android: currently in invited testing on Google Play.', 'On the Mac, choose Pair a phone. On the phone, choose Connect your Mac and scan the code. Both check each other\'s certificate before anything else happens. From then on the link comes back by itself.'] }),
         S('Keep it connected', { paras: ['Some phone brands stop apps in the background to save battery. If notifications stop arriving after a while, allow Sidekick to run:'], items: [
           I('All phones:', 'allow Sidekick when it asks to be excluded from battery optimisation.'),
@@ -127,7 +127,7 @@ class Component extends DCLogic {
           { a: 'Transfers pause near the end', b: 'Usually Wi-Fi power saving. Once both devices see each other again, a file going to the phone picks up where it stopped; a file coming to the Mac starts again from the beginning.' },
           { a: "Can't see a file in Download", b: "Android doesn't let apps open the Download folder itself. Folders inside it can be shared; files sent from the Mac land in Download/ConnectSuite." },
           { a: "Phone clipboard doesn't reach the Mac", b: 'Copy on the phone while Sidekick is open on it. Android blocks background clipboard reads for every app.' }] }),
-        S('Beta token', { rows: [ { a: 'No beta token yet', b: 'Ask the person who invited you. They send it to you privately.' }, { a: 'Need to re-enter it', b: 'Settings › About in the Mac app.' }] })
+        S('Beta token', { rows: [ { a: 'No beta token yet', b: C.mocksEnabled ? 'Ask the person who invited you. They send it to you privately.' : 'It arrives by email once you\'re in, usually within a few hours of confirming your email. Check your spam folder, then write to us.' }, { a: 'Need to re-enter it', b: 'Settings › About in the Mac app.' }] })
       ]},
       permissions: { label: 'Permissions', pre: 'What each ', mark: 'permission', post: ' is for.', intro: 'Each feature needs its own permission. Leave one off and only that feature stops working — the app says which one and why.', sections: [
         S('On the phone', { rows: [
@@ -153,14 +153,20 @@ class Component extends DCLogic {
           I('No analytics in the apps.', 'Sidekick\'s own code sends nothing to us or anyone else — no analytics, advertising or crash reporting. If you install from Google Play, Google adds its own installer check, which Google\'s privacy policy covers.'),
           I('Kept on your devices.', 'Notifications, messages, contacts and photos shown on the Mac are held in memory while you are connected and aren\'t written to disk, unless you save a photo or file. Clipboard history is kept in memory only, at most 20 entries, and is cleared when the connection ends.')],
           link: { label: 'Read the full Sidekick privacy policy', href: 'https://chetan-website-delta.vercel.app/sidekick/privacy' } }),
-        S('This website', { paras: [
+        S('This website', { paras: (C.mocksEnabled ? [
           'This website sets no cookies and runs no analytics. It\'s hosted by Vercel, which receives the standard request details (such as your IP address and browser) that any website visit sends. Everything the pages load, including fonts and code, comes from this site, so no other company receives those details.'
-        ].concat(C.mocksEnabled ? [
+        ] : [
+          'This website runs no analytics. It\'s hosted by Vercel, which receives the standard request details (such as your IP address and browser) that any website visit sends. Fonts and code come from this site.',
+          'It sets one cookie, sk_session, only after you send the Get Sidekick form or open a link from our email. It keeps your download page open in that browser for 24 hours and holds nothing else.',
+          'The Get Sidekick form, the email links and the roadmap forms show a human check from Cloudflare Turnstile, so Cloudflare receives the details its check needs from your browser. Cloudflare\'s privacy policy covers them.'
+        ]).concat(C.mocksEnabled ? [
           'The Get Sidekick form isn\'t collecting anything yet. Nothing you type is sent to us or stored anywhere.'
         ] : [
-          'When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, and whether you asked for updates. We use them only to know which builds people need.' + (C.tokenRequired ? ' Beta tokens are never sent through this website: the person who invited you sends yours privately.' : ''),
+          'When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, and whether you asked for updates. We use them only to run the beta and know which builds people need. Your IP address is not stored: rate limits keep only a one-way code made from it.',
+          'We email you from our own email account: a link to confirm your address, then' + (C.tokenRequired ? ' your beta token and' : '') + ' a link to your downloads. We keep a record of when you download, for 180 days.' + (C.tokenRequired ? ' Your beta token is erased from our records 46 days after it\'s issued.' : ''),
+          'Your details are stored in a database run by Neon. The Mac app is downloaded from a private release on GitHub, which receives the standard request details when you download.',
           'Updates are sent only if you tick the box and confirm by email. Every update has a one-click unsubscribe link.',
-          'We keep your details until you ask us to delete them.'
+          'Sign-ups that are never confirmed are deleted after 7 days. We keep other details until you ask us to delete them, or for a year after your last activity.'
         ]).concat(['Ask us to delete your details at any time by writing to ' + email + '. We delete them within 30 days of your request.']) }),
         S('Who we are', { paras: [`${C.publisher}, ${C.publisherAddress} · ${email}`, 'We change the effective date at the top of this page when the policy changes. Effective ' + C.policyEffectiveDate + '.'] })
       ]},

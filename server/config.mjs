@@ -57,6 +57,7 @@ export function adapterProblems(cfg) {
   const p = [];
   if (!cfg.databaseUrl) p.push('DATABASE_URL');
   if (!cfg.turnstileSecret) p.push('TURNSTILE_SECRET');
+  if (!cfg.turnstileSiteKey || cfg.turnstileSiteKey === 'local-dev-fake') p.push('TURNSTILE_SITE_KEY');
   if (cfg.storageProvider === 'github') {
     if (!cfg.github.token) p.push('GITHUB_RELEASES_TOKEN');
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(cfg.github.repo || '')) p.push('GITHUB_RELEASES_REPO');

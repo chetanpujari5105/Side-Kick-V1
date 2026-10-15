@@ -188,3 +188,12 @@ test('no secret, token, email or IP in any log line or public response', async (
   const pub = h.bodies.filter(b => !b.includes('"messages"'));
   for (const b of pub) for (const s of secrets) assert.ok(!b.includes(s), 'response leaks a secret');
 });
+
+test('server-rendered pages never use no-referrer (Chrome would then send Origin: null on their own form posts)', async () => {
+  const h = setup();
+  await h.signup();
+  const page = await h.call('GET', '/api/confirm-email?t=' + h.linkFrom('alex@example.com'));
+  assert.equal(page.headers.get('referrer-policy'), 'strict-origin');
+  const nul = await h.call('POST', '/api/confirm-email', { form: { t: h.linkFrom('alex@example.com'), 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' }, headers: { origin: 'null', accept: 'text/html' } });
+  assert.equal(nul.status, 403, 'an opaque origin is still refused');
+});

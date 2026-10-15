@@ -15,13 +15,15 @@ button{min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;bor
 .m0{margin:0}.alert{border-radius:16px;background:#FCEBE7;border:1.5px solid #D9432F;padding:16px 18px}.alert a{color:#B3341F}`;
 
 function shell({ title, nonce, body, siteKey }) {
-  const ts = siteKey ? `<script nonce="${nonce}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : '';
+  const ts = siteKey && siteKey !== 'local-dev-fake' ? `<script nonce="${nonce}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : '';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex"><title>${esc(title)} · Sidekick</title><style nonce="${nonce}">${STYLE}</style>${ts}</head>
 <body><main id="main">${body}<p><a href="/">Sidekick home</a> · <a href="/Support.dc.html#help">Help</a></p></main></body></html>`;
 }
 
-const widget = (siteKey) => siteKey ? `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}"></div>` : '';
+// 'local-dev-fake' exists only for npm run dev; on Vercel the key is checked (config) and Cloudflare rejects dummy tokens.
+const widget = (siteKey) => siteKey === 'local-dev-fake' ? '<p class="hint m0">Human check (local test stand-in)</p><input type="hidden" name="cf-turnstile-response" value="XXXX.DUMMY.TOKEN.XXXX">'
+  : siteKey ? `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}"></div>` : '';
 
 // purpose: 'confirm' | 'updates' | 'notify' | 'access'
 export function linkPage({ purpose, t, nonce, siteKey, valid }) {
@@ -51,16 +53,27 @@ export function signupFormPage({ nonce, siteKey, values = {}, errors = {}, banne
   const summary = banner ? `<div class="alert" role="alert" tabindex="-1" autofocus>${banner}</div>`
     : keys.length ? `<div class="alert" role="alert" tabindex="-1" id="err-summary" autofocus><strong>Please fix ${keys.length === 1 ? '1 thing' : keys.length + ' things'} before continuing:</strong><ul>${keys.map(k => `<li><a href="#${ids[k]}">${esc(errors[k])}</a></li>`).join('')}</ul></div>` : '';
   const chip = (v, label) => `<label class="row"><input type="radio" name="macChip" value="${v}"${values.macChip === v ? ' checked' : ''}> ${label}</label>`;
-  return shell({ title: 'Get Sidekick', nonce, siteKey, body: `<h1>Get Sidekick</h1>${summary}
-<form class="card" method="post" action="/api/get-sidekick" novalidate>
+  return shell({ title: 'Get Sidekick', nonce, siteKey, body: `<h1>Get Sidekick</h1>${summary}${signupForm({ values, errors, siteKey, inv, err, chip })}` });
+}
+
+// The <form> alone: also embedded in Get Sidekick.dc.html's <noscript> by the production build.
+export function signupFormHtml() {
+  const chip = (v, label) => `<label class="row"><input type="radio" name="macChip" value="${v}"> ${label}</label>`;
+  return signupForm({ values: {}, errors: {}, siteKey: null, inv: (k) => k === 'phoneModel' ? ' aria-describedby="h-phone"' : '', err: () => '', chip });
+}
+
+function signupForm({ values, errors, siteKey, inv, err, chip }) {
+  return `<form class="card" method="post" action="/api/get-sidekick" novalidate>
 <div class="f"><label for="f-name">Name</label><input id="f-name" name="name" type="text" autocomplete="name" value="${esc(values.name)}"${inv('name')}>${err('name')}</div>
 <div class="f"><label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" value="${esc(values.email)}"${inv('email')}>${err('email')}</div>
 <fieldset id="f-chip"${errors.macChip ? ' aria-describedby="e-macChip"' : ''}><legend>Your Mac's chip</legend>${chip('apple', 'Apple silicon')}${chip('unsure', 'Not sure')}${err('macChip')}</fieldset>
 <div class="f"><label for="f-phone">Android phone model</label><input id="f-phone" name="phoneModel" type="text" value="${esc(values.phoneModel)}"${inv('phoneModel')}><span class="hint" id="h-phone">Settings › About phone shows the model name.</span>${err('phoneModel')}</div>
 <label class="row"><input id="f-privacy" type="checkbox" name="privacyAccepted" value="on"${values.privacyAccepted ? ' checked' : ''}${inv('privacyAccepted')}> <span>I've read the <a href="/Support.dc.html#privacy">Privacy Policy</a>. (required)</span></label>${err('privacyAccepted')}
 <label class="row"><input type="checkbox" name="marketingOptIn" value="on"${values.marketingOptIn ? ' checked' : ''}> <span>Email me Sidekick updates. (optional — we'll ask you to confirm)</span></label>
-${widget(siteKey)}<button type="submit">Continue</button></form>` });
+${widget(siteKey)}<button type="submit">Continue</button></form>`;
 }
+
+export const FORM_STYLE = STYLE;
 
 export const NO_JS_BOT = 'We couldn\'t run the human check. It needs JavaScript: turn it on and send the form again. Your answers are still here.';
 export const BOT_FAILED = 'We couldn\'t confirm you\'re not a bot. Send the form again. Your answers are still here.';

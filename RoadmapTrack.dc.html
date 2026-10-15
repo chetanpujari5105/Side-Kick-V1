@@ -64,6 +64,7 @@
                             <button type="submit" disabled="{{ it.btnDisabled }}" style="height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;cursor:pointer;" style-hover="background:#C6FF33;">{{ it.btn }}</button>
                           </div>
                           <sc-if value="{{ it.error }}"><span id="{{ it.errId }}" style="font-size:14px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:16px;">error</span>{{ it.error }}</span></sc-if>
+                          <sc-if value="{{ real }}"><div role="group" aria-label="Human check" ref="{{ botRef }}" style="min-height:65px;font-size:14px;color:#55526B;"></div></sc-if>
                           <sc-if value="{{ mocks }}"><span style="font-size:14px;line-height:1.5;color:#55526B;">This isn't connected yet during the beta, so nothing is sent.</span></sc-if>
                         </form>
                       </sc-if>
@@ -85,6 +86,8 @@
 class Component extends DCLogic {
   state = { filter: 'All', open: null, w: 1200, notify: {} };
   rootRef = React.createRef();
+  botRef = React.createRef();
+  bot = {};
   componentDidMount() {
     const el = this.rootRef.current;
     if (el && window.ResizeObserver) { this.ro = new ResizeObserver(([e]) => this.setState({ w: e.contentRect.width })); this.ro.observe(el); }
@@ -94,6 +97,7 @@ class Component extends DCLogic {
     }
   }
   componentWillUnmount() { this.ro && this.ro.disconnect(); clearInterval(this.t); }
+  componentDidUpdate() { if (!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled) && window.SK_BOT) window.SK_BOT.ensure(this.bot, this.botRef.current); }
   setN(id, patch) { this.setState(s => ({ notify: { ...s.notify, [id]: { ...(s.notify[id] || {}), ...patch } } })); }
   async submit(e, id) {
     e.preventDefault();
@@ -101,9 +105,12 @@ class Component extends DCLogic {
     const n = this.state.notify[id] || {};
     const email = (n.email || '').trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { this.setN(id, { error: 'Enter an email address like name@example.com.' }); return; }
+    const captchaToken = window.SK_BOT ? window.SK_BOT.token(this.bot) : null;
+    if (!captchaToken) { this.setN(id, { error: 'Complete the human check below, then try again.' }); return; }
     this.setN(id, { error: '', sending: true });
     try {
-      const r = await window.SK_API.roadmapNotify(email, id);
+      const r = await window.SK_API.roadmapNotify(email, id, captchaToken);
+      if (window.SK_BOT) window.SK_BOT.reset(this.bot);
       if (r && r.ok) this.setN(id, { sending: false, sent: true });
       else this.setN(id, { sending: false, error: "That didn't go through. Try again in a moment." });
     } catch (err) { this.setN(id, { sending: false, error: "That didn't go through. Try again in a moment." }); }
@@ -144,7 +151,7 @@ class Component extends DCLogic {
             submit: (e) => this.submit(e, it.id) };
         }) };
     });
-    return { rootRef: this.rootRef, chips, phases, horizontal, vertical: !horizontal, showNotify, mocks, filterName: f,
+    return { rootRef: this.rootRef, botRef: this.botRef, real: !mocks, chips, phases, horizontal, vertical: !horizontal, showNotify, mocks, filterName: f,
       cols: horizontal ? 'repeat(4, minmax(0,1fr))' : 'minmax(0,1fr)', gap: horizontal ? '20px' : '28px' };
   }
 }
