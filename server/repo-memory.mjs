@@ -151,6 +151,24 @@ export class MemoryRepo {
     this.outbox = this.outbox.filter(m => m.signupId !== id);
     return 1;
   }
+  // Delete-my-data by address: the sign-up (with everything linked to it), roadmap requests and feedback.
+  async deleteByEmail(emailNorm) {
+    const s = await this.getSignupByEmail(emailNorm);
+    const signups = s ? await this.deleteSignup(s.id) : 0;
+    const n0 = this.notify.length, f0 = this.feedback.length;
+    this.notify = this.notify.filter(n => n.emailNorm !== emailNorm);
+    this.feedback = this.feedback.filter(f => f.email !== emailNorm);
+    return { signups, notify: n0 - this.notify.length, feedback: f0 - this.feedback.length };
+  }
+  // Stops every email list for an address: updates consent is withdrawn and roadmap requests are removed.
+  async unsubscribe(emailNorm, now) {
+    const s = [...this.signups.values()].find(x => x.emailNorm === emailNorm);
+    let updates = 0;
+    if (s && (s.marketingRequestedAt || s.marketingConfirmedAt)) { s.marketingRequestedAt = null; s.marketingConfirmedAt = null; s.updatedAt = new Date(now); updates = 1; }
+    const n0 = this.notify.length;
+    this.notify = this.notify.filter(n => n.emailNorm !== emailNorm);
+    return { updates, notify: n0 - this.notify.length };
+  }
   async promote(now, defaultCap) {
     const cap = await this._cap(defaultCap);
     let room = cap - this._countAllowed(), n = 0;
@@ -171,7 +189,7 @@ export class MemoryRepo {
     for (const [k, t] of this.nonces) if (t.getTime() < before(1)) this.nonces.delete(k);
     this.outbox = this.outbox.filter(m => !((m.sentAt && m.sentAt.getTime() < before(7)) || m.createdAt.getTime() < before(30)));
     this.downloads = this.downloads.filter(d => d.createdAt.getTime() >= before(180));
-    this.notify = this.notify.filter(n => n.confirmedAt || n.createdAt.getTime() >= before(7));
+    this.notify = this.notify.filter(n => n.confirmedAt ? n.confirmedAt.getTime() >= before(365) : n.createdAt.getTime() >= before(7));
     this.feedback = this.feedback.filter(f => f.createdAt.getTime() >= before(365));
     return c;
   }

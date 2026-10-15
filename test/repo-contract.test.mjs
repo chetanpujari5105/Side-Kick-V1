@@ -139,4 +139,35 @@ for (const [name, make] of [['MemoryRepo', async () => new MemoryRepo()], ['PgRe
     assert.equal((await r.getSignup(kept)).token, null);
     assert.equal((await r.stats()).notify, 1, 'confirmed notify kept');
   });
+
+  test(`${name}: delete-my-data by email also removes roadmap requests and feedback; unsubscribe stops every email list`, async () => {
+    const r = await make();
+    const id = (await r.upsertSignup(person('e@example.com', { marketingOptIn: true }), T)).signup.id;
+    await r.confirmMarketing(id, T);
+    const n = await r.addNotify({ email: 'e@example.com', featureId: 'f1' }, T);
+    await r.confirmNotify(n.row.id, T);
+    await r.addNotify({ email: 'other@example.com', featureId: 'f1' }, T);
+    await r.addFeedback({ message: 'from e', email: 'e@example.com' }, T);
+    await r.addFeedback({ message: 'anonymous', email: null }, T);
+    const u = await r.unsubscribe('e@example.com', T + 1000);
+    assert.deepEqual(u, { updates: 1, notify: 1 });
+    assert.equal((await r.getSignup(id)).marketingConfirmedAt, null);
+    assert.equal((await r.getSignup(id)).marketingRequestedAt, null);
+    assert.deepEqual(await r.unsubscribe('e@example.com', T + 2000), { updates: 0, notify: 0 }, 'second time changes nothing');
+    await r.addNotify({ email: 'e@example.com', featureId: 'f2' }, T);
+    const d = await r.deleteByEmail('e@example.com');
+    assert.deepEqual(d, { signups: 1, notify: 1, feedback: 1 });
+    assert.equal(await r.getSignup(id), null);
+    const st = await r.stats();
+    assert.equal(st.feedback, 1, 'anonymous feedback stays');
+    assert.equal(st.signups.total, 0);
+    assert.deepEqual(await r.deleteByEmail('e@example.com'), { signups: 0, notify: 0, feedback: 0 });
+    // A confirmed roadmap request is kept a year after it last changed, then removed.
+    const k = await r.addNotify({ email: 'k@example.com', featureId: 'f1' }, T);
+    await r.confirmNotify(k.row.id, T);
+    await r.retention(T + 364 * DAY, { signupDays: 365 });
+    assert.equal((await r.stats()).notify, 1);
+    await r.retention(T + 366 * DAY, { signupDays: 365 });
+    assert.equal((await r.stats()).notify, 0);
+  });
 }

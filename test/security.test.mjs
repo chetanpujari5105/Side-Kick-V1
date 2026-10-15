@@ -41,7 +41,9 @@ test('admin: CSV export, counts, delete cascades', async () => {
   assert.ok(csv.csv.includes("'=HYPERLINK"), 'formula injection neutralised in CSV');
   assert.ok(!csv.csv.includes('SIDEKICK-TRIAL'), 'no tokens in exports');
   const del = await h.admin('/api/admin/delete', { email: 'csv@example.com' });
-  assert.deepEqual(await del.json(), { ok: true, deleted: 1 });
+  const dj = await del.json();
+  assert.deepEqual([dj.ok, dj.deleted, dj.notify, dj.feedback], [true, 1, 0, 0]);
+  assert.match(dj.signupId, /^[0-9a-f-]{36}$/);
   assert.equal(h.repo.debugCount('signups'), 0);
   assert.equal(h.repo.debugCount('downloads'), 0);
   assert.equal(h.repo.debugOutbox().length, 0);

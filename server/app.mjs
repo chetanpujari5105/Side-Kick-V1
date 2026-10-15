@@ -150,7 +150,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     }
     if (link.purpose === 'marketing_confirm') {
       await repo.confirmMarketing(link.refId, now());
-      return asPage ? html(200, messagePage({ nonce, title: 'Updates confirmed', text: 'We\'ll email you Sidekick updates. Every update has a one-click unsubscribe link.' }).body, nonce) : json(200, { ok: true, stage: 'subscribed' });
+      return asPage ? html(200, messagePage({ nonce, title: 'Updates confirmed', text: 'We\'ll email you Sidekick updates. To stop them, write to us at the address on our Privacy page.' }).body, nonce) : json(200, { ok: true, stage: 'subscribed' });
     }
     let s = await repo.getSignup(link.refId);
     if (!s) return gone();
@@ -290,10 +290,22 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         return json(200, { ok: true });
       }
       case 'delete': {
+        // By signupId or email; either way everything held under that address goes (sign-up, links, downloads,
+        // queued emails, roadmap requests, feedback). signupId comes back so the CLI can remove the signer's token copy.
         const s = await findPerson(data);
-        const n = s ? await repo.deleteSignup(s.id) : 0;
-        log.info('admin.deleted', { count: n });
-        return json(200, { ok: true, deleted: n });
+        const e = s ? s.emailNorm : normaliseEmail(data.email || '');
+        if (!e) return typeof data.signupId === 'string' ? json(200, { ok: true, deleted: 0, notify: 0, feedback: 0 }) : json(400, { ok: false, error: 'BAD_EMAIL' });
+        const r = await repo.deleteByEmail(e);
+        log.info('admin.deleted', { count: r.signups, notify: r.notify, feedback: r.feedback });
+        return json(200, { ok: true, deleted: r.signups, notify: r.notify, feedback: r.feedback, signupId: s ? s.id : null });
+      }
+      case 'unsubscribe': {
+        const s = await findPerson(data);
+        const e = s ? s.emailNorm : normaliseEmail(data.email || '');
+        if (!e) return json(400, { ok: false, error: 'BAD_EMAIL' });
+        const r = await repo.unsubscribe(e, now());
+        log.info('admin.unsubscribed', r);
+        return json(200, { ok: true, ...r });
       }
       case 'settings': {
         const patch = {};

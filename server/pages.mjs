@@ -29,7 +29,7 @@ const widget = (siteKey) => siteKey === 'local-dev-fake' ? '<p class="hint m0">H
 export function linkPage({ purpose, nonce, siteKey, valid }) {
   const copy = {
     confirm: ['Confirm your email', 'One click to finish signing up for the Sidekick beta.', 'Confirm my email', '/api/confirm-email'],
-    updates: ['Confirm Sidekick updates', 'One click and we\'ll email you Sidekick updates. Every update has a one-click unsubscribe link.', 'Yes, email me updates', '/api/confirm-email'],
+    updates: ['Confirm Sidekick updates', 'One click and we\'ll email you Sidekick updates. To stop them, write to us at the address on our Privacy page.', 'Yes, email me updates', '/api/confirm-email'],
     notify: ['Confirm this notification', 'One click and we\'ll email you once when this roadmap item ships.', 'Confirm', '/api/confirm-email'],
     access: ['Open your downloads', 'This takes you to your Sidekick download page in this browser.', 'Open my download page', '/api/access']
   }[purpose];

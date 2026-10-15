@@ -13,7 +13,9 @@ window.SK_CONFIG = {
   supportEmail: 'chetanpujari.sitit@gmail.com',
   publisher: 'Chetan Pujari',
   publisherAddress: 'India',
-  policyEffectiveDate: '13 October 2026'
+  // Placeholder on purpose: the privacy text changed on 15 Oct 2026 and needs legal review. Set the real date on
+  // the day the reviewed policy goes live; until then Support › Privacy shows the DRAFT banner.
+  policyEffectiveDate: '[set on go-live day, after legal review]'
 };
 
 // Release facts moved to data/releases.json (the one source); pages load the generated data/releases.js.

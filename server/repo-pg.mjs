@@ -176,6 +176,26 @@ export class PgRepo {
     ]);
     return rows.length;
   }
+  // Delete-my-data by address: the sign-up (with everything linked to it), roadmap requests and feedback.
+  async deleteByEmail(emailNorm) {
+    const r = await this.db.transaction([
+      { text: 'delete from email_links where ref_id in (select id from signups where email_norm = $1) or ref_id in (select id from roadmap_notify where email_norm = $1)', params: [emailNorm] },
+      { text: 'delete from signups where email_norm = $1 returning id', params: [emailNorm] },
+      { text: 'delete from roadmap_notify where email_norm = $1 returning id', params: [emailNorm] },
+      { text: 'delete from feedback where email = $1 returning id', params: [emailNorm] }
+    ]);
+    return { signups: r[1].length, notify: r[2].length, feedback: r[3].length };
+  }
+  // Stops every email list for an address: updates consent is withdrawn and roadmap requests are removed.
+  async unsubscribe(emailNorm, now) {
+    const r = await this.db.transaction([
+      { text: `update signups set marketing_requested_at = null, marketing_confirmed_at = null, updated_at = $2
+        where email_norm = $1 and (marketing_requested_at is not null or marketing_confirmed_at is not null) returning id`, params: [emailNorm, d(now)] },
+      { text: 'delete from email_links where purpose = $2 and ref_id in (select id from roadmap_notify where email_norm = $1)', params: [emailNorm, 'roadmap_confirm'] },
+      { text: 'delete from roadmap_notify where email_norm = $1 returning id', params: [emailNorm] }
+    ]);
+    return { updates: r[0].length, notify: r[2].length };
+  }
   async promote(now, defaultCap) {
     const [, rows] = await this.db.transaction([
       { text: 'select pg_advisory_xact_lock(424242)' },
@@ -197,7 +217,7 @@ export class PgRepo {
       { text: 'delete from admin_nonces where seen_at < $1', params: [b(1)] },
       { text: 'delete from outbox where (sent_at is not null and sent_at < $1) or created_at < $2', params: [b(7), b(30)] },
       { text: 'delete from downloads where created_at < $1', params: [b(180)] },
-      { text: 'delete from roadmap_notify where confirmed_at is null and created_at < $1', params: [b(7)] },
+      { text: 'delete from roadmap_notify where (confirmed_at is null and created_at < $1) or confirmed_at < $2', params: [b(7), b(365)] },
       { text: 'delete from feedback where created_at < $1', params: [b(365)] }
     ]);
     return { signups: r[1].length, tokensCleared: r[2].length };

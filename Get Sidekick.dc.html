@@ -266,7 +266,7 @@ class Component extends DCLogic {
     const review = ['empty','focus','errors','submitting','server_error','rate_limited','success'];
     return {
       cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',
-      reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? (mocks ? 'Your beta token comes from the person who invited you. They send it to you privately.' : 'Your beta token arrives by email once you\'re in.') : 'You can unsubscribe from updates in one click.'],
+      reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? (mocks ? 'Your beta token comes from the person who invited you. They send it to you privately.' : 'Your beta token arrives by email once you\'re in.') : 'Updates only if you tick the box and confirm by email.'],
       intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.' : 'Tell us who you are and which Mac you have. Then confirm your email, and once you\'re in we email your beta token and a link to your downloads.',
       purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : 'Five short questions, then check your email.',
       purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to run the beta and know which builds people need. Ask us any time and we\'ll delete them.',

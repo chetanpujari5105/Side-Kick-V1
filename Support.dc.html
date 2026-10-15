@@ -148,27 +148,29 @@ class Component extends DCLogic {
         draft: policyDraft ? 'DRAFT — the publisher name, country, contact email and effective date in data/site-config.js must all be filled in before this is published.' : '',
         note: policyDraft ? '' : 'Effective ' + C.policyEffectiveDate, sections: [
         S('The apps', { items: [
-          I('No account.', 'There is no Sidekick account and nothing to sign in to.'),
-          I('No server in the middle.', 'Your phone and Mac connect directly to each other on your own network, encrypted with TLS 1.3. Each refuses a device whose certificate doesn\'t match the one it paired with.'),
-          I('No analytics in the apps.', 'Sidekick\'s own code sends nothing to us or anyone else — no analytics, advertising or crash reporting. If you install from Google Play, Google adds its own installer check, which Google\'s privacy policy covers.'),
-          I('Kept on your devices.', 'Notifications, messages, contacts and photos shown on the Mac are held in memory while you are connected and aren\'t written to disk, unless you save a photo or file. Clipboard history is kept in memory only, at most 20 entries, and is cleared when the connection ends.')],
+          I('No account.', 'The apps have no Sidekick account and nothing to sign in to.'),
+          I('No server in the middle.', 'Your phone and Mac connect directly to each other on your own network, encrypted with TLS 1.3. Each refuses a device whose certificate doesn\'t match the one it paired with. Your notifications, messages, calls, contacts, photos and files go between your own two devices, not to us.'),
+          I('Analytics and crash reports.', 'The phone app reads the pairing code with a Google library, ML Kit. We are still checking what, if anything, that library sends to Google, so this page makes no claim about it yet. If you install from Google Play, Google\'s privacy policy covers what Google Play itself collects.'),
+          I('On your Mac.', 'The Mac app keeps an Activity history on your Mac\'s disk. It includes your calls, with the caller\'s name from your contacts. Photos and files you save stay where you save them. Clipboard history is kept in memory only, at most 20 entries, and is cleared when the connection ends.')],
           link: { label: 'Read the full Sidekick privacy policy', href: 'https://chetan-website-delta.vercel.app/sidekick/privacy' } }),
         S('This website', { paras: (C.mocksEnabled ? [
           'This website sets no cookies and runs no analytics. It\'s hosted by Vercel, which receives the standard request details (such as your IP address and browser) that any website visit sends. Everything the pages load, including fonts and code, comes from this site, so no other company receives those details.'
         ] : [
-          'This website runs no analytics. It\'s hosted by Vercel, which receives the standard request details (such as your IP address and browser) that any website visit sends. Fonts and code come from this site.',
-          'It sets one cookie, sk_session, only after you send the Get Sidekick form or open a link from our email. It keeps your download page open in that browser for 24 hours and holds nothing else.',
-          'The Get Sidekick form, the email links and the roadmap forms show a human check from Cloudflare Turnstile, so Cloudflare receives the details its check needs from your browser. Cloudflare\'s privacy policy covers them.'
+          'This website runs no analytics. It\'s hosted by Vercel, which receives the standard request details (such as your IP address and browser) that any website visit sends. Fonts and code come from this site, except Cloudflare\'s human check.',
+          'The Get Sidekick form, the pages our email links open and the roadmap forms show that human check, Cloudflare Turnstile, so Cloudflare receives the details its check needs from your browser. Cloudflare\'s privacy policy covers them.',
+          'This site sets one cookie, sk_session, only after you send the Get Sidekick form or open a link from our email. It lasts 24 hours and lets that browser show where your sign-up is and, once you\'re in, your download page. It holds your first name or a reference to your sign-up, signed so it can\'t be altered, and nothing else.'
         ]).concat(C.mocksEnabled ? [
           'The Get Sidekick form isn\'t collecting anything yet. Nothing you type is sent to us or stored anywhere.'
         ] : [
-          'When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, and whether you asked for updates. We use them only to run the beta and know which builds people need. Your IP address is not stored: rate limits keep only a one-way code made from it.',
-          'We email you from our own email account: a link to confirm your address, then' + (C.tokenRequired ? ' your beta token and' : '') + ' a link to your downloads. We keep a record of when you download, for 180 days.' + (C.tokenRequired ? ' Your beta token is erased from our records 46 days after it\'s issued.' : ''),
-          'Your details are stored in a database run by Neon. The Mac app is downloaded from a private release on GitHub, which receives the standard request details when you download.',
-          'Updates are sent only if you tick the box and confirm by email. Every update has a one-click unsubscribe link.',
-          'Sign-ups that are never confirmed are deleted after 7 days. We keep other details until you ask us to delete them, or for a year after your last activity.'
-        ]).concat(['Ask us to delete your details at any time by writing to ' + email + '. We delete them within 30 days of your request.']) }),
-        S('Who we are', { paras: [`${C.publisher}, ${C.publisherAddress} · ${email}`, 'We change the effective date at the top of this page when the policy changes. Effective ' + C.policyEffectiveDate + '.'] })
+          'When you fill in the Get Sidekick form we store your name, email, Mac chip and phone model, the time you agreed to this policy, whether you asked for updates, and the dates your sign-up moved on (confirmed, approved, token sent). We use them only to run the beta and know which builds people need. Your IP address is not stored: rate limits keep only a one-way code made from it, for up to two days.',
+          'If you ask to hear when a roadmap item ships, we store your email and that item once you confirm by email. If you send a suggestion, we store your message and, if you give it, your email.',
+          'Your details are stored in a database run by Neon. The Mac app is downloaded from a private release on GitHub, which receives the standard request details when you download. We keep a record of when you download, for 180 days.',
+          'Our emails are sent by the Mail app on our own Mac, from our own email account, so your address and each email pass through that Mac and our email provider. An email waits in our database until our Mac sends it; then its address and text are erased there.',
+          C.tokenRequired ? 'Your beta token is made on our Mac. It contains the name you gave, a random id and its start and end dates. Our Mac keeps a copy of it and a list of the tokens it has issued (date, id, name, start and end). We email the token to you; it is erased from our database 46 days after it\'s issued.' : '',
+          'Updates are sent only if you tick the box and confirm by email. To stop them, write to ' + email + '.',
+          'Sign-ups and roadmap requests that are never confirmed are deleted after 7 days. We keep other details until you ask us to delete them, or for a year after they last changed.'
+        ].filter(Boolean)).concat(['Ask us to delete your details at any time by writing to ' + email + '. We delete them within 30 days of your request.']) }),
+        S('Who we are', { paras: [`${C.publisher}, ${C.publisherAddress} · ${email}`, 'We change the effective date at the top of this page when the policy changes.' + (policyDraft ? '' : ' Effective ' + C.policyEffectiveDate + '.')] })
       ]},
       changelog: { label: 'Changelog', pre: '', mark: 'Changelog', post: '.', intro: 'What changed in each version of Sidekick.', sections: (R.changelog || []).map(c => S(`Version ${c.version}`, { paras: unset(c.date) ? [] : [c.date], items: c.items.map(t => I('', t)) })) }
     };

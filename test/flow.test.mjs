@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { setup, cookieOf, ORIGIN, fakeToken } from './helpers.mjs';
 import { sealSession } from '../server/session.mjs';
+import roadmap from '../server/roadmap-ids.json' with { type: 'json' };
 
 const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
 
@@ -270,4 +271,25 @@ test('link pages: the token never reaches the server on GET, and the page script
   assert.match(page, /history\.replaceState/);
   const nonce = page.match(/<script nonce="([^"]+)">\(function/)[1];
   assert.ok(nonce.length >= 16);
+});
+
+test('admin delete-my-data by email removes the sign-up, roadmap requests and feedback; unsubscribe stops every list', async () => {
+  const h = setup();
+  await h.signup({ marketingOptIn: true });
+  await h.call('POST', '/api/roadmap-notify', { json: { email: 'Alex@Example.com', featureId: roadmap.ids[0], captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }, headers: { origin: ORIGIN } });
+  await h.call('POST', '/api/feedback', { json: { message: 'please add this', email: 'alex@example.com', captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }, headers: { origin: ORIGIN } });
+  assert.equal(h.repo.debugCount('notify'), 1); assert.equal(h.repo.debugCount('feedback'), 1);
+
+  const u = await (await h.admin('/api/admin/unsubscribe', { email: 'ALEX@example.com' })).json();
+  assert.deepEqual([u.ok, u.updates, u.notify], [true, 1, 1]);
+  assert.equal((await h.repo.getSignupByEmail('alex@example.com')).marketingRequestedAt, null);
+  assert.equal((await h.admin('/api/admin/unsubscribe', { email: 'not an email' })).status, 400);
+
+  const sid = (await h.repo.getSignupByEmail('alex@example.com')).id;
+  const d = await (await h.admin('/api/admin/delete', { signupId: sid })).json();
+  assert.deepEqual([d.ok, d.deleted, d.signupId, d.feedback], [true, 1, sid, 1], 'a signupId finds the address, and everything under it goes');
+  assert.equal(h.repo.debugCount('signups'), 0); assert.equal(h.repo.debugCount('feedback'), 0);
+  const again = await (await h.admin('/api/admin/delete', { email: 'alex@example.com' })).json();
+  assert.deepEqual([again.ok, again.deleted, again.notify, again.feedback], [true, 0, 0, 0]);
+  assert.ok(!h.logs.some(l => l.includes('alex@')), 'no address in the logs');
 });
