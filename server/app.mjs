@@ -24,7 +24,7 @@ const CLAIM_TTL = 15 * 60 * 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
 
-export function createApp({ config, repo, botCheck, storage, mailer = null, clock, log, releases, roadmapIds = [] }) {
+export function createApp({ config, repo, botCheck, storage, mailer = null, clock, log, releases, roadmapIds = [], schemas = [] }) {
   const relProblems = releaseProblems(releases);
   const misconfigured = config.problems.length > 0 || relProblems.length > 0;
   if (misconfigured) log.error('config.invalid', { names: config.problems.concat(relProblems.map(p => 'releases:' + p)).join(',') });
@@ -264,8 +264,16 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     if (Math.abs(now() - Number(ts)) > 300000) return 401;
     const expect = hmac(sec, signingString({ method: request.method, path: '/api/admin/' + action, ts, nonce, body: raw }));
     if (!safeEqual(sig, expect)) return 401;
-    if (!await repo.useNonce(nonce, now())) return 401;
     if (key === 'signer' && !SIGNER_PATHS.has(action)) return 403;
+    let fresh;
+    try { fresh = await repo.useNonce(nonce, now()); }
+    catch (e) {
+      // On an empty database there is no nonce table yet. Only the owner's (signed, timestamped) migrate may go
+      // ahead without one: it is idempotent, so a replay within the 5 minutes changes nothing.
+      if (action !== 'migrate' || key !== 'admin') throw e;
+      fresh = true;
+    }
+    if (!fresh) return 401;
     return 0;
   }
 
@@ -383,6 +391,14 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         }
         log.info('admin.announced', { queued });
         return json(200, { ok: true, recipients: people.length, queued });
+      }
+      case 'migrate': {
+        // Owner only (admin key): applies schema v1 then v2 inside the function, so the database connection
+        // string never leaves Vercel. Idempotent.
+        for (const sql of schemas) await repo.migrate(sql);
+        const version = await repo.schemaVersion();
+        log.info('admin.migrated', { version });
+        return json(200, { ok: true, version });
       }
       case 'promote': return json(200, { ok: true, promoted: await repo.promote(now(), config.betaCapDefault) });
       case 'retention': return json(200, { ok: true, ...(await runRetention()) });

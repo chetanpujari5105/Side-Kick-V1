@@ -372,3 +372,24 @@ test('Turnstile test keys: allowed on Preview (no hostname check), refused on Pr
   const real = loadConfig(fullEnv({ VERCEL_ENV: 'production', TURNSTILE_SECRET: '0x4AAAAAAAreal-looking-secret', TURNSTILE_SITE_KEY: '0x4AAAAAAAsitekey' }));
   assert.equal(real.turnstileHostname, new URL(ORIGIN).hostname, 'real keys keep the hostname check');
 });
+
+test('admin migrate: owner key only, runs every schema on the real SQL (PGlite), idempotent', async () => {
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { PgRepo } = await import('../server/repo-pg.mjs');
+  const pg = new PGlite();
+  const repo = new PgRepo({ query: async (t, p = []) => (await pg.query(t, p)).rows, transaction: (l) => pg.transaction(async (tx) => { const o = []; for (const q of l) o.push((await tx.query(q.text, q.params || [])).rows); return o; }) });
+  const schemas = ['schema.sql', 'schema-v2.sql'].map(f => fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
+  const { createApp } = await import('../server/app.mjs');
+  const h = setup(GATED);
+  const app = createApp({ config: h.config, repo, botCheck: h.botCheck, storage: h.storage, clock: h.clock, log: { info() {}, warn() {}, error() {} }, releases, roadmapIds: [], schemas });
+  const { signRequest } = await import('../server/crypto.mjs');
+  const call = (key, secret) => { const body = '{}'; return app.fetch(new Request(ORIGIN + '/api/admin/migrate', { method: 'POST', body, headers: { 'content-type': 'application/json', ...signRequest({ keyId: key, secret, method: 'POST', path: '/api/admin/migrate', body, now: h.clock.now() }) } })); };
+  assert.equal((await call('signer', h.env.ADMIN_AUTH_SIGNER_SECRET)).status, 403, 'the signer key cannot migrate');
+  assert.equal((await call('admin', 'wrong-secret-wrong-secret-wrong-secret')).status, 401, 'a bad signature never reaches the database');
+  // An empty database: no nonce table yet. Other admin calls fail there; migrate creates the tables.
+  assert.equal((await call('admin', h.env.ADMIN_AUTH_SECRET).then(r => r)).status, 200);
+  const r1 = await call('admin', h.env.ADMIN_AUTH_SECRET);
+  assert.equal(r1.status, 200);
+  assert.equal((await r1.json()).version, 2);
+  assert.equal((await call('admin', h.env.ADMIN_AUTH_SECRET)).status, 200, 'twice is fine');
+});

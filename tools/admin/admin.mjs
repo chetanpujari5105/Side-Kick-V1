@@ -7,7 +7,7 @@
 //                                                                  local token copy in SK_TOKENS_DIR; see OWNER-SETUP §10)
 //   node tools/admin/admin.mjs unsubscribe <email|signupId>       (stops updates and roadmap emails for that address)
 //   node tools/admin/admin.mjs settings [--cap 25] [--allow a@x.com,@friends.org] [--deny b@y.com]
-//   node tools/admin/admin.mjs promote | retention
+//   node tools/admin/admin.mjs promote | retention | migrate      (migrate: schema v1 + v2, run inside Vercel)
 //   node tools/admin/admin.mjs play-pending [--out play-testers.csv]
 //        Google accounts to add to the Play internal test. Prints the NEW ones comma-separated, for Play Console's
 //        "Add email addresses" box (adds to the list). --out writes the FULL list, one per line (mode 600), for
@@ -39,6 +39,7 @@ const calls = {
   unsubscribe: () => post('unsubscribe', who(rest[0])),
   settings: () => post('settings', { ...(flag('--cap') !== undefined ? { betaCap: Number(flag('--cap')) } : {}), allow: list(flag('--allow')), deny: list(flag('--deny')) }),
   promote: () => post('promote'),
+  migrate: () => post('migrate'),
   'play-pending': () => post('play-pending'),
   'play-mark-added': () => {
     const f = flag('--file');

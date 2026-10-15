@@ -43,6 +43,8 @@ export class PgRepo {
     for (const s of statements) await this.q(s, []);
   }
 
+  async schemaVersion() { return Number((await this.q('select max(version) as v from schema_migrations', []))[0].v); }
+
   async upsertSignup(v, now) {
     const t = d(now);
     const ins = await this.q(`insert into signups (id, email, email_norm, name, mac_chip, phone_model, google_email, privacy_accepted_at, marketing_requested_at, created_at, updated_at)

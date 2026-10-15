@@ -15,6 +15,7 @@ export class MemoryRepo {
   }
   _fail(name) { if (this.failNext === name) { this.failNext = null; throw new Error('simulated database failure'); } }
   async migrate() {}
+  async schemaVersion() { return 2; }
 
   async upsertSignup(v, now) {
     this._fail('upsertSignup');
