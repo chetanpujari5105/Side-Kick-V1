@@ -139,10 +139,11 @@ class Component extends DCLogic {
           { a: 'Folders you choose', mono: 'Android folder picker', b: 'Lets the Mac browse the specific folders you share. Nothing else on the phone is visible.' },
           { a: 'Accessibility service', b: 'Turns clicks and typing on the Mac into taps and text on the phone while you mirror.' },
           { a: 'Screen sharing, each time', mono: 'MediaProjection', b: 'Android asks on the phone every time mirroring starts.' },
+          { a: 'Sidekick\'s own notifications', mono: 'POST_NOTIFICATIONS', b: 'Lets the phone show Sidekick\'s notifications. Asking the phone to open an app needs it, and so does text copied on the Mac: the phone offers it in a notification.' },
           { a: 'Battery optimisation exemption', b: 'Keeps the connection alive in the background.' }] }),
         S('On the Mac', { rows: [
           { a: 'Local Network', b: 'Lets the Mac connect to the phone on your network. macOS asks the first time.' },
-          { a: 'Notifications', b: 'Shows phone notifications as Mac notifications, if you allow it.' }] })
+          { a: 'Notifications', b: 'macOS may ask for this. Phone notifications show inside Sidekick\'s window either way; showing them as macOS notifications as well isn\'t confirmed working in this beta yet.' }] })
       ]},
       privacy: { label: 'Privacy', pre: '', mark: 'Privacy', post: '.', intro: 'Two different things: the Sidekick apps, and this website.',
         draft: policyDraft ? 'DRAFT — the publisher name, country, contact email and effective date in data/site-config.js must all be filled in before this is published.' : '',
