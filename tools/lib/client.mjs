@@ -1,4 +1,5 @@
 // Signed POSTs to /api/admin/* for the signer and the admin CLI, and secrets from the macOS login Keychain.
+import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { signRequest } from '../../server/crypto.mjs';
 
@@ -21,6 +22,14 @@ export function keychainSecret(service, account = process.env.USER) {
   } catch { return null; }
 }
 
+// Order: the variable itself, then <NAME>_FILE (a file readable by its owner only), then the login Keychain.
 export function secretFrom(envName, service) {
-  return process.env[envName] || keychainSecret(service);
+  if (process.env[envName]) return process.env[envName];
+  const file = process.env[envName + '_FILE'];
+  if (file) {
+    const mode = fs.statSync(file).mode & 0o777;
+    if (mode & 0o077) throw new Error(`${envName}_FILE must be readable by you only (chmod 600)`);
+    return fs.readFileSync(file, 'utf8').trim();
+  }
+  return keychainSecret(service);
 }

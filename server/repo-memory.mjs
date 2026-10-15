@@ -124,6 +124,11 @@ export class MemoryRepo {
     return [...this.signups.values()].filter(s => s.state === 'approved' && s.googleEmail).sort((a, b) => a.approvedAt - b.approvedAt)
       .map(s => ({ id: s.id, googleEmail: s.googleEmail }));
   }
+  // Everyone who should be on the Play test list: already added, or approved and waiting to be added.
+  async playListAll() {
+    return [...this.signups.values()].filter(s => s.googleEmail && ['approved', 'play_added', 'issued', 'delivered'].includes(s.state))
+      .sort((a, b) => a.createdAt - b.createdAt).map(s => s.googleEmail);
+  }
   // Marks approved people whose Google account is in the list as added. Returns how many matched and how many didn't.
   async markPlayAdded(googleEmails, now) {
     const want = new Set(googleEmails);

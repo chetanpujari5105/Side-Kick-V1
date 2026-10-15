@@ -144,6 +144,11 @@ export class PgRepo {
     return (await this.q(`select id, google_email from signups where state = 'approved' and google_email is not null order by approved_at, created_at`, []))
       .map(r => ({ id: r.id, googleEmail: r.google_email }));
   }
+  // Everyone who should be on the Play test list: already added, or approved and waiting to be added.
+  async playListAll() {
+    return (await this.q(`select google_email from signups where google_email is not null and state in ('approved','play_added','issued','delivered') order by created_at`, []))
+      .map(r => r.google_email);
+  }
   // Marks approved people whose Google account is in the list as added. Returns how many matched and how many didn't.
   async markPlayAdded(googleEmails, now) {
     const list = [...new Set(googleEmails)];

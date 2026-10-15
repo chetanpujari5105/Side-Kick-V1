@@ -8,6 +8,14 @@
 //   node tools/admin/admin.mjs unsubscribe <email|signupId>       (stops updates and roadmap emails for that address)
 //   node tools/admin/admin.mjs settings [--cap 25] [--allow a@x.com,@friends.org] [--deny b@y.com]
 //   node tools/admin/admin.mjs promote | retention
+//   node tools/admin/admin.mjs play-pending [--out play-testers.csv]
+//        Google accounts to add to the Play internal test. Prints the NEW ones comma-separated, for Play Console's
+//        "Add email addresses" box (adds to the list). --out writes the FULL list, one per line (mode 600), for
+//        "Upload CSV file", which REPLACES the list (support.google.com/googleplay/android-developer/answer/9845334).
+//   node tools/admin/admin.mjs play-mark-added <google-email>… | --file play-testers.csv
+//        after adding them in Play Console: their token and invitation go out on the signer's next run.
+//   node tools/admin/admin.mjs announce --subject "…" --body-file update.txt [--dry-run]
+//        an update email to people who asked for updates and confirmed. --dry-run prints counts only.
 // Needs SK_API_BASE and the admin secret (SK_ADMIN_SECRET or Keychain item "sidekick-admin-hmac").
 import fs from 'node:fs';
 import os from 'node:os';
@@ -31,12 +39,32 @@ const calls = {
   unsubscribe: () => post('unsubscribe', who(rest[0])),
   settings: () => post('settings', { ...(flag('--cap') !== undefined ? { betaCap: Number(flag('--cap')) } : {}), allow: list(flag('--allow')), deny: list(flag('--deny')) }),
   promote: () => post('promote'),
+  'play-pending': () => post('play-pending'),
+  'play-mark-added': () => {
+    const f = flag('--file');
+    const raw = f ? fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '') : rest.join(',');
+    return post('play-mark-added', { googleEmails: raw.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean) });
+  },
+  announce: () => {
+    const subject = flag('--subject'), file = flag('--body-file');
+    if (!subject || !file) { console.error('announce needs --subject "…" and --body-file <file>'); process.exit(2); }
+    return post('announce', { subject, body: fs.readFileSync(file, 'utf8'), dryRun: rest.includes('--dry-run') });
+  },
   retention: () => post('retention')
 };
 if (!calls[cmd]) { console.error('Commands: ' + Object.keys(calls).join(', ')); process.exit(2); }
 const r = await calls[cmd]();
 if (r.status !== 200) { console.error(`HTTP ${r.status} ${r.error || ''}`); process.exit(1); }
-if (cmd === 'export') {
+if (cmd === 'play-pending') {
+  const out = flag('--out');
+  if (out) { fs.writeFileSync(out, r.fullCsv, { mode: 0o600 }); fs.chmodSync(out, 0o600); }
+  console.log(`${r.count} Google account(s) to add; ${r.total} should be on the Play test list in all.`);
+  if (r.count) console.log(`\nTo ADD them (keeps everyone already on the list), paste this into Play Console › Testing › Internal testing › Testers › your list › "Add email addresses":\n${r.csv.trim().split('\n').join(', ')}`);
+  if (out) console.log(`\nWrote the full list (${r.total}) to ${out} (mode 600). "Upload CSV file" REPLACES the list: use it only if the list holds nobody else.`);
+  console.log('\nThen: node tools/admin/admin.mjs play-mark-added <the same addresses>   (or --file <file>)');
+} else if (cmd === 'announce') {
+  console.log(r.queued ? `Queued ${r.queued} update email(s) for ${r.recipients} subscriber(s). The signer sends them within its hourly budget.` : `Dry run: ${r.recipients} subscriber(s) would get it. Nothing was queued.`);
+} else if (cmd === 'export') {
   const out = flag('--out');
   if (out) { fs.writeFileSync(out, r.csv, { mode: 0o600 }); console.log(`Wrote ${r.csv.split('\n').length - 2} rows to ${out} (mode 600).`); }
   else process.stdout.write(r.csv);

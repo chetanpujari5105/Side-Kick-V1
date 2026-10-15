@@ -101,7 +101,9 @@ test('Play gate (default): confirmed → approved → play-added → token issue
   const s1 = await h.repo.getSignup(id);
   assert.equal(s1.state, 'play_added');
   assert.ok(s1.playAddedAt instanceof Date);
-  assert.equal((await (await h.admin('/api/admin/play-pending')).json()).csv, '', 'not listed twice');
+  const after = await (await h.admin('/api/admin/play-pending')).json();
+  assert.equal(after.csv, '', 'not listed twice');
+  assert.equal(after.fullCsv, 'alex.rivera@gmail.com\n', 'the full list (a Play CSV upload replaces the list) still has them');
 
   const p1 = await (await h.admin('/api/admin/pending', {}, { key: 'signer' })).json();
   assert.equal(p1.pending.length, 1);
@@ -300,4 +302,51 @@ test('signer: transactional emails first, then at most SK_MAIL_PER_HOUR per roll
   assert.ok(!raw.includes('@') && !raw.includes('Sidekick'), 'only times in the send log');
   assert.equal((fs.statSync(logFile).mode & 0o777).toString(8), '600');
   assert.equal(loadSignerConfig({}).perHour, 30, 'default 30 an hour');
+});
+
+// ── the admin CLI, end to end over HTTP (a local server around the in-memory API) ──
+test('admin CLI: play-pending prints the new accounts and writes the full list (600); announce --dry-run prints counts only', async () => {
+  const http = await import('node:http');
+  const { spawn } = await import('node:child_process');
+  const h = setup(GATED);
+  await approved(h);
+  await people(h);
+  const server = http.createServer(async (req, res) => {
+    const chunks = []; for await (const c of req) chunks.push(c);
+    const r = await h.app.fetch(new Request('http://127.0.0.1' + req.url, { method: req.method, headers: req.headers, body: chunks.length ? Buffer.concat(chunks) : undefined }));
+    res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer()));
+  });
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-admin-cli-')); dirs.push(dir);
+  const secretFile = path.join(dir, 'admin.secret');
+  fs.writeFileSync(secretFile, h.env.ADMIN_AUTH_SECRET + '\n', { mode: 0o600 });
+  const env = { PATH: process.env.PATH, HOME: dir, SK_API_BASE: `http://127.0.0.1:${server.address().port}`, SK_ADMIN_SECRET_FILE: secretFile };
+  const run = (...args) => new Promise((resolve) => {
+    const c = spawn(process.execPath, ['tools/admin/admin.mjs', ...args], { cwd: path.resolve(path.dirname(new URL(import.meta.url).pathname), '..'), env });
+    let out = ''; c.stdout.on('data', d => { out += d; }); c.stderr.on('data', d => { out += d; });
+    c.on('close', code => resolve({ code, out }));
+  });
+  try {
+    // The CLI signs with the real clock; keep the in-memory API on it for this test.
+    h.clock.set(Date.now());
+    const csv = path.join(dir, 'play.csv');
+    const p = await run('play-pending', '--out', csv);
+    assert.equal(p.code, 0, p.out);
+    assert.match(p.out, /alex\.rivera@gmail\.com/);
+    assert.match(p.out, /REPLACES the list/);
+    assert.equal((fs.statSync(csv).mode & 0o777).toString(8), '600');
+    assert.ok(fs.readFileSync(csv, 'utf8').split('\n').includes('alex.rivera@gmail.com'));
+    const m = await run('play-mark-added', '--file', csv);
+    assert.equal(m.code, 0, m.out);
+    assert.equal((await h.repo.getSignupByEmail('alex@example.com')).state, 'play_added');
+    const body = path.join(dir, 'update.txt'); fs.writeFileSync(body, 'Hello.\n');
+    const d = await run('announce', '--subject', 'Test', '--body-file', body, '--dry-run');
+    assert.equal(d.code, 0, d.out);
+    assert.match(d.out, /Dry run: 1 subscriber/);
+    assert.ok(!d.out.includes('@'), 'no addresses printed');
+    assert.equal(h.repo.debugOutbox().filter(x => x.kind === 'announce').length, 0);
+    fs.chmodSync(secretFile, 0o644);
+    const loose = await run('stats');
+    assert.notEqual(loose.code, 0, 'a secret file others can read is refused');
+  } finally { server.close(); }
 });

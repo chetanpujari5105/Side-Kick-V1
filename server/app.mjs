@@ -352,9 +352,11 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         return json(200, { ok: true, settings: await repo.getSettings(config.betaCapDefault) });
       }
       case 'play-pending': {
-        // The Google accounts to add to the Play test list: one per line, ready to upload as a CSV.
+        // csv: the Google accounts still to add, one per line. fullCsv: everyone who should be on the list, because
+        // a CSV upload in Play Console REPLACES the list (support.google.com/googleplay/android-developer/answer/9845334).
         const rows = await repo.playPending();
-        return json(200, { ok: true, count: rows.length, csv: rows.map(r => r.googleEmail + '\n').join('') });
+        const all = await repo.playListAll();
+        return json(200, { ok: true, count: rows.length, csv: rows.map(r => r.googleEmail + '\n').join(''), total: all.length, fullCsv: all.map(e => e + '\n').join('') });
       }
       case 'play-mark-added': {
         if (!Array.isArray(data.googleEmails) || data.googleEmails.length > 1000) return json(400, { ok: false, error: 'BAD_LIST' });
