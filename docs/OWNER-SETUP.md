@@ -191,7 +191,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.sidekick.signer.plis
 tail -f ~/Library/Logs/sidekick-signer.log
 ```
 Stop: `launchctl bootout gui/$(id -u)/com.sidekick.signer`. **Emails and tokens only go out while your Mac is awake
-and logged in.** People see "usually within a few hours" on the site.
+and logged in.** People see "up to a day" on the site.
 
 ## 8. Test on a preview first
 

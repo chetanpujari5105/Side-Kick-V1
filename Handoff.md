@@ -160,7 +160,7 @@ As built (full table with sources in `docs/OWNER-SETUP.md` §4): `APP_ORIGIN`, `
 3. **Privacy policy publisher details** — legal name, postal address, effective date, how changes are announced, data retention period, analytics provider, email provider. Needs a legal review.
 4. **Signing / notarization** — the Mac 2.0.0 build is ad-hoc signed and not notarized, so the site shows the Gatekeeper steps. Android: this site never serves an APK. `releases.json` holds only `android.storeUrl` (a play.google.com URL, or null → "not available yet"); `releaseProblems` refuses any `android.build`. The Mac DMG's size and SHA-256 stay null until `node scripts/data-sync.mjs --from-dmg <path>` is run.
 5. **Intel** — decided 2026-10-15: Apple silicon only. No x64 build is offered and the form has no Intel option.
-6. **Token process** — decided in the Mac repo (2026-10-12): 45-day signed tokens, not bound to one Mac. Delivery is now by email from the signer, usually within a few hours (only while the owner's Mac is awake). The token email says it works for 45 days.
+6. **Token process** — decided in the Mac repo (2026-10-12): 45-day signed tokens, not bound to one Mac. Delivery is now by email from the signer, up to a day (only while the owner's Mac is awake). The token email says it works for 45 days.
 7. **Real download file**: the DMG on the private GitHub release (default) or R2 — see docs/OWNER-SETUP.md.
 8. Pricing — nothing on the site mentions it.
 
