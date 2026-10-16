@@ -19,7 +19,7 @@ const LINK = {
 const ALLOWED = ['approved', 'play_added', 'issued', 'delivered'];
 const STAGE = { pending_email: 'check_email', approved: 'approved', play_added: 'approved', issued: 'approved', delivered: 'token_sent', waitlisted: 'waitlisted', denied: 'waitlisted' };
 const SETTABLE = ['pending_email', 'approved', 'waitlisted', 'denied'];
-const SIGNER_PATHS = new Set(['pending', 'token', 'outbox', 'outbox-ack']);
+const SIGNER_PATHS = new Set(['pending', 'token', 'outbox', 'outbox-ack', 'queue']);
 const CLAIM_TTL = 15 * 60 * 1000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
@@ -314,6 +314,13 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         if (!Number.isInteger(max) || max < 0) return json(400, { ok: false, error: 'BAD_MAX' });
         const rows = max === 0 ? [] : await repo.claimOutbox(now(), Math.min(20, max), CLAIM_TTL);
         return json(200, { ok: true, messages: rows.map(m => ({ id: m.id, kind: m.kind, to: m.toEmail, subject: m.subject, text: m.text })) });
+      }
+      // For `signer --status`: counts only, no addresses. With the Play gate on, approved people wait for the Play list
+      // and play_added people wait for their token.
+      case 'queue': {
+        const s = await repo.stats();
+        const c = s.signups;
+        return json(200, { ok: true, outboxQueued: s.outboxPending, awaitingToken: config.playGate ? c.play_added : c.approved + c.play_added, awaitingPlayList: config.playGate ? c.approved : 0 });
       }
       case 'outbox-ack': {
         if (typeof data.id !== 'string' || !UUID.test(data.id)) return json(400, { ok: false, error: 'BAD_ID' });
