@@ -2,7 +2,8 @@
 // For tests, the demo and the local dev server; nothing survives a restart.
 import crypto from 'node:crypto';
 
-const ALLOWED = ['approved', 'issued', 'delivered'];
+const ALLOWED = ['approved', 'play_added', 'issued', 'delivered'];
+const MAILS = ['invite', 'token']; // a signup is delivered once both are sent
 const DAY = 86400000;
 const clone = (o) => (o ? structuredClone(o) : null);
 
@@ -14,12 +15,13 @@ export class MemoryRepo {
   }
   _fail(name) { if (this.failNext === name) { this.failNext = null; throw new Error('simulated database failure'); } }
   async migrate() {}
+  async schemaVersion() { return 2; }
 
   async upsertSignup(v, now) {
     this._fail('upsertSignup');
     for (const s of this.signups.values()) if (s.emailNorm === v.emailNorm) return { signup: clone(s), created: false };
     const t = new Date(now);
-    const s = { id: crypto.randomUUID(), email: v.email, emailNorm: v.emailNorm, name: v.name, macChip: v.macChip, phoneModel: v.phoneModel,
+    const s = { id: crypto.randomUUID(), email: v.email, emailNorm: v.emailNorm, name: v.name, macChip: v.macChip, phoneModel: v.phoneModel, googleEmail: v.googleEmail ?? null, playAddedAt: null,
       privacyAcceptedAt: t, marketingRequestedAt: v.marketingOptIn ? t : null, marketingConfirmedAt: null, state: 'pending_email',
       createdAt: t, updatedAt: t, confirmedAt: null, approvedAt: null, token: null, tokenIssuedAt: null, tokenEmailedAt: null, signerClaimedAt: null };
     this.signups.set(s.id, s);
@@ -66,17 +68,19 @@ export class MemoryRepo {
 
   async logDownload({ signupId, platform, arch }, now) { this._fail('logDownload'); this.downloads.push({ id: this.downloads.length + 1, signupId, platform, arch, createdAt: new Date(now) }); }
 
-  async claimPending(now, limit, claimTtlMs) {
+  // gate: only people whose Google account is on the Play test list (play_added) get a token.
+  async claimPending(now, limit, claimTtlMs, { gate = false } = {}) {
     const out = [];
-    const list = [...this.signups.values()].filter(s => s.state === 'approved' && !s.token && (!s.signerClaimedAt || s.signerClaimedAt.getTime() < now - claimTtlMs))
+    const ready = gate ? 'play_added' : 'approved';
+    const list = [...this.signups.values()].filter(s => s.state === ready && !s.token && (!s.signerClaimedAt || s.signerClaimedAt.getTime() < now - claimTtlMs))
       .sort((a, b) => a.approvedAt - b.approvedAt).slice(0, limit);
     for (const s of list) { s.signerClaimedAt = new Date(now); out.push({ id: s.id, name: s.name }); }
     return out;
   }
-  async storeToken(id, token, now) {
+  async storeToken(id, token, now, { gate = false } = {}) {
     const s = this.signups.get(id);
     if (!s) return 'not_found';
-    if (s.token || s.state !== 'approved') return 'conflict';
+    if (s.token || s.state !== (gate ? 'play_added' : 'approved')) return 'conflict';
     s.token = token; s.tokenIssuedAt = new Date(now); s.state = 'issued'; s.updatedAt = new Date(now);
     return 'ok';
   }
@@ -88,7 +92,9 @@ export class MemoryRepo {
     return id;
   }
   async claimOutbox(now, limit, claimTtlMs) {
-    const rows = this.outbox.filter(m => !m.sentAt && m.attempts < 5 && (!m.claimedAt || m.claimedAt.getTime() < now - claimTtlMs)).slice(0, limit);
+    // Transactional emails first; announcements wait behind them (stable order otherwise).
+    const rows = this.outbox.filter(m => !m.sentAt && m.attempts < 5 && (!m.claimedAt || m.claimedAt.getTime() < now - claimTtlMs))
+      .map((m, i) => [m, i]).sort((a, b) => ((a[0].kind === 'announce') - (b[0].kind === 'announce')) || a[1] - b[1]).map(x => x[0]).slice(0, limit);
     for (const m of rows) { m.claimedAt = new Date(now); m.attempts++; }
     return rows.map(m => ({ id: m.id, kind: m.kind, toEmail: m.toEmail, subject: m.subject, text: m.text }));
   }
@@ -97,7 +103,7 @@ export class MemoryRepo {
     if (!m || m.sentAt) return false;
     if (!ok) { m.claimedAt = null; m.lastError = String(errorCode || 'failed').slice(0, 40); return true; }
     m.sentAt = new Date(now); m.toEmail = ''; m.text = '';
-    if (m.kind === 'token' && m.signupId) {
+    if (MAILS.includes(m.kind) && m.signupId && !this.outbox.some(x => x.signupId === m.signupId && MAILS.includes(x.kind) && !x.sentAt)) {
       const s = this.signups.get(m.signupId);
       if (s && s.state === 'issued') { s.state = 'delivered'; s.tokenEmailedAt = new Date(now); s.updatedAt = new Date(now); }
     }
@@ -114,6 +120,32 @@ export class MemoryRepo {
   async confirmNotify(id, now) { const n = this.notify.find(x => x.id === id); if (!n) return false; n.confirmedAt = n.confirmedAt || new Date(now); return true; }
   async addFeedback({ message, email }, now) { this.feedback.push({ id: crypto.randomUUID(), message, email, createdAt: new Date(now) }); }
 
+  // The Play test list: approved people whose Google account the owner still has to add, oldest first.
+  async playPending() {
+    return [...this.signups.values()].filter(s => s.state === 'approved' && s.googleEmail).sort((a, b) => a.approvedAt - b.approvedAt)
+      .map(s => ({ id: s.id, googleEmail: s.googleEmail }));
+  }
+  // Everyone who should be on the Play test list: already added, or approved and waiting to be added.
+  async playListAll() {
+    return [...this.signups.values()].filter(s => s.googleEmail && ['approved', 'play_added', 'issued', 'delivered'].includes(s.state))
+      .sort((a, b) => a.createdAt - b.createdAt).map(s => s.googleEmail);
+  }
+  // Marks approved people whose Google account is in the list as added. Returns how many matched and how many didn't.
+  async markPlayAdded(googleEmails, now) {
+    const want = new Set(googleEmails);
+    let marked = 0;
+    const hit = new Set();
+    for (const s of this.signups.values()) if (s.state === 'approved' && want.has(s.googleEmail)) {
+      s.state = 'play_added'; s.playAddedAt = new Date(now); s.updatedAt = new Date(now); marked++; hit.add(s.googleEmail);
+    }
+    return { marked, unmatched: [...want].filter(e => !hit.has(e)).length };
+  }
+  // Update emails go only to people who asked for them on the form AND confirmed by email.
+  async announceRecipients() {
+    return [...this.signups.values()].filter(s => s.marketingRequestedAt && s.marketingConfirmedAt).sort((a, b) => a.createdAt - b.createdAt)
+      .map(s => ({ id: s.id, emailNorm: s.emailNorm, name: s.name }));
+  }
+
   async useNonce(nonce, now) { if (this.nonces.has(nonce)) return false; this.nonces.set(nonce, new Date(now)); return true; }
 
   async getSettings(defaultCap) {
@@ -126,7 +158,7 @@ export class MemoryRepo {
   }
 
   async stats() {
-    const signups = { pending_email: 0, approved: 0, issued: 0, delivered: 0, waitlisted: 0, denied: 0, total: 0 };
+    const signups = { pending_email: 0, approved: 0, play_added: 0, issued: 0, delivered: 0, waitlisted: 0, denied: 0, total: 0 };
     for (const s of this.signups.values()) { signups[s.state]++; signups.total++; }
     return { signups, downloads: this.downloads.length, outboxPending: this.outbox.filter(m => !m.sentAt).length,
       marketingConfirmed: [...this.signups.values()].filter(s => s.marketingConfirmedAt).length,

@@ -4,7 +4,7 @@
   "installCommand": "npm ci --omit=dev",
   "outputDirectory": "dist",
   "functions": {
-    "api/index.mjs": { "maxDuration": 15 }
+    "api/index.mjs": { "maxDuration": 15, "includeFiles": "server/*.sql" }
   },
   "rewrites": [
     { "source": "/", "destination": "/Home.dc.html" },

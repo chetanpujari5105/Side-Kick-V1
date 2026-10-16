@@ -31,8 +31,8 @@ a:hover{color:#3A22B8;}
 <sc-if value="{{ checkEmail }}">
   <section aria-labelledby="ce-h" style="display:flex;flex-direction:column;gap:24px;max-width:680px;min-height:52vh;justify-content:center;">
     <h1 id="ce-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">Check your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">email</span></span>.</h1>
-    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">We sent a link to the address you gave, {{ name }}. Open it to confirm your email, and your download page opens. It can take a few minutes, so check your spam folder too.</p>
-    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Nothing after an hour? Fill in the form again with the same email and we'll send a new link.</p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">We sent a link to the address you gave, {{ name }}. Open it to confirm your email, and your download page opens. We send our emails ourselves, so they can take up to a day to arrive. Check your spam folder too.</p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Nothing after a day? Fill in the form again with the same email and we'll send a new link.</p>
     <div style="display:flex;flex-wrap:wrap;gap:12px 28px;"><a href="Get Sidekick.dc.html" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Back to the form</a><a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Read the setup guide</a></div>
   </section>
 </sc-if>
@@ -243,7 +243,7 @@ class Component extends DCLogic {
     return {
       expired: !loading && !s, valid: stage === 'approved' || stage === 'token_sent', checkEmail: stage === 'check_email', waitlisted: stage === 'waitlisted',
       tokenNeed: mocks ? 'You need a beta token from the person who invited you. Sidekick asks for it the first time you open it.' : 'You need your beta token: Sidekick asks for it the first time you open it. ' + (stage === 'token_sent' ? 'We emailed it to you.' : 'We email it to you once it\'s ready.'),
-      tokenWho: mocks ? 'The person who invited you sends it to you privately. Nothing to do on the phone.' : (stage === 'token_sent' ? 'We emailed it to you — look for “Your Sidekick beta token”. Nothing to do on the phone.' : 'We email it to you once it\'s ready, usually within a few hours. Nothing to do on the phone.'), name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
+      tokenWho: mocks ? 'The person who invited you sends it to you privately. Nothing to do on the phone.' : (stage === 'token_sent' ? 'We emailed it to you — look for “Your Sidekick beta token”. Nothing to do on the phone.' : 'We email it to you once it\'s ready, within a day. Nothing to do on the phone.'), name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
       splitCols: wide ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', stepCols: this.state.w >= 1100 ? 'repeat(3,minmax(0,1fr))' : 'minmax(0,1fr)',
       ver: R.version,
       mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 || null }, noMacSha: !b.sha256,

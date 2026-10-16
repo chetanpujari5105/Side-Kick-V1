@@ -25,19 +25,23 @@ function shell({ title, nonce, body, siteKey }) {
 const widget = (siteKey) => siteKey === 'local-dev-fake' ? '<p class="hint m0">Human check (local test stand-in)</p><input type="hidden" name="cf-turnstile-response" value="XXXX.DUMMY.TOKEN.XXXX">'
   : siteKey ? `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}"></div>` : '';
 
-// purpose: 'confirm' | 'updates' | 'notify' | 'access'
+// purpose: 'confirm' | 'updates' | 'notify' | 'access' | 'unsubscribe'
 export function linkPage({ purpose, nonce, siteKey, valid }) {
   const copy = {
     confirm: ['Confirm your email', 'One click to finish signing up for the Sidekick beta.', 'Confirm my email', '/api/confirm-email'],
     updates: ['Confirm Sidekick updates', 'One click and we\'ll email you Sidekick updates. To stop them, write to us at the address on our Privacy page.', 'Yes, email me updates', '/api/confirm-email'],
     notify: ['Confirm this notification', 'One click and we\'ll email you once when this roadmap item ships.', 'Confirm', '/api/confirm-email'],
-    access: ['Open your downloads', 'This takes you to your Sidekick download page in this browser.', 'Open my download page', '/api/access']
+    access: ['Open your downloads', 'This takes you to your Sidekick download page in this browser.', 'Open my download page', '/api/access'],
+    unsubscribe: ['Stop Sidekick updates', 'One click and we stop sending you Sidekick update emails. Emails about your own beta place, if you have one, still come.', 'Unsubscribe', '/api/unsubscribe']
   }[purpose];
+  const noscript = purpose === 'unsubscribe'
+    ? 'This page needs JavaScript to read the link. Without it, reply to any of our update emails with “unsubscribe” and we\'ll remove you.'
+    : 'The human check needs JavaScript. Turn it on and reload this page, or <a href="/Support.dc.html#help">ask us for help</a>.';
   if (!valid) return shell({ title: 'Link expired', nonce, body: `<h1>This link has expired.</h1><p>Links in our emails work for a limited time and some only once. Fill in the <a href="/Get%20Sidekick.dc.html">Get Sidekick form</a> again with the same email and we'll send a new one.</p>` });
   return shell({ title: copy[0], nonce, siteKey, body: `<h1>${esc(copy[0])}</h1><form class="card" method="post" action="${copy[3]}">
 <p class="m0">${esc(copy[1])}</p><input type="hidden" name="t" id="t" value="">${widget(siteKey)}
 <p class="alert m0" id="nolink" hidden>This page needs the whole link from our email. Open the email again and use its link, or copy all of it into the address bar.</p>
-<noscript><p class="alert m0">The human check needs JavaScript. Turn it on and reload this page, or <a href="/Support.dc.html#help">ask us for help</a>.</p></noscript>
+<noscript><p class="alert m0">${noscript}</p></noscript>
 <button type="submit">${esc(copy[2])}</button></form>
 <script nonce="${nonce}">(function(){var m=location.hash.match(/[#&]t=([A-Za-z0-9_-]{43})(?:&|$)/);if(m){document.getElementById('t').value=m[1];history.replaceState(null,'',location.pathname+location.search);}else{document.getElementById('nolink').hidden=false;}})();</script>` });
 }
@@ -48,9 +52,10 @@ export function messagePage({ nonce, title, text, status = 200 }) {
 
 // The signup form for browsers without JavaScript, with errors. Field names match the JSON API.
 export function signupFormPage({ nonce, siteKey, values = {}, errors = {}, banner = '' }) {
-  const ids = { name: 'f-name', email: 'f-email', macChip: 'f-chip', phoneModel: 'f-phone', privacyAccepted: 'f-privacy' };
+  const ids = { name: 'f-name', email: 'f-email', macChip: 'f-chip', phoneModel: 'f-phone', googleEmail: 'f-google', privacyAccepted: 'f-privacy' };
   const keys = Object.keys(ids).filter(k => errors[k]);
-  const inv = (k) => errors[k] ? ` aria-invalid="true" aria-describedby="e-${k}${k === 'phoneModel' ? ' h-phone' : ''}"` : (k === 'phoneModel' ? ' aria-describedby="h-phone"' : '');
+  const hint = { phoneModel: 'h-phone', googleEmail: 'h-google' };
+  const inv = (k) => errors[k] ? ` aria-invalid="true" aria-describedby="e-${k}${hint[k] ? ' ' + hint[k] : ''}"` : (hint[k] ? ` aria-describedby="${hint[k]}"` : '');
   const err = (k) => errors[k] ? `<span class="err" id="e-${k}">${esc(errors[k])}</span>` : '';
   const summary = banner ? `<div class="alert" role="alert" tabindex="-1" autofocus>${banner}</div>`
     : keys.length ? `<div class="alert" role="alert" tabindex="-1" id="err-summary" autofocus><strong>Please fix ${keys.length === 1 ? '1 thing' : keys.length + ' things'} before continuing:</strong><ul>${keys.map(k => `<li><a href="#${ids[k]}">${esc(errors[k])}</a></li>`).join('')}</ul></div>` : '';
@@ -61,7 +66,8 @@ export function signupFormPage({ nonce, siteKey, values = {}, errors = {}, banne
 // The <form> alone: also embedded in Get Sidekick.dc.html's <noscript> by the production build.
 export function signupFormHtml() {
   const chip = (v, label) => `<label class="row"><input type="radio" name="macChip" value="${v}"> ${label}</label>`;
-  return signupForm({ values: {}, errors: {}, siteKey: null, inv: (k) => k === 'phoneModel' ? ' aria-describedby="h-phone"' : '', err: () => '', chip });
+  const hint = { phoneModel: 'h-phone', googleEmail: 'h-google' };
+  return signupForm({ values: {}, errors: {}, siteKey: null, inv: (k) => hint[k] ? ` aria-describedby="${hint[k]}"` : '', err: () => '', chip });
 }
 
 function signupForm({ values, errors, siteKey, inv, err, chip }) {
@@ -69,7 +75,8 @@ function signupForm({ values, errors, siteKey, inv, err, chip }) {
 <div class="f"><label for="f-name">Name</label><input id="f-name" name="name" type="text" autocomplete="name" value="${esc(values.name)}"${inv('name')}>${err('name')}</div>
 <div class="f"><label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" value="${esc(values.email)}"${inv('email')}>${err('email')}</div>
 <fieldset id="f-chip"${errors.macChip ? ' aria-describedby="e-macChip"' : ''}><legend>Your Mac's chip</legend>${chip('apple', 'Apple silicon')}${chip('unsure', 'Not sure')}${err('macChip')}</fieldset>
-<div class="f"><label for="f-phone">Android phone model</label><input id="f-phone" name="phoneModel" type="text" value="${esc(values.phoneModel)}"${inv('phoneModel')}><span class="hint" id="h-phone">Settings › About phone shows the model name.</span>${err('phoneModel')}</div>
+<div class="f"><label for="f-phone">Android phone model</label><input id="f-phone" name="phoneModel" type="text" value="${esc(values.phoneModel)}"${inv('phoneModel')}><span class="hint" id="h-phone">The model name, like Pixel 8 or Galaxy S23 — not your phone number. Settings › About phone shows it.</span>${err('phoneModel')}</div>
+<div class="f"><label for="f-google">Google account email for Google Play</label><input id="f-google" name="googleEmail" type="email" autocomplete="off" value="${esc(values.googleEmail)}"${inv('googleEmail')}><span class="hint" id="h-google">The account your phone's Play Store uses. We add it to Sidekick's Google Play test list so you can install the Android app.</span>${err('googleEmail')}</div>
 <label class="row"><input id="f-privacy" type="checkbox" name="privacyAccepted" value="on"${values.privacyAccepted ? ' checked' : ''}${inv('privacyAccepted')}> <span>I've read the <a href="/Support.dc.html#privacy">Privacy Policy</a>. (required)</span></label>${err('privacyAccepted')}
 <label class="row"><input type="checkbox" name="marketingOptIn" value="on"${values.marketingOptIn ? ' checked' : ''}> <span>Email me Sidekick updates. (optional — we'll ask you to confirm)</span></label>
 ${widget(siteKey)}<button type="submit">Continue</button></form>`;

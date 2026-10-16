@@ -26,6 +26,7 @@ import { createApp } from '../server/app.mjs';
 import { MemoryRepo } from '../server/repo-memory.mjs';
 import { FakeBotCheck, FakeStorage, FakeClock } from '../server/fakes.mjs';
 import { loadConfig } from '../server/config.mjs';
+import { MSG } from '../server/validate.mjs';
 import { createLogger } from '../server/log.mjs';
 import { linkPage, messagePage, signupFormPage } from '../server/pages.mjs';
 import { signRequest } from '../server/crypto.mjs';
@@ -131,9 +132,10 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
 
   // ── 2. server pages and redirects (automated only: a manual site has no API) ──
   const serverPages = manual ? {} : {
-    ...Object.fromEntries(['confirm', 'updates', 'notify', 'access'].flatMap(pp => [[`linkPage(${pp})`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: true })], [`linkPage(${pp}, expired)`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: false })]])),
+    ...Object.fromEntries(['confirm', 'updates', 'notify', 'access', 'unsubscribe'].flatMap(pp => [[`linkPage(${pp})`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: true })], [`linkPage(${pp}, expired)`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: false })]])),
     messagePage: messagePage({ nonce: 'n', title: 't', text: 'x' }),
-    signupFormPage: signupFormPage({ nonce: 'n', siteKey: 'k' })
+    signupFormPage: signupFormPage({ nonce: 'n', siteKey: 'k' }),
+    'signupFormPage(phone number)': signupFormPage({ nonce: 'n', siteKey: 'k', values: { phoneModel: '07700 900123' }, errors: { phoneModel: MSG.phoneNumber } })
   };
   for (const [name, html] of Object.entries(serverPages)) {
     const body = typeof html === 'string' ? html : html.body;
@@ -156,8 +158,12 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
     ok('redirect', `${what} → ${l || '(none)'}`, l.startsWith('/') && !l.startsWith('//') && u.origin === O && fileExists(decodeURIComponent(u.pathname).slice(1)), `HTTP ${r.status}`);
   };
   await loc(await call('GET', '/api/download/mac/arm64', { headers: nav }), 'download without a session (browser)');
-  const form = new URLSearchParams({ name: 'Lin Kay', email: 'links@example.com', macChip: 'apple', phoneModel: 'Pixel 8', privacyAccepted: 'on', marketingOptIn: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' });
+  const form = new URLSearchParams({ name: 'Lin Kay', email: 'links@example.com', macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'lin.kay@gmail.com', privacyAccepted: 'on', marketingOptIn: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' });
   await loc(await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), 'no-JS signup success');
+  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')));
+  form.set('phoneModel', '07700 900123');
+  const pn = await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+  ok('server', 'no-JS signup with a phone number → 400 page with the plain message', pn.status === 400 && (await pn.text()).includes(MSG.phoneNumber.replace(/'/g, '&#39;')), `HTTP ${pn.status}`);
 
   // ── 3. email link forms ───────────────────────────────────────────────────
   const urlsIn = (text) => [...text.matchAll(/https?:\/\/\S+/g)].map(m => m[0]);
@@ -185,21 +191,36 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   ok('email', 'confirm email has a confirm and an updates link', confirmUrl && updatesUrl);
   if (updatesUrl) await walk('confirm?for=updates', updatesUrl, '/api/confirm-email');
   if (confirmUrl) await walk('confirm', confirmUrl, '/api/confirm-email');
-  // Token email (the signer's post) and its access link.
+  // The owner adds the Google account to the Play test list (PLAY_GATE=on), then the signer posts a token:
+  // the invitation carries the download link, the token email carries no link at all.
+  const adminPost = async (action, payload) => {
+    const b = JSON.stringify(payload);
+    const hh = signRequest({ keyId: 'admin', secret: env.ADMIN_AUTH_SECRET, method: 'POST', path: '/api/admin/' + action, body: b, now: clock.now() });
+    return call('POST', '/api/admin/' + action, { headers: { ...hh, 'content-type': 'application/json' }, body: b });
+  };
+  ok('email', 'play-mark-added (admin)', (await adminPost('play-mark-added', { googleEmails: ['lin.kay@gmail.com'] })).status === 200);
   const s = await repo.getSignupByEmail('links@example.com');
   const body = JSON.stringify({ signupId: s && s.id, token: 'SIDEKICK-TRIAL-1.' + crypto.randomBytes(60).toString('base64url') + '.' + crypto.randomBytes(64).toString('base64url') });
   const h = signRequest({ keyId: 'signer', secret: env.ADMIN_AUTH_SIGNER_SECRET, method: 'POST', path: '/api/admin/token', body, now: clock.now() });
   const tr = await call('POST', '/api/admin/token', { headers: { ...h, 'content-type': 'application/json' }, body });
   ok('email', 'signer stores a token (fake)', tr.status === 200, `HTTP ${tr.status}`);
   const tokenMail = mails().find(m => m.kind === 'token');
-  const accessUrl = urlsIn(tokenMail ? tokenMail.text : '').find(x => x.includes('/api/access'));
-  ok('email', 'token email has an access link', accessUrl);
+  ok('email', 'token email has no link at all', tokenMail && urlsIn(tokenMail.text).length === 0);
+  const inviteMail = mails().find(m => m.kind === 'invite');
+  const accessUrl = urlsIn(inviteMail ? inviteMail.text : '').find(x => x.includes('/api/access'));
+  ok('email', 'invitation has an access link (github/r2 storage)', accessUrl);
   if (accessUrl) await walk('access', accessUrl, '/api/access');
+  // An update to people who confirmed updates; its one-use unsubscribe link.
+  ok('email', 'announce (admin)', (await adminPost('announce', { subject: 'Links check', body: 'Hello.' })).status === 200);
+  const unsubUrl = urlsIn((mails().find(m => m.kind === 'announce') || { text: '' }).text).find(x => x.includes('/api/unsubscribe'));
+  ok('email', 'update email has an unsubscribe link', unsubUrl);
+  if (unsubUrl) await walk('unsubscribe', unsubUrl, '/api/unsubscribe');
   await call('POST', '/api/roadmap-notify', { headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'links@example.com', featureId: roadmap.ids[0], captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
   const notifyUrl = urlsIn((mails().find(m => m.kind === 'notify') || { text: '' }).text)[0];
   ok('email', 'notify email has a link', notifyUrl);
   if (notifyUrl) await walk('confirm?for=notify', notifyUrl, '/api/confirm-email');
-  for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/'), x.replace(/#t=.*/, '#t=…'));
+  // Every link in our emails is ours, except the Play test link from releases.json in the invitation.
+  for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/') || (m.kind === 'invite' && x === releases.android.playTestUrl), x.replace(/#t=.*/, '#t=…'));
   } // end automated-only sections 2 and 3
 
   // ── 4. the unlisted Beta page ─────────────────────────────────────────────

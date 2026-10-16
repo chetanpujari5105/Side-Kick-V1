@@ -48,6 +48,13 @@ export class GitHubReleaseStorage {
   }
 }
 
+// No file host of our own: the "download" is the unlisted Beta page (Drive folder, SHA-256, install steps, Play
+// link). The Drive folder is public to anyone with its link; what controls use of the app is the token.
+export class StaticLinkStorage {
+  constructor({ url }) { this.url = url; }
+  async signedUrl() { return { url: this.url, expiresAt: null }; }
+}
+
 // AWS Signature V4 query-string presigning (the scheme R2 uses: developers.cloudflare.com/r2/api/s3/presigned-urls).
 const enc = (s) => encodeURIComponent(s).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
 export function presignV4({ host, path, accessKeyId, secretAccessKey, region, expires, now, service = 's3' }) {

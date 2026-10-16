@@ -134,6 +134,8 @@ Project › Settings › Environment Variables. Mark every **secret** one as **S
 | `BETA_CAP` | no | `25` (default) | `25` | starting cap; `admin settings --cap` overrides it |
 | `RETENTION_SIGNUP_DAYS` | no | `365` (default) | | |
 | `RATE_LIMIT_SIGNUP_IP` etc. | no | optional, `N/seconds` | | defaults in `server/config.mjs` |
+| `STORAGE_PROVIDER=static` | no | `static` (2026-10-16) | `static` | The download is the Beta page: no GitHub or R2 needed. `BETA_PAGE_URL` is optional (default `APP_ORIGIN/Beta.dc.html`) |
+| `PLAY_GATE` | no | `on` (default) | `on` | No token and no invitation until `admin play-mark-added`. `off` brings back the old flow |
 
 If anything required is missing, every API call answers `503 MISCONFIGURED` and the function log names the
 missing variables (names only). `GET /api/health` shows `{"ok":true}` when all is set. Total size is far under
@@ -143,6 +145,10 @@ Project settings: **Framework Preset: Other**. Build, install and output come fr
 (`node scripts/build-site.mjs`, `npm ci --omit=dev`, `dist`). Node 22 or later.
 
 ## 5. Create the tables (once per database)
+
+**2026-10-16:** with the Neon integration, `DATABASE_URL` is Sensitive and can't be read back. Run
+`node tools/admin/admin.mjs migrate` instead: schema v1 and v2 run inside the Vercel function, and it is safe to
+run twice. For a local string in a mode-600 file: `node scripts/migrate.mjs --url-file <file>`.
 
 On your Mac, from the repo, without leaving the URL in your shell history:
 ```sh

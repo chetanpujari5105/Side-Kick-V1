@@ -149,7 +149,7 @@ test('open redirect: no endpoint redirects to anything taken from the request', 
     ['GET', '/api/download/mac/arm64?next=https://evil.example', { headers: { accept: 'text/html' } }],
     ['GET', '/api/download/mac/arm64?url=//evil.example', { headers: { accept: 'text/html' } }],
     ['POST', '/api/access?next=https://evil.example', { form: { t: 'x', next: 'https://evil.example', 'cf-turnstile-response': CAP }, headers: { accept: 'text/html', origin: ORIGIN } }],
-    ['POST', '/api/get-sidekick?redirect=https://evil.example', { form: { name: 'A', email: 'a@example.com', macChip: 'apple', phoneModel: 'P', privacyAccepted: 'on', 'cf-turnstile-response': CAP, redirect: 'https://evil.example' }, headers: { accept: 'text/html', origin: ORIGIN, host: 'evil.example' } }]
+    ['POST', '/api/get-sidekick?redirect=https://evil.example', { form: { name: 'A', email: 'a@example.com', macChip: 'apple', phoneModel: 'P', googleEmail: 'a@gmail.com', privacyAccepted: 'on', 'cf-turnstile-response': CAP, redirect: 'https://evil.example' }, headers: { accept: 'text/html', origin: ORIGIN, host: 'evil.example' } }]
   ];
   for (const [m, p, o] of probes) {
     const r = await h.call(m, p, o);

@@ -130,8 +130,14 @@ a:hover{color:#3A22B8;}
       <div style="display:flex;flex-direction:column;gap:8px;">
         <label for="f-phone" style="font-size:15px;font-weight:600;">Android phone model</label>
         <input id="f-phone" name="phoneModel" type="text" autoComplete="off" value="{{ v.phone }}" onChange="{{ on.phone }}" onBlur="{{ blur.phone }}" disabled="{{ busyBool }}" aria-invalid="{{ inv.phone }}" aria-describedby="{{ desc.phone }}" style="height:54px;padding:0 16px;border-radius:14px;border:1.5px solid {{ bd.phone }};background:{{ bg.phone }};font:400 17px Inter,sans-serif;color:#17142E;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;">
-        <span id="h-phone" style="font-size:14.5px;color:#55526B;">Settings › About phone shows the model name.</span>
+        <span id="h-phone" style="font-size:14.5px;color:#55526B;">The model name, like Pixel 8 or Galaxy S23 — not your phone number. Settings › About phone shows it.</span>
         <sc-if value="{{ e.phone }}"><span id="e-phone" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.phone }}</span></sc-if>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label for="f-google" style="font-size:15px;font-weight:600;">Google account email for Google Play</label>
+        <input id="f-google" name="googleEmail" type="email" autoComplete="off" inputMode="email" value="{{ v.google }}" onChange="{{ on.google }}" onBlur="{{ blur.google }}" disabled="{{ busyBool }}" aria-invalid="{{ inv.google }}" aria-describedby="{{ desc.google }}" style="height:54px;padding:0 16px;border-radius:14px;border:1.5px solid {{ bd.google }};background:{{ bg.google }};font:400 17px Inter,sans-serif;color:#17142E;box-sizing:border-box;width:100%;" style-focus="outline:none;border-color:#5B3DF5;box-shadow:0 0 0 4px #E8E2FF;">
+        <span id="h-google" style="font-size:14.5px;color:#55526B;">The account your phone's Play Store uses. We add it to Sidekick's Google Play test list so you can install the Android app.</span>
+        <sc-if value="{{ e.google }}"><span id="e-google" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.google }}</span></sc-if>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:12px;padding-top:4px;">
@@ -175,7 +181,7 @@ a:hover{color:#3A22B8;}
 <script type="text/x-dc" data-dc-script data-props="{&quot;mockOutcome&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;success&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;invalid&quot;],&quot;default&quot;:&quot;success&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Mock API&quot;},&quot;previewState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;live&quot;,&quot;empty&quot;,&quot;focus&quot;,&quot;errors&quot;,&quot;submitting&quot;,&quot;server_error&quot;,&quot;rate_limited&quot;,&quot;success&quot;],&quot;default&quot;:&quot;live&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Design review&quot;},&quot;showReview&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Design review&quot;}}">
 class Component extends DCLogic {
   state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440,
-    v: { name: '', email: '', chip: '', phone: '', privacy: false, updates: false },
+    v: { name: '', email: '', chip: '', phone: '', google: '', privacy: false, updates: false },
     touched: {}, submitted: false, status: 'idle', serverErr: {}, review: 'live' };
   spinRef = React.createRef();
   botRef = React.createRef();
@@ -204,14 +210,18 @@ class Component extends DCLogic {
     if (!v.email.trim()) e.email = 'Enter your email address.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) e.email = 'Enter an email address like name@example.com.';
     if (!v.chip) e.chip = "Choose your Mac's chip, or Not sure.";
+    const phoneLike = (s) => { const d = (s.match(/\d/g) || []).length, l = (s.match(/\p{L}/gu) || []).length; return d > 0 && ((l === 0 && /^[\d\s+().\/-]+$/.test(s)) || (d >= 7 && l <= 1)); };
     if (!v.phone.trim()) e.phone = 'Enter your phone model, for example the name in Settings › About phone.';
+    else if (phoneLike(v.phone.trim())) e.phone = 'Enter the phone\'s model name, for example Pixel 8, not its number.';
+    if (!v.google.trim()) e.google = 'Enter the Google account email your phone uses for Google Play.';
+    else if (!/^[A-Za-z0-9][^\s@]*@[^\s@]+\.[^\s@]+$/.test(v.google.trim())) e.google = 'Enter a Google account email like name@gmail.com.';
     if (!v.privacy) e.privacy = "Confirm you've read the Privacy Policy to continue.";
     return e;
   }
   applyReview(r) {
     clearTimeout(this.redir);
-    const filled = { name: 'Alex Rivera', email: 'alex@example.com', chip: 'apple', phone: 'Pixel 8', privacy: true, updates: false };
-    const empty = { name: '', email: '', chip: '', phone: '', privacy: false, updates: false };
+    const filled = { name: 'Alex Rivera', email: 'alex@example.com', chip: 'apple', phone: 'Pixel 8', google: 'alex.rivera@gmail.com', privacy: true, updates: false };
+    const empty = { name: '', email: '', chip: '', phone: '', google: '', privacy: false, updates: false };
     const map = {
       live: { v: empty, touched: {}, submitted: false, status: 'idle', serverErr: {} },
       empty: { v: empty, touched: {}, submitted: false, status: 'idle', serverErr: {} },
@@ -237,14 +247,14 @@ class Component extends DCLogic {
     this.setState({ submitted: true, status: 'submitting', serverErr: {} });
     const v = this.state.v;
     try {
-      const r = await window.SK_API.getSidekick({ name: v.name.trim(), email: v.email.trim(), macChip: v.chip, phoneModel: v.phone.trim(), privacyAccepted: v.privacy, marketingOptIn: v.updates, captchaToken });
+      const r = await window.SK_API.getSidekick({ name: v.name.trim(), email: v.email.trim(), macChip: v.chip, phoneModel: v.phone.trim(), googleEmail: v.google.trim(), privacyAccepted: v.privacy, marketingOptIn: v.updates, captchaToken });
       if (window.SK_BOT) window.SK_BOT.reset(this.bot);
       if (r && r.ok && r.status === 200) {
         this.setState({ status: 'success' });
         this.redir = setTimeout(() => { window.location.href = 'Download.dc.html'; }, 1200);
       } else if (r && r.status === 429) this.setState({ status: 'rate_limited' });
       else if (r && r.status === 403) this.setState({ status: 'bot_failed' });
-      else if (r && r.status === 400 && r.fieldErrors) { const m = { macChip: 'chip', phoneModel: 'phone', privacyAccepted: 'privacy' }; const se = {}; for (const k in r.fieldErrors) se[m[k] || k] = r.fieldErrors[k]; this.setState({ status: 'idle', serverErr: se }); }
+      else if (r && r.status === 400 && r.fieldErrors) { const m = { macChip: 'chip', phoneModel: 'phone', googleEmail: 'google', privacyAccepted: 'privacy' }; const se = {}; for (const k in r.fieldErrors) se[m[k] || k] = r.fieldErrors[k]; this.setState({ status: 'idle', serverErr: se }); }
       else this.setState({ status: 'server_error' });
     } catch (err) { this.setState({ status: 'server_error' }); }
   }
@@ -253,27 +263,27 @@ class Component extends DCLogic {
     const wide = this.state.w >= 1000;
     const all = { ...this.validate(v), ...serverErr };
     const show = k => (submitted || touched[k]) ? (all[k] || '') : '';
-    const e = { name: show('name'), email: show('email'), chip: show('chip'), phone: show('phone'), privacy: show('privacy') };
-    const keys = ['name','email','chip','phone','privacy'];
+    const e = { name: show('name'), email: show('email'), chip: show('chip'), phone: show('phone'), google: show('google'), privacy: show('privacy') };
+    const keys = ['name','email','chip','phone','google','privacy'];
     const set = k => ev => { const val = ev.target.type === 'checkbox' ? ev.target.checked : ev.target.value; this.setState(s => ({ v: { ...s.v, [k]: val }, serverErr: { ...s.serverErr, [k]: undefined } })); };
     const busy = status === 'submitting';
     const mocks = !!(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled);
     const success = !mocks && (status === 'success' || status === 'success_preview');
     const tokenReq = !window.SK_CONFIG || window.SK_CONFIG.tokenRequired;
-    const ids = { name: 'f-name', email: 'f-email', chip: 'f-chip', phone: 'f-phone', privacy: 'f-privacy' };
+    const ids = { name: 'f-name', email: 'f-email', chip: 'f-chip', phone: 'f-phone', google: 'f-google', privacy: 'f-privacy' };
     const summary = submitted && status === 'idle' ? keys.filter(k => e[k]).map(k => ({ msg: e[k], href: '#' + ids[k], go: (ev) => { ev.preventDefault(); const el = document.getElementById(ids[k]); if (el) { (el.querySelector && el.querySelector('input') || el).focus(); } } })) : [];
     const chipOpts = [['apple','Apple silicon'],['unsure','Not sure']];
     const review = ['empty','focus','errors','submitting','server_error','rate_limited','success'];
     return {
       cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',
       reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', tokenReq ? (mocks ? 'Your beta token comes from the person who invited you. They send it to you privately.' : 'Your beta token arrives by email once you\'re in.') : 'Updates only if you tick the box and confirm by email.'],
-      intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.' : 'Tell us who you are and which Mac you have. Then confirm your email, and once you\'re in we email your beta token and a link to your downloads.',
-      purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : 'Five short questions, then check your email.',
+      intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.' : 'Tell us who you are, which Mac you have and the Google account your phone uses. Then confirm your email. Once you\'re in and we\'ve added that Google account to the Google Play test list, we email your invitation and, separately, your beta token. We do this ourselves, so it can take up to a day.',
+      purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : 'Six short questions, then check your email.',
       purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to run the beta and know which builds people need. Ask us any time and we\'ll delete them.',
-      v, on: { name: set('name'), email: set('email'), phone: set('phone'), privacy: set('privacy'), updates: set('updates') },
-      blur: Object.fromEntries(['name','email','phone'].map(k => [k, () => this.setState(s => ({ touched: { ...s.touched, [k]: true } }))])),
+      v, on: { name: set('name'), email: set('email'), phone: set('phone'), google: set('google'), privacy: set('privacy'), updates: set('updates') },
+      blur: Object.fromEntries(['name','email','phone','google'].map(k => [k, () => this.setState(s => ({ touched: { ...s.touched, [k]: true } }))])),
       e, inv: Object.fromEntries(keys.map(k => [k, e[k] ? 'true' : 'false'])),
-      desc: { name: e.name ? 'e-name' : undefined, email: e.email ? 'e-email' : undefined, chip: e.chip ? 'h-chip e-chip' : 'h-chip', phone: e.phone ? 'h-phone e-phone' : 'h-phone', privacy: e.privacy ? 'e-privacy' : undefined },
+      desc: { name: e.name ? 'e-name' : undefined, email: e.email ? 'e-email' : undefined, chip: e.chip ? 'h-chip e-chip' : 'h-chip', phone: e.phone ? 'h-phone e-phone' : 'h-phone', google: e.google ? 'h-google e-google' : 'h-google', privacy: e.privacy ? 'e-privacy' : undefined },
       bd: Object.fromEntries(keys.map(k => [k, e[k] ? '#D9432F' : 'rgba(23,20,46,0.22)'])),
       bg: Object.fromEntries(keys.map(k => [k, e[k] ? '#FFF8F6' : '#FFFFFF'])),
       chips: chipOpts.map(([value, label]) => ({ value, label, checked: v.chip === value,

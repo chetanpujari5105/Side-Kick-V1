@@ -31,7 +31,7 @@ const linkFor = (to, p) => { const m = repo.debugOutbox().filter(x => x.toEmail 
 const rows = [];
 const step = (name, ok, note = '') => rows.push([ok ? 'PASS' : 'FAIL', name, note]);
 const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
-const person = (name, email) => ({ name, email, macChip: 'apple', phoneModel: 'Pixel 8', privacyAccepted: true, marketingOptIn: false, captchaToken: CAP });
+const person = (name, email) => ({ name, email, macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: email.split('@')[0] + '.play@gmail.com', privacyAccepted: true, marketingOptIn: email.startsWith('asha'), captchaToken: CAP });
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-demo-'));
 try {
@@ -64,14 +64,24 @@ try {
   const cfg = { ...loadSignerConfig({}), issuer: path.join(ROOT, 'test/fixtures/fake-issuer.mjs'), keyFile, tokensDir: path.join(tmp, 'tokens') };
   const post = makeClient({ base: O, keyId: 'signer', secret: env.ADMIN_AUTH_SIGNER_SECRET, fetch: (u, o) => app.fetch(new Request(u, o)), now: () => clock.now() });
   const inbox = [];
-  const res = await runCycle({ cfg, post, mail: async (m) => inbox.push(m), log: () => {} });
+  const admin = makeClient({ base: O, keyId: 'admin', secret: env.ADMIN_AUTH_SECRET, fetch: (u, o) => app.fetch(new Request(u, o)), now: () => clock.now() });
+  let res = await runCycle({ cfg, post, mail: async (m) => inbox.push(m), log: () => {} });
+  step('Play gate: approved is not enough for a token', res.issued === 0 && !inbox.some(m => m.kind === 'token' || m.kind === 'invite'), JSON.stringify(res));
+  const pp = await admin('play-pending');
+  step('play-pending: the two approved Google accounts, one per line', pp.csv === 'asha.play@gmail.com\nben.play@gmail.com\n', pp.csv.trim().split('\n').join(', '));
+  const mk = await admin('play-mark-added', { googleEmails: pp.csv.trim().split('\n') });
+  step('play-mark-added (after adding them in Play Console)', mk.marked === 2, `${mk.marked} marked`);
+  res = await runCycle({ cfg, post, mail: async (m) => inbox.push(m), log: () => {} });
   step('signer: tokens issued and posted', res.issued === 2 && res.posted === 2, JSON.stringify(res));
+  const invite = inbox.find(m => m.kind === 'invite' && m.to === 'asha@example.com');
+  step('invitation: Play link, checksum and install steps, no token', invite && invite.text.includes(releases.android.playTestUrl) && invite.text.includes(releases.mac.builds.arm64.sha256) && !invite.text.includes('SIDEKICK-TRIAL-1.'));
   const tokenMail = inbox.find(m => m.kind === 'token' && m.to === 'asha@example.com');
   const tok = tokenMail.text.match(/SIDEKICK-TRIAL-1\.\S+/)[0];
   step('token email carries a token that verifies (throwaway key)', crypto.verify(null, Buffer.from(tok.split('.')[1]), publicKey, Buffer.from(tok.split('.')[2], 'base64url')));
   step('waitlist email sent, no token for the waitlisted person', inbox.some(m => m.kind === 'waitlist' && m.to === 'cleo@example.com') && !inbox.some(m => m.kind === 'token' && m.to === 'cleo@example.com'));
 
-  const at = tokenMail.text.match(/access#t=([A-Za-z0-9_-]+)/)[1];
+  step('token email: the token on its own line, no link', tokenMail.text.split('\n').includes(tok) && !/https?:/.test(tokenMail.text));
+  const at = invite.text.match(/access#t=([A-Za-z0-9_-]+)/)[1];
   r = await call('POST', '/api/access', { json: { t: at, captchaToken: CAP }, ip: '203.0.113.50' });
   const s = cookie(r);
   r = await call('GET', '/api/session', { cookie: s });
@@ -85,7 +95,19 @@ try {
   r = await call('GET', '/api/download/mac/x64', { cookie: s });
   step('no Intel build anywhere', r.status === 404);
 
-  const admin = makeClient({ base: O, keyId: 'admin', secret: env.ADMIN_AUTH_SECRET, fetch: (u, o) => app.fetch(new Request(u, o)), now: () => clock.now() });
+  // Updates: Asha asked for them; she confirms by email, then one announcement and its one-use unsubscribe link.
+  // (Sent emails are erased from the outbox, so the link comes from Asha's inbox.)
+  const ut = (inbox.filter(m => m.to === 'asha@example.com').map(m => m.text).join('\n').match(/for=updates#t=([A-Za-z0-9_-]{43})/) || [])[1];
+  await call('POST', '/api/confirm-email', { json: { t: ut, captchaToken: CAP }, ip: '203.0.113.51' });
+  const dry = await admin('announce', { subject: 'Sidekick 2.0.2', body: 'A new build.', dryRun: true });
+  step('announce --dry-run: counts only, opt-in and confirmed', dry.recipients === 1 && dry.queued === 0);
+  await admin('announce', { subject: 'Sidekick 2.0.2', body: 'A new build.' });
+  res = await runCycle({ cfg, post, mail: async (m) => inbox.push(m), log: () => {} });
+  const upd = inbox.find(m => m.kind === 'announce');
+  const unsub = upd && upd.text.match(/unsubscribe#t=([A-Za-z0-9_-]{43})/)[1];
+  r = await call('POST', '/api/unsubscribe', { json: { t: unsub }, ip: '203.0.113.52' });
+  const r2 = await call('POST', '/api/unsubscribe', { json: { t: unsub }, ip: '203.0.113.52' });
+  step('unsubscribe link: works once, then 410', upd && upd.to === 'asha@example.com' && r.status === 200 && r2.status === 410 && (await admin('announce', { subject: 'x', body: 'y', dryRun: true })).recipients === 0);
   await admin('settings', { betaCap: 3 });
   const pr = await admin('promote');
   step('cap raised → waitlisted person promoted', pr.promoted === 1 && (await repo.getSignupByEmail('cleo@example.com')).state === 'approved');
@@ -93,7 +115,7 @@ try {
   step('admin stats over HMAC', st.status === 200, `approved ${st.signups.approved}, delivered ${st.signups.delivered}, downloads ${st.downloads}`);
   const del = await admin('delete', { email: 'ben@example.com' });
   step('delete-my-data removes the person', del.deleted === 1 && !(await repo.getSignupByEmail('ben@example.com')));
-  const leaks = logs.filter(l => /@example\.com|SIDEKICK-TRIAL|198\.51\.100|203\.0\.113/.test(l));
+  const leaks = logs.filter(l => /@example\.com|@gmail\.com|SIDEKICK-TRIAL|198\.51\.100|203\.0\.113/.test(l));
   step('no email, token or IP in any log line', leaks.length === 0, `${logs.length} log lines checked`);
 } catch (e) {
   step('demo ran to the end', false, e.message);

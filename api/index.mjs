@@ -4,8 +4,9 @@ import { createApp } from '../server/app.mjs';
 import { loadConfig, adapterProblems } from '../server/config.mjs';
 import { createLogger } from '../server/log.mjs';
 import { PgRepo, neonDb } from '../server/repo-pg.mjs';
-import { TurnstileBotCheck, GitHubReleaseStorage, R2Storage, ResendMailer } from '../server/adapters.mjs';
+import { TurnstileBotCheck, GitHubReleaseStorage, R2Storage, StaticLinkStorage, ResendMailer } from '../server/adapters.mjs';
 import { systemClock } from '../server/fakes.mjs';
+import fs from 'node:fs';
 import releases from '../data/releases.json' with { type: 'json' };
 import roadmap from '../server/roadmap-ids.json' with { type: 'json' };
 
@@ -18,11 +19,14 @@ async function build() {
   const ok = config.problems.length === 0;
   const repo = ok ? new PgRepo(await neonDb(config.databaseUrl)) : null;
   const botCheck = ok ? new TurnstileBotCheck({ secret: config.turnstileSecret, hostname: config.turnstileHostname }) : null;
-  const storage = !ok ? null : config.storageProvider === 'r2'
+  const storage = !ok ? null : config.storageProvider === 'static' ? new StaticLinkStorage({ url: config.betaPageUrl })
+    : config.storageProvider === 'r2'
     ? new R2Storage({ ...config.r2, ttl: config.downloadTtl, clock: systemClock })
     : new GitHubReleaseStorage({ token: config.github.token, repo: config.github.repo, tag: config.github.tag });
   const mailer = ok && config.emailProvider === 'resend' ? new ResendMailer({ apiKey: config.resend.apiKey, from: config.resend.from }) : null;
-  return createApp({ config, repo, botCheck, storage, mailer, clock: systemClock, log, releases, roadmapIds: roadmap.ids });
+  // vercel.json includes server/*.sql with this function (functions › includeFiles) for admin migrate.
+  const schemas = ['schema.sql', 'schema-v2.sql'].map(f => fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
+  return createApp({ config, repo, botCheck, storage, mailer, clock: systemClock, log, releases, roadmapIds: roadmap.ids, schemas });
 }
 
 export default {

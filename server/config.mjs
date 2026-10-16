@@ -19,6 +19,11 @@ function limits(env) {
   return out;
 }
 
+// Cloudflare's documented test keys (developers.cloudflare.com/turnstile/troubleshooting/testing, read 2026-10-15):
+// they pass (or fail) for any domain and Cloudflare's sample answer names "localhost" as the hostname. Allowed for
+// Preview testing only; a Production deployment (VERCEL_ENV=production) refuses them.
+export const TURNSTILE_TEST_KEY = /^[123]x0{20,}[A-Z]{2}$/;
+
 export function loadConfig(env = process.env) {
   const problems = [];
   const need = (name, test = (v) => !!v) => { if (!test(env[name])) problems.push(name); return env[name]; };
@@ -26,7 +31,16 @@ export function loadConfig(env = process.env) {
   const sessionSecret = need('SESSION_SECRET', v => typeof v === 'string' && v.length >= 32);
   const storageProvider = (env.STORAGE_PROVIDER || 'github').toLowerCase();
   const emailProvider = (env.EMAIL_PROVIDER || 'outbox').toLowerCase();
-  if (!['github', 'r2'].includes(storageProvider)) problems.push('STORAGE_PROVIDER');
+  if (!['github', 'r2', 'static'].includes(storageProvider)) problems.push('STORAGE_PROVIDER');
+  // static: no file host of our own. The invitation and the download button point at the unlisted Beta page.
+  const betaPageUrl = env.BETA_PAGE_URL || (typeof appOrigin === 'string' ? appOrigin + '/Beta.dc.html' : null);
+  if (env.BETA_PAGE_URL !== undefined && !/^https:\/\/[A-Za-z0-9.-]+(\/[A-Za-z0-9._~%\/-]*)?$/.test(env.BETA_PAGE_URL)) problems.push('BETA_PAGE_URL');
+  // PLAY_GATE (default on): no token and no invitation until the owner has added the person's Google account to
+  // the Play test list (admin play-mark-added).
+  const turnstileTest = TURNSTILE_TEST_KEY.test(env.TURNSTILE_SECRET || '') || TURNSTILE_TEST_KEY.test(env.TURNSTILE_SITE_KEY || '');
+  if (turnstileTest && env.VERCEL_ENV === 'production') problems.push(TURNSTILE_TEST_KEY.test(env.TURNSTILE_SECRET || '') ? 'TURNSTILE_SECRET' : 'TURNSTILE_SITE_KEY');
+  const playGate = env.PLAY_GATE === undefined || env.PLAY_GATE === '' || env.PLAY_GATE === 'on';
+  if (!playGate && env.PLAY_GATE !== 'off') problems.push('PLAY_GATE');
   if (!['outbox', 'resend'].includes(emailProvider)) problems.push('EMAIL_PROVIDER');
   const cfg = {
     appOrigin,
@@ -35,8 +49,12 @@ export function loadConfig(env = process.env) {
     databaseUrl: env.DATABASE_URL,
     turnstileSecret: env.TURNSTILE_SECRET,
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
-    turnstileHostname: typeof appOrigin === 'string' ? appOrigin.replace(/^https?:\/\//, '').replace(/:\d+$/, '') : null,
+    // With a test secret Cloudflare reports a stand-in hostname, so the hostname check is skipped (Preview only).
+    turnstileHostname: typeof appOrigin === 'string' && !turnstileTest ? appOrigin.replace(/^https?:\/\//, '').replace(/:\d+$/, '') : null,
+    turnstileTest,
     storageProvider,
+    betaPageUrl,
+    playGate,
     github: { token: env.GITHUB_RELEASES_TOKEN, repo: env.GITHUB_RELEASES_REPO, tag: env.GITHUB_RELEASE_TAG || null },
     r2: { accountId: env.R2_ACCOUNT_ID, accessKeyId: env.R2_ACCESS_KEY_ID, secretAccessKey: env.R2_SECRET_ACCESS_KEY, bucket: env.R2_BUCKET },
     downloadTtl: Math.min(Math.max(Number(env.DOWNLOAD_URL_TTL) || 600, 60), 3600),
@@ -59,7 +77,8 @@ export function adapterProblems(cfg) {
   if (!cfg.databaseUrl) p.push('DATABASE_URL');
   if (!cfg.turnstileSecret) p.push('TURNSTILE_SECRET');
   if (!cfg.turnstileSiteKey || cfg.turnstileSiteKey === 'local-dev-fake') p.push('TURNSTILE_SITE_KEY');
-  if (cfg.storageProvider === 'github') {
+  if (cfg.storageProvider === 'static') { /* nothing to check: the Beta page needs no secret */ }
+  else if (cfg.storageProvider === 'github') {
     if (!cfg.github.token) p.push('GITHUB_RELEASES_TOKEN');
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(cfg.github.repo || '')) p.push('GITHUB_RELEASES_REPO');
   } else {

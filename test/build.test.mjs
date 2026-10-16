@@ -90,3 +90,14 @@ test('site-modes: the manual guard names each leak; regions strip by mode and ma
   assert.deepEqual(resolveMode({ SITE_MODE: 'automated' }), { mode: 'automated', defaulted: false });
   assert.throws(() => resolveMode({ SITE_MODE: 'Automated' }), /SITE_MODE/);
 });
+
+test('timing copy reaches the built sites: automated says up to a day, manual keeps its own words', () => {
+  let r = build({ VERCEL: '1', SITE_MODE: 'automated', TURNSTILE_SITE_KEY: '0x4AAAAAAAtestsitekeyonly' });
+  assert.equal(r.status, 0, r.stderr);
+  for (const f of ['check-email.html', 'Download.dc.html']) assert.match(fs.readFileSync(path.join(DIST, f), 'utf8'), /can take up to a day to arrive/, f);
+  r = build({ VERCEL: '1', SITE_MODE: 'manual' });
+  assert.equal(r.status, 0, r.stderr);
+  for (const [f, t] of distText()) assert.ok(!/up to a day|within a day of confirming|not your phone number/.test(t), `manual ${f} changed`);
+  assert.match(fs.readFileSync(path.join(DIST, 'Download.dc.html'), 'utf8'), /Wait for our reply\.<\/strong> We read each request ourselves/);
+  restoreLocal();
+});

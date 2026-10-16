@@ -21,13 +21,15 @@ export function setup(over = {}) {
     ADMIN_AUTH_SIGNER_SECRET: throwaway(),
     CRON_SECRET: throwaway(16),
     BETA_CAP: '25',
+    // The older flow tests exercise the ungated path; test/automated.test.mjs covers the default (PLAY_GATE=on).
+    PLAY_GATE: 'off',
     ...over.env
   };
   const config = loadConfig(env);
   const clock = new FakeClock(T0);
   const repo = over.repo || new MemoryRepo();
   const botCheck = new FakeBotCheck();
-  const storage = new FakeStorage(clock, config.downloadTtl);
+  const storage = over.storage || new FakeStorage(clock, config.downloadTtl);
   const mailer = over.mailer === undefined ? null : over.mailer;
   const logs = [];
   const log = createLogger(line => logs.push(line));
@@ -56,7 +58,7 @@ export function setup(over = {}) {
     return call('POST', path, { raw: tamper ? body.replace('}', ',"x":1}') : body, headers: { ...h, 'content-type': 'application/json' } });
   }
 
-  const signupBody = (o = {}) => ({ name: 'Alex Rivera', email: 'alex@example.com', macChip: 'apple', phoneModel: 'Pixel 8',
+  const signupBody = (o = {}) => ({ name: 'Alex Rivera', email: 'alex@example.com', macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'alex.rivera@gmail.com',
     privacyAccepted: true, marketingOptIn: false, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX', ...o });
 
   const signup = (o = {}, opts = {}) => call('POST', '/api/get-sidekick', { json: signupBody(o), headers: { origin: ORIGIN }, ...opts });

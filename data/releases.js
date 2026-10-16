@@ -12,7 +12,15 @@ window.SK_RELEASES = {
         "bytes": 121668061,
         "sha256": "a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284"
       }
-    }
+    },
+    "installSteps": [
+      "Open Sidekick-2.0.1-arm64.dmg and drag Sidekick into Applications.",
+      "Open Sidekick from Applications. macOS says it could not verify the app, because this beta isn't notarized by Apple yet. Choose Done.",
+      "Open System Settings › Privacy & Security, scroll to the message about Sidekick, click Open Anyway and enter your Mac password, then click Open Anyway again in the dialog that follows. You only do this once. Never turn off Gatekeeper: nothing here needs it.",
+      "Sidekick shows a short note that macOS may ask for your Mac password. Click Continue. If macOS then asks to use “Sidekick Safe Storage” in your keychain, enter your password and click Always Allow. That is where Sidekick keeps the key your phone knows this Mac by.",
+      "Sidekick asks for your beta token. Copy it and press Paste token, or press Open token file… and choose the file ending in .sidekick-token.",
+      "If macOS asks whether Sidekick may find devices on your local network, click Allow. Sidekick then shows a code for your phone to scan."
+    ]
   },
   "android": {
     "minOS": "Android 10 or later",

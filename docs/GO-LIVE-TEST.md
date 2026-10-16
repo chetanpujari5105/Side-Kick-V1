@@ -125,3 +125,23 @@ there either.)
 
 If any step fails: note the step number, the exact page text, and the matching log lines (event names only).
 Nothing in this test needs a password, card or key typed into a web page other than your own accounts.
+
+---
+
+## 2026-10-16 additions: Play gate, invitation, updates
+
+On a protected Preview, pass `SK_VERCEL_BYPASS_FILE=<file with the Protection Bypass for Automation secret>` to the
+signer and admin CLI, and use `SK_SIGNER_SECRET_FILE` / `SK_ADMIN_SECRET_FILE` (mode 600) instead of pasting
+secrets. For a first run, use the stand-in issuer: `SK_ISSUER=$PWD/test/fixtures/fake-issuer.mjs` plus a
+throwaway key in `SK_KEY_FILE`.
+
+| # | Do | Expect | ✓ |
+|---|---|---|---|
+| A.1 | The form has **Google account email for Google Play**. Leave it empty and send | "Enter the Google account email your phone uses for Google Play." | ☐ |
+| A.2 | After confirming, `signer --once` | `"issued":0`: no token and no invitation before play-added | ☐ |
+| A.3 | `admin play-pending --out play.csv` | Your Google account, plus a line to paste into Play Console's "Add email addresses" box | ☐ |
+| A.4 | Add it in Play Console, then `admin play-mark-added --file play.csv` | `marked: 1` | ☐ |
+| A.5 | `signer --once` | `"issued":1,"mailed":2`: "Your Sidekick beta invitation" (Beta page, SHA-256, install steps, Play link) and "Your Sidekick beta token" (the token alone on its own line, no link) | ☐ |
+| A.6 | `admin announce --subject … --body-file … --dry-run`, then without `--dry-run`, then `signer --once` | The counts only include people who confirmed updates. The update email has an unsubscribe link | ☐ |
+| A.7 | Open the unsubscribe link and press **Unsubscribe** | "Unsubscribed". The same link again: "Link already used" (410) | ☐ |
+| A.8 | `admin delete <you>` | Your row and everything linked to it are gone. Also take the address off the Play test list | ☐ |
