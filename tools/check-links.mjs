@@ -27,6 +27,7 @@ import { MemoryRepo } from '../server/repo-memory.mjs';
 import { FakeBotCheck, FakeStorage, FakeClock } from '../server/fakes.mjs';
 import { loadConfig } from '../server/config.mjs';
 import { MSG } from '../server/validate.mjs';
+import { emails } from '../server/emails.mjs';
 import { createLogger } from '../server/log.mjs';
 import { linkPage, messagePage, signupFormPage } from '../server/pages.mjs';
 import { signRequest } from '../server/crypto.mjs';
@@ -160,7 +161,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   await loc(await call('GET', '/api/download/mac/arm64', { headers: nav }), 'download without a session (browser)');
   const form = new URLSearchParams({ name: 'Lin Kay', email: 'links@example.com', macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'lin.kay@gmail.com', privacyAccepted: 'on', marketingOptIn: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' });
   await loc(await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), 'no-JS signup success');
-  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')));
+  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')) && fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8').includes('After you confirm, we add you to the Android test list and email your download links and token, up to a day later.'));
   form.set('phoneModel', '07700 900123');
   const pn = await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() });
   ok('server', 'no-JS signup with a phone number → 400 page with the plain message', pn.status === 400 && (await pn.text()).includes(MSG.phoneNumber.replace(/'/g, '&#39;')), `HTTP ${pn.status}`);
@@ -221,6 +222,11 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   if (notifyUrl) await walk('confirm?for=notify', notifyUrl, '/api/confirm-email');
   // Every link in our emails is ours, except the Play test link from releases.json in the invitation.
   for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/') || (m.kind === 'invite' && x === releases.android.playTestUrl), x.replace(/#t=.*/, '#t=…'));
+  // STORAGE_PROVIDER=static (Production): the invitation's outside links are exactly the Beta page, the Drive folder and
+  // the Play test link, all from release facts.
+  const staticInvite = emails.invite({ name: 'Lin Kay', macUrl: O + '/Beta.dc.html', macIsBetaPage: true, release: releases, googleEmail: 'lin.kay@gmail.com' }).text;
+  const staticLinks = [...new Set(urlsIn(staticInvite))].sort();
+  ok('email', 'invite (static storage): links are the Beta page, the Drive folder and the Play test link', JSON.stringify(staticLinks) === JSON.stringify([O + '/Beta.dc.html', releases.mac.betaDriveUrl, releases.android.playTestUrl].sort()), staticLinks.join(' '));
   } // end automated-only sections 2 and 3
 
   // ── 4. the unlisted Beta page ─────────────────────────────────────────────

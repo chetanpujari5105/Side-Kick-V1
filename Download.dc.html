@@ -32,6 +32,7 @@ a:hover{color:#3A22B8;}
   <section aria-labelledby="ce-h" style="display:flex;flex-direction:column;gap:24px;max-width:680px;min-height:52vh;justify-content:center;">
     <h1 id="ce-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">Check your <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">email</span></span>.</h1>
     <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">We sent a link to the address you gave, {{ name }}. Open it to confirm your email, and your download page opens. We send our emails ourselves, so they can take up to a day to arrive. Check your spam folder too.</p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">After you confirm, we add you to the Android test list and email your download links and token, up to a day later.</p>
     <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;">Nothing after a day? Fill in the form again with the same email and we'll send a new link.</p>
     <div style="display:flex;flex-wrap:wrap;gap:12px 28px;"><a href="Get Sidekick.dc.html" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Back to the form</a><a href="Support.dc.html#setup" style="min-height:44px;display:flex;align-items:center;font-size:17px;font-weight:600;color:#5B3DF5;text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:1.5px;">Read the setup guide</a></div>
   </section>
@@ -67,7 +68,7 @@ a:hover{color:#3A22B8;}
 <sc-if value="{{ valid }}" hint-placeholder-val="{{ true }}">
   <section aria-labelledby="dl-h" style="display:flex;flex-direction:column;gap:20px;max-width:900px;">
     <h1 id="dl-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(44px,5.6vw,80px);line-height:0.96;font-weight:800;letter-spacing:-0.045em;">You're <span style="position:relative;display:inline-block;"><span style="position:absolute;left:-0.04em;right:-0.06em;bottom:0.06em;height:0.3em;background:#C6FF33;border-radius:0.08em;transform:rotate(-1.5deg);"></span><span style="position:relative;">in</span></span>, {{ name }}.</h1>
-    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;">Here is the Mac app. Install it first, then the phone app, then pair them with one scan. <sc-if value="{{ noAndroid }}">The Android app isn't available yet.</sc-if></p>
+    <p style="margin:0;font-size:19px;line-height:1.55;color:#55526B;max-width:640px;">Here is the Mac app. Install it first, then the phone app, then pair them with one scan. <sc-if value="{{ noAndroid }}">The Android app is by invitation through Google Play testing: its link comes in your invitation email.</sc-if></p>
   </section>
 
   <div style="display:grid;grid-template-columns:{{ splitCols }};gap:20px;">
@@ -100,7 +101,7 @@ a:hover{color:#3A22B8;}
         <span aria-hidden="true" style="width:30px;height:50px;border-radius:8px;border:2px solid #17142E;box-sizing:border-box;display:block;background:#FFFFFF;"></span>
         <div style="display:flex;flex-direction:column;gap:2px;"><h2 id="and-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Android</h2><span style="font-size:15px;color:#55526B;">Sidekick for Android · Android 10 or later</span></div>
       </div>
-      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;"><sc-if value="{{ noAndroid }}">Not available yet. When it is, its Google Play link appears here.</sc-if><sc-if value="{{ androidStore }}">Install Sidekick on your phone from Google Play.</sc-if></p>
+      <p style="margin:0;font-size:15px;line-height:1.5;color:#55526B;"><sc-if value="{{ noAndroid }}">By invitation through Google Play testing. We add your Google account to Sidekick's test list, then email you the Google Play link with your invitation.</sc-if><sc-if value="{{ androidStore }}">Install Sidekick on your phone from Google Play.</sc-if></p>
       <sc-if value="{{ androidStore }}"><button type="button" onClick="{{ dlAndroid }}" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">open_in_new</span>{{ dlAndroidLabel }}</button></sc-if>
     </section>
   </div>
@@ -171,7 +172,7 @@ a:hover{color:#3A22B8;}
         <span style="width:44px;height:44px;border-radius:50%;background:#17142E;color:#F6F3EC;font:600 16px 'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center;">2</span>
         <h3 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:26px;line-height:1.05;font-weight:700;letter-spacing:-0.03em;">Install on your phone</h3>
         <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:16.5px;line-height:1.5;">
-          <sc-if value="{{ noAndroid }}"><li>The Android app isn't available yet. When it is, its Google Play link appears on this page.</li></sc-if>
+          <sc-if value="{{ noAndroid }}"><li>Install the Android app from the Google Play test link in your invitation email.</li></sc-if>
           <sc-if value="{{ androidStore }}"><li>Install Sidekick from Google Play with the button above.</li></sc-if>
         </ol>
       </li>

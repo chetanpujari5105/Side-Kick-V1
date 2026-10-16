@@ -159,6 +159,7 @@ try {
   txt = await a.text();
   check('after submit: Download page says check your email', (await a.eval('location.pathname')) === '/Download.dc.html' && txt.includes('Check your email') && txt.includes('Alex'), txt.replace(/\s+/g, ' ').slice(0, 400));
   check('check your email: says emails can take up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?') && !txt.includes('a few minutes'));
+  check('check your email: says what happens after confirming', txt.includes('After you confirm, we add you to the Android test list and email your download links and token, up to a day later.'));
   check('session cookie is HttpOnly (not readable by page script)', !(await a.eval('document.cookie')).includes('sk_session'));
   check('old sessionStorage mock session is ignored', !txt.includes('Mock'));
 
@@ -169,6 +170,7 @@ try {
   await a.eval(click('button[type=submit]')); await sleep(2500);
   txt = await a.text();
   check('after confirming: Download page with the Mac card, token on its way', txt.includes("You're") && txt.includes('Download for Apple silicon (.dmg)') && txt.includes('once it\'s ready'), (await a.eval('location.pathname')) + ' ' + txt.replace(/\s+/g, ' ').slice(0, 300));
+  check('Android card: by invitation through Google Play testing (no "not available")', txt.includes('By invitation through Google Play testing.') && !/Not available yet|isn.t available yet/.test(txt));
   const sha = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/releases.json'), 'utf8')).mac.builds.arm64.sha256;
   check('checksum is exactly releases.json\'s (placeholder while it is null)', sha ? txt.includes(sha) : txt.includes('The checksum appears here once the beta build is staged.'), sha ? sha.slice(0, 12) + '…' : 'null');
 
@@ -235,7 +237,7 @@ try {
   check('no-JS submit stored nothing', !dev.repo.debugAll('signups').some(s => s.email === 'sam@example.com'));
   await c.go(O + '/check-email.html');
   txt = await c.text();
-  check('no-JS landing page (check-email.html) says up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?'));
+  check('no-JS landing page (check-email.html) says up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?') && txt.includes('After you confirm, we add you to the Android test list and email your download links and token, up to a day later.'));
 
   // 6. Hygiene across all tabs.
   const all = [a, b, c].flatMap(t => t.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));

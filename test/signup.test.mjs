@@ -184,6 +184,9 @@ test('phone model: the page checks the same rule with the same message, and the 
 });
 
 // The owner sends the emails from his Mac (the signer), so the site says they can take up to a day (2026-10-16).
+// What happens after confirming, in the same words on the page, the no-JS landing page and the confirm email.
+const NEXT = 'After you confirm, we add you to the Android test list and email your download links and token, up to a day later.';
+
 test('timing copy: check-your-email and the invitation flow say emails can take up to a day', async () => {
   const fs = await import('node:fs');
   const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
@@ -192,6 +195,7 @@ test('timing copy: check-your-email and the invitation flow say emails can take 
     const t = read(f);
     assert.ok(t.includes(UP_TO_A_DAY), `${f}: up to a day`);
     assert.ok(t.includes('Nothing after a day?'), `${f}: Nothing after a day?`);
+    assert.ok(t.includes(NEXT), `${f}: what happens next`);
     for (const old of ['a few minutes', 'Nothing after an hour']) assert.ok(!t.includes(old), `${f}: still says ${old}`);
   }
   assert.ok(read('Get Sidekick.dc.html').includes('we email your invitation and, separately, your beta token. We do this ourselves, so it can take up to a day.'), 'Get Sidekick intro');
@@ -200,5 +204,5 @@ test('timing copy: check-your-email and the invitation flow say emails can take 
   for (const f of ['Download.dc.html', 'Support.dc.html', 'Get Sidekick.dc.html', 'check-email.html']) assert.ok(!/few hours/.test(read(f)), `${f}: few hours`);
   const { emails } = await import('../server/emails.mjs');
   const c = emails.confirm({ name: 'Alex', confirmUrl: 'https://x/c', updatesUrl: null }).text;
-  assert.match(c, /Once you've confirmed and we've added your Google account to the Google Play test list, we email your invitation and, separately, your beta token\. We send them ourselves, so this can take up to a day\./);
+  assert.ok(c.includes(NEXT), 'confirm email says what happens next');
 });
