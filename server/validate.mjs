@@ -5,6 +5,7 @@ export const MSG = {
   email: 'Enter an email address like name@example.com.',
   chip: "Choose your Mac's chip, or Not sure.",
   phone: 'Enter your phone model, for example the name in Settings › About phone.',
+  phoneNumber: "Enter the phone's model name, for example Pixel 8, not its number.",
   googleEmpty: 'Enter the Google account email your phone uses for Google Play.',
   google: 'Enter a Google account email like name@gmail.com.',
   privacy: "Confirm you've read the Privacy Policy to continue.",
@@ -28,6 +29,11 @@ export function normaliseEmail(v) {
   return s.toLowerCase();
 }
 
+// A phone number typed into "Android phone model": digits with phone punctuation only, or 7+ digits with at most one
+// letter. Real model codes (SM-G991B, CPH2449, 2201117TG) have more letters or fewer digits, so they pass.
+// Get Sidekick.dc.html's phoneLike is the same expression (test/signup.test.mjs compares them).
+export const looksLikePhoneNumber = (s) => { const d = (s.match(/\d/g) || []).length, l = (s.match(/\p{L}/gu) || []).length; return d > 0 && ((l === 0 && /^[\d\s+().\/-]+$/.test(s)) || (d >= 7 && l <= 1)); };
+
 const truthy = (v) => v === true || v === 'true' || v === 'on' || v === '1' || v === 'yes';
 
 export function validateSignup(body) {
@@ -44,6 +50,7 @@ export function validateSignup(body) {
   const rawPhone = typeof body.phoneModel === 'string' ? body.phoneModel : '';
   const phoneModel = cleanText(rawPhone, 200);
   if (!phoneModel || phoneModel.length > 120 || CONTROL.test(rawPhone.replace(/[\t ]/g, ''))) fieldErrors.phoneModel = MSG.phone;
+  else if (looksLikePhoneNumber(phoneModel)) fieldErrors.phoneModel = MSG.phoneNumber;
   // The Google account the owner adds to the Play test list. Same strict address rule as the email field.
   const rawGoogle = typeof body.googleEmail === 'string' ? body.googleEmail.trim() : '';
   const googleEmail = normaliseEmail(rawGoogle);

@@ -130,7 +130,7 @@ class Component extends DCLogic {
           { a: 'Transfers pause near the end', b: 'Usually Wi-Fi power saving. Once both devices see each other again, a file going to the phone picks up where it stopped; a file coming to the Mac starts again from the beginning.' },
           { a: "Can't see a file in Download", b: "Android doesn't let apps open the Download folder itself. Folders inside it can be shared; files sent from the Mac land in Download/ConnectSuite." },
           { a: "Phone clipboard doesn't reach the Mac", b: 'Copy on the phone while Sidekick is open on it. Android blocks background clipboard reads for every app.' }] }),
-        S('Beta token', { rows: [ { a: 'No beta token yet', b: invite ? 'Ask the person who invited you. They send it to you privately.' : 'It arrives by email once you\'re in, usually within a few hours of confirming your email. Check your spam folder, then write to us.' }, { a: 'Need to re-enter it', b: 'Settings › About in the Mac app.' }] })
+        S('Beta token', { rows: [ { a: 'No beta token yet', b: invite ? 'Ask the person who invited you. They send it to you privately.' : (/*AUTOMATED{*/ 'It arrives by email once you\'re in, within a day of confirming your email. Check your spam folder, then write to us.' ?? /*}AUTOMATED*/ null) }, { a: 'Need to re-enter it', b: 'Settings › About in the Mac app.' }] })
       ]},
       permissions: { label: 'Permissions', pre: 'What each ', mark: 'permission', post: ' is for.', intro: 'Each feature needs its own permission. Leave one off and only that feature stops working — the app says which one and why.', sections: [
         S('On the phone', { rows: [

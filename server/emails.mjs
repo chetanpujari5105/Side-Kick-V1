@@ -17,6 +17,7 @@ export const emails = {
     kind: 'confirm',
     subject: 'Confirm your email for the Sidekick beta',
     text: `Hi ${first(name)},\n\nConfirm your email to finish signing up for the Sidekick beta:\n${confirmUrl}\n\nThe link works for 48 hours.` +
+      `\n\nOnce you've confirmed and we've added your Google account to the Google Play test list, we email your invitation and, separately, your beta token. We send them ourselves, so this can take up to a day.` +
       (updatesUrl ? `\n\nYou also asked for Sidekick updates by email. We'll only send them if you confirm that too:\n${updatesUrl}` : '') +
       `\n\nIf you didn't sign up, ignore this email. Unconfirmed sign-ups are deleted after 7 days.${sign}`
   }),

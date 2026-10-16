@@ -141,3 +141,64 @@ test('no-JS form: success is a 303 redirect to a fixed page with the session coo
   assert.equal(r.headers.get('location'), '/check-email.html');
   assert.ok(cookieOf(r));
 });
+
+// "Android phone model" is the model name, not a phone number (owner, 2026-10-16). A number is digits with phone
+// punctuation only, or 7+ digits with at most one letter; real model codes like SM-G991B or 2201117TG still pass.
+const PHONE_NUMBERS = ['07700 900123', '+44 7700 900123', '(555) 123-4567', '555.123.4567', '8', '12345', '+91-98765-43210', '07700900123x', '+1 555 1234567 m'];
+const MODEL_NAMES = ['Pixel 8', 'Galaxy S23', 'SM-G991B', '2201117TG', '21091116AG', 'Redmi Note 11', 'OnePlus 12', 'CPH2449', 'Moto G 5G (2023)', 'Nothing Phone (2)'];
+
+test('phone model: phone numbers are refused with a plain message; model names (and model codes) pass', async () => {
+  const { looksLikePhoneNumber } = await import('../server/validate.mjs');
+  assert.equal(MSG.phoneNumber, "Enter the phone's model name, for example Pixel 8, not its number.");
+  for (const n of PHONE_NUMBERS) assert.equal(looksLikePhoneNumber(n), true, n);
+  for (const n of MODEL_NAMES) assert.equal(looksLikePhoneNumber(n), false, n);
+  const h = setup();
+  for (const n of PHONE_NUMBERS.slice(0, 3)) {
+    const r = await h.signup({ phoneModel: n });
+    assert.equal(r.status, 400, n);
+    assert.deepEqual((await r.json()).fieldErrors, { phoneModel: MSG.phoneNumber });
+  }
+  assert.equal(h.repo.debugCount('signups'), 0, 'nothing written');
+  assert.equal((await h.signup({ phoneModel: 'SM-G991B' })).status, 200);
+  assert.equal((await h.repo.getSignupByEmail('alex@example.com')).phoneModel, 'SM-G991B');
+});
+
+test('phone model: the page checks the same rule with the same message, and the hint asks for the model name', async () => {
+  const fs = await import('node:fs');
+  const { looksLikePhoneNumber } = await import('../server/validate.mjs');
+  const page = fs.readFileSync(new URL('../Get Sidekick.dc.html', import.meta.url), 'utf8');
+  const m = page.match(/const phoneLike = (\(s\) => [^\n]*?);\n/);
+  assert.ok(m, 'Get Sidekick.dc.html defines phoneLike');
+  const phoneLike = new Function(`return ${m[1]}`)();
+  for (const n of [...PHONE_NUMBERS, ...MODEL_NAMES, '', ' ']) assert.equal(phoneLike(n), looksLikePhoneNumber(n), n);
+  assert.ok(page.includes(MSG.phoneNumber.replace(/'/g, "\\'")), 'page uses the server message');
+  const HINT = 'The model name, like Pixel 8 or Galaxy S23 — not your phone number. Settings › About phone shows it.';
+  assert.ok(page.includes(HINT), 'page hint');
+  const { signupFormHtml } = await import('../server/pages.mjs');
+  assert.ok(signupFormHtml().includes(HINT), 'no-JS hint');
+  const r = await setup().call('POST', '/api/get-sidekick', { form: { name: 'Alex', email: 'alex@example.com', macChip: 'apple', phoneModel: '07700 900123', googleEmail: 'alex@gmail.com', privacyAccepted: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' }, headers: { origin: ORIGIN, accept: 'text/html' } });
+  assert.equal(r.status, 400);
+  const html = await r.text();
+  assert.ok(html.includes(MSG.phoneNumber.replace(/'/g, '&#39;')), 'no-JS error message');
+  assert.match(html, /aria-describedby="e-phoneModel h-phone"/);
+});
+
+// The owner sends the emails from his Mac (the signer), so the site says they can take up to a day (2026-10-16).
+test('timing copy: check-your-email and the invitation flow say emails can take up to a day', async () => {
+  const fs = await import('node:fs');
+  const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  const UP_TO_A_DAY = 'We send our emails ourselves, so they can take up to a day to arrive. Check your spam folder too.';
+  for (const f of ['check-email.html', 'Download.dc.html']) {
+    const t = read(f);
+    assert.ok(t.includes(UP_TO_A_DAY), `${f}: up to a day`);
+    assert.ok(t.includes('Nothing after a day?'), `${f}: Nothing after a day?`);
+    for (const old of ['a few minutes', 'Nothing after an hour']) assert.ok(!t.includes(old), `${f}: still says ${old}`);
+  }
+  assert.ok(read('Get Sidekick.dc.html').includes('we email your invitation and, separately, your beta token. We do this ourselves, so it can take up to a day.'), 'Get Sidekick intro');
+  assert.ok(read('Download.dc.html').includes("We email it to you once it\\'s ready, within a day. Nothing to do on the phone."), 'Download token line');
+  assert.ok(read('Support.dc.html').includes("It arrives by email once you\\'re in, within a day of confirming your email."), 'Support beta token row');
+  for (const f of ['Download.dc.html', 'Support.dc.html', 'Get Sidekick.dc.html', 'check-email.html']) assert.ok(!/few hours/.test(read(f)), `${f}: few hours`);
+  const { emails } = await import('../server/emails.mjs');
+  const c = emails.confirm({ name: 'Alex', confirmUrl: 'https://x/c', updatesUrl: null }).text;
+  assert.match(c, /Once you've confirmed and we've added your Google account to the Google Play test list, we email your invitation and, separately, your beta token\. We send them ourselves, so this can take up to a day\./);
+});

@@ -26,6 +26,7 @@ import { createApp } from '../server/app.mjs';
 import { MemoryRepo } from '../server/repo-memory.mjs';
 import { FakeBotCheck, FakeStorage, FakeClock } from '../server/fakes.mjs';
 import { loadConfig } from '../server/config.mjs';
+import { MSG } from '../server/validate.mjs';
 import { createLogger } from '../server/log.mjs';
 import { linkPage, messagePage, signupFormPage } from '../server/pages.mjs';
 import { signRequest } from '../server/crypto.mjs';
@@ -133,7 +134,8 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const serverPages = manual ? {} : {
     ...Object.fromEntries(['confirm', 'updates', 'notify', 'access', 'unsubscribe'].flatMap(pp => [[`linkPage(${pp})`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: true })], [`linkPage(${pp}, expired)`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: false })]])),
     messagePage: messagePage({ nonce: 'n', title: 't', text: 'x' }),
-    signupFormPage: signupFormPage({ nonce: 'n', siteKey: 'k' })
+    signupFormPage: signupFormPage({ nonce: 'n', siteKey: 'k' }),
+    'signupFormPage(phone number)': signupFormPage({ nonce: 'n', siteKey: 'k', values: { phoneModel: '07700 900123' }, errors: { phoneModel: MSG.phoneNumber } })
   };
   for (const [name, html] of Object.entries(serverPages)) {
     const body = typeof html === 'string' ? html : html.body;
@@ -158,6 +160,10 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   await loc(await call('GET', '/api/download/mac/arm64', { headers: nav }), 'download without a session (browser)');
   const form = new URLSearchParams({ name: 'Lin Kay', email: 'links@example.com', macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'lin.kay@gmail.com', privacyAccepted: 'on', marketingOptIn: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' });
   await loc(await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), 'no-JS signup success');
+  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')));
+  form.set('phoneModel', '07700 900123');
+  const pn = await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+  ok('server', 'no-JS signup with a phone number → 400 page with the plain message', pn.status === 400 && (await pn.text()).includes(MSG.phoneNumber.replace(/'/g, '&#39;')), `HTTP ${pn.status}`);
 
   // ── 3. email link forms ───────────────────────────────────────────────────
   const urlsIn = (text) => [...text.matchAll(/https?:\/\/\S+/g)].map(m => m[0]);

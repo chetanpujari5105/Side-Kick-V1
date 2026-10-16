@@ -89,6 +89,7 @@ async function manualChecks() {
   const req = parse(await href('main a[href^="mailto:"][href*="subject="]'));
   check('Get Sidekick is Request access: heading, steps, Apple silicon only', /Request access/.test(txt) && /Apple silicon/.test(txt) && /Intel Mac/.test(txt), txt.slice(0, 200));
   check('request email: to the owner, subject, and a body asking for name, chip, phone, Google account and consent', !!req && req.to === TO && req.subject === 'Sidekick beta: request access' && /name/i.test(req.body) && /chip/i.test(req.body) && /Apple silicon/.test(req.body) && /phone model/i.test(req.body) && /Google account email/.test(req.body) && /agree/.test(req.body) && /Privacy/.test(req.body), JSON.stringify(req).slice(0, 300));
+  check('manual wording unchanged: no automated timing or phone-number copy', !/up to a day|not your phone number/.test(txt));
   await t.go(O + '/Download.dc.html');
   txt = await t.text();
   check('Download says Beta by invitation, offers the same email, and no download button', /Beta by invitation/.test(txt) && (parse(await href('main a[href^="mailto:"][href*="subject="]')) || {}).subject === 'Sidekick beta: request access' && !/Download for Apple silicon/.test(txt) && /no APK/i.test(txt));
@@ -146,6 +147,10 @@ try {
   txt = await a.text();
   check('empty submit shows the error summary with Handoff strings', txt.includes('Please fix 6 things') && txt.includes('Enter your name.') && txt.includes("Choose your Mac's chip, or Not sure.") && txt.includes('Enter the Google account email your phone uses for Google Play.'));
   check('focus moves to the error summary', await a.eval(`document.activeElement && document.activeElement.id`) === 'err-summary');
+  // A phone number in "Android phone model" is refused on the page, with the plain message and the hint.
+  await a.eval(fill('#f-phone', '07700 900123')); await a.eval(click('button[type=submit]')); await sleep(400);
+  txt = await a.text();
+  check('phone number in the model field: plain message, model-name hint', txt.includes("Enter the phone's model name, for example Pixel 8, not its number.") && txt.includes('The model name, like Pixel 8 or Galaxy S23 — not your phone number.'));
   // Fill and submit.
   await a.eval(fill('#f-name', 'Alex Rivera')); await a.eval(fill('#f-email', 'alex@example.com')); await a.eval(fill('#f-phone', 'Pixel 8')); await a.eval(fill('#f-google', 'alex.rivera@gmail.com'));
   await a.eval(click('input[name=macChip][value=apple]')); await a.eval(click('#f-privacy'));
@@ -153,6 +158,7 @@ try {
   await sleep(3500);
   txt = await a.text();
   check('after submit: Download page says check your email', (await a.eval('location.pathname')) === '/Download.dc.html' && txt.includes('Check your email') && txt.includes('Alex'), txt.replace(/\s+/g, ' ').slice(0, 400));
+  check('check your email: says emails can take up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?') && !txt.includes('a few minutes'));
   check('session cookie is HttpOnly (not readable by page script)', !(await a.eval('document.cookie')).includes('sk_session'));
   check('old sessionStorage mock session is ignored', !txt.includes('Mock'));
 
@@ -227,6 +233,9 @@ try {
   txt = await c.text();
   check('no-JS submit: server page explains the human check needs JavaScript, answers kept', txt.includes('needs JavaScript') && (await c.eval(`document.querySelector('input[name=email]').value`)) === 'sam@example.com');
   check('no-JS submit stored nothing', !dev.repo.debugAll('signups').some(s => s.email === 'sam@example.com'));
+  await c.go(O + '/check-email.html');
+  txt = await c.text();
+  check('no-JS landing page (check-email.html) says up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?'));
 
   // 6. Hygiene across all tabs.
   const all = [a, b, c].flatMap(t => t.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));
