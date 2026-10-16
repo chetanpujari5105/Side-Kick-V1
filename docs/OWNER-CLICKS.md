@@ -1,10 +1,9 @@
-# Reply TOKEN OK to start part 2.
+# Owner clicks and runbook
 
-(Only after step 1 below: the packaged Mac app accepted the token made by this pipeline.)
-
-Written 2026-10-16 at the end of launch work part 1. Each item is something only you can do: a macOS permission, a
-login, or a check on your own Mac. Nothing here needs a card. Production is still `SITE_MODE=manual` and was not
-changed in part 1.
+**Status 2026-10-17.** Production (`side-henna.vercel.app`) is `SITE_MODE=automated`. Sections 2 (Mail) and 3
+(Cloudflare Turnstile) below are done. Section 1 (token proof) is still open: until the packaged Mac app accepts a
+token, don't invite real testers. Sections 5 and 6 are the runbook for real testers and the pre-launch checklist.
+Sections 1–4 are kept as written on 2026-10-16 (end of launch part 1).
 
 ---
 
@@ -90,3 +89,65 @@ both check).
 - **Vercel bypass token.** Testing the protected Preview from your Mac needed "Protection Bypass for
   Automation" (created by `vercel curl`). To remove it later: Vercel › side › Settings › Deployment Protection ›
   Protection Bypass for Automation › delete it.
+
+## 5. Inviting a real tester (runbook)
+
+Run the commands from `~/Desktop/Side-Kick-V1` with the Production admin key from its file:
+```sh
+export SK_API_BASE=https://side-henna.vercel.app \
+  SK_ADMIN_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SECRET
+```
+
+1. **The tester signs up and confirms.** They fill in Get Sidekick on the site (name, email, Mac chip, phone model
+   name, the Google account their Play Store uses) and press the link in "Confirm your email for the Sidekick beta".
+   Until they press it, they are `pending_email` in `node tools/admin/admin.mjs export`.
+2. **`play-pending` lists them.** `node tools/admin/admin.mjs play-pending` prints the Google accounts to add
+   (confirmed and approved, not yet on the Play list).
+3. **Add their Google email in Play Console.** Account chetanpujari.sitit@gmail.com › **Sidekick** › Test and
+   release › Testing › **Internal testing** › **Testers** › the arrow next to **Sidekick beta testers** › type the
+   address in **Add email addresses**, press Enter › **Save changes**. Back on Testers, check that **Sidekick beta
+   testers** is ticked; if you ticked it now, press **Save** (bottom right). Use only this list: it is the one
+   enabled for Sidekick's internal track together with "Sidekick - owner". The internal track allows 100 testers.
+   Don't use **Upload CSV file** on a list that already has people: it replaces the list.
+4. **Mark them added.** `node tools/admin/admin.mjs play-mark-added their.google@gmail.com` (that address only).
+   This is what lets the signer send their invitation, so do it only after step 3 is saved.
+5. **The signer sends within about 5 minutes.** Its next run makes their token with your issuer, then sends two
+   emails through Mail: "Your Sidekick beta invitation" (Beta page, Drive folder, checksum, six install steps,
+   Google Play test link) and "Your Sidekick beta token". Check with
+   `SK_API_BASE=https://side-henna.vercel.app node tools/signer/signer.mjs --status`: `0 tokens to issue` and
+   `0 emails waiting to send`, and a log line with `"mailed":2`. Your Mac must be awake and online.
+6. **If the tester says "no download" or "Play says not available"**, check in this order:
+   1. Confirmation done: `admin export` shows them as `approved`, `play_added` or `delivered`, not
+      `pending_email`. If not, ask them to press the link in the confirmation email (or sign up again).
+   2. Google email correct: the `google_email` column is the account their **phone's Play Store** uses.
+   3. On the list: that address is in **Sidekick beta testers**, and the list is ticked for Internal testing.
+   4. Track release live: Internal testing › **Releases** shows a release "Available to internal testers".
+   5. Right account on the phone: they opened the Google Play test link on the phone while signed in to that
+      Google account (Play Store › profile picture › switch account), accepted the invitation, then followed its
+      link to Google Play and tapped **Install**. It can take a few minutes after you add them. While in testing, Play may show
+      the app as "com.chetan.connectsuite (unreviewed)".
+   6. Drive link: the folder in the invitation opens in a private window (not logged in) and lists
+      `Sidekick-2.0.1-arm64.dmg`.
+   7. Checksum: `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg` prints exactly the SHA-256 in the invitation
+      and on the Beta page. If not, download it again.
+   No email at all: ask them to check spam; run `signer --status` (failed runs, emails waiting) and see
+   `docs/OWNER-SETUP.md` §7 "Signer status".
+7. **Remove a tester and delete their data.** `node tools/admin/admin.mjs delete their@email` deletes the sign-up,
+   its links and emails, and the signer's local token copy; then remove their line from
+   `~/.sidekick-trial-key/issued-tokens.tsv` by hand (the command reminds you). In Play Console open **Sidekick beta
+   testers**, press the bin next to their Google email, **Save changes**. A token already sent keeps working until it
+   expires (45 days from the day it was made): the Mac app checks it offline.
+
+## 6. Pre-launch checklist
+
+- [ ] **Token test:** the packaged Mac app accepted a token from this pipeline (section 1 or the token emailed to
+      cpujari12@gmail.com) — then TOKEN OK.
+- [ ] **Invitation check:** your own test invitation arrived and has the Beta page link, the Drive folder link, the
+      checksum, the six install steps and the Google Play test link.
+- [ ] **DNS:** `signer --status` shows `consecutive failed runs: 0`, and the signer log has no new `ENOTFOUND`. If it
+      does: System Settings › Network › Wi-Fi › Details… › DNS › add `1.1.1.1` and `1.0.0.1` › OK (remove them the
+      same way with "−").
+- [ ] **Mac awake and online** while inviting: on power, "Prevent automatic sleeping when the display is off", or
+      `caffeinate -i` in a Terminal window.
+- [ ] **Play:** only "Sidekick - owner" and "Sidekick beta testers" are ticked for Internal testing.
+- [ ] **Legal review** of Support › Privacy and of the updates emails (the DRAFT banner stays until then).
