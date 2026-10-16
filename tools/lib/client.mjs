@@ -13,16 +13,37 @@ function bypassHeader() {
   return { 'x-vercel-protection-bypass': fs.readFileSync(file, 'utf8').trim() };
 }
 
-export function makeClient({ base, keyId, secret, fetch: f = fetch, now = () => Date.now() }) {
+// A network failure as one line for the logs: the cause code (ENOTFOUND, ETIMEDOUT, ECONNRESET…, TIMEOUT for our own
+// time limit), the host only (never the path or query) and how long it took. The error keeps the code as e.code.
+function requestError(e, { host, ms, attempts }) {
+  const code = e && e.name === 'TimeoutError' ? 'TIMEOUT' : String((e && e.cause && (e.cause.code || e.cause.name)) || (e && e.code) || 'UNKNOWN').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+  const err = new Error(`fetch failed (${code}) host=${host} ${ms} ms, ${attempts} attempt${attempts === 1 ? '' : 's'}`);
+  err.code = code;
+  return err;
+}
+
+// retries: extra attempts after a NETWORK error only (never after an HTTP answer), each signed afresh after retryDelayMs.
+// Only the signer uses it: its four actions are safe to repeat. The admin CLI keeps retries = 0.
+export function makeClient({ base, keyId, secret, fetch: f = fetch, now = () => Date.now(), timeoutMs = 20000, retries = 0, retryDelayMs = 2000, sleep = (ms) => new Promise(r => setTimeout(r, ms)) }) {
   const bypass = bypassHeader();
   if (!/^https:\/\/[A-Za-z0-9.-]+$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base || '')) throw new Error('SK_API_BASE must be https://<host> (or http://localhost for local testing)');
+  const host = new URL(base).host;
   return async function post(action, payload = {}) {
     const path = '/api/admin/' + action;
     const body = JSON.stringify(payload);
-    const res = await f(base + path, { method: 'POST', body, headers: { 'content-type': 'application/json', ...bypass, ...signRequest({ keyId, secret, method: 'POST', path, body, now: now() }) }, signal: AbortSignal.timeout(20000) });
-    let data = {};
-    try { data = await res.json(); } catch {}
-    return { status: res.status, ...data };
+    const started = Date.now();
+    for (let attempt = 1; ; attempt++) {
+      let res;
+      try {
+        res = await f(base + path, { method: 'POST', body, headers: { 'content-type': 'application/json', ...bypass, ...signRequest({ keyId, secret, method: 'POST', path, body, now: now() }) }, signal: AbortSignal.timeout(timeoutMs) });
+      } catch (e) {
+        if (attempt <= retries) { await sleep(retryDelayMs); continue; }
+        throw requestError(e, { host, ms: Date.now() - started, attempts: attempt });
+      }
+      let data = {};
+      try { data = await res.json(); } catch {}
+      return { status: res.status, ...data };
+    }
   };
 }
 

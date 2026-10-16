@@ -193,6 +193,34 @@ tail -f ~/Library/Logs/sidekick-signer.log
 Stop: `launchctl bootout gui/$(id -u)/com.sidekick.signer`. **Emails and tokens only go out while your Mac is awake
 and logged in.** People see "up to a day" on the site.
 
+### Signer status
+```sh
+SK_API_BASE=https://<project>.vercel.app node tools/signer/signer.mjs --status
+```
+It prints, with no secret and no address: whether the launchd job is loaded (its runs and last exit code), the last
+run and the last successful run, how many runs in a row have failed, and the queue on the site (emails waiting to
+send, tokens to issue, people waiting for the Play list). It reads `~/Library/Logs/sidekick-signer.log`
+(`SK_LOG_FILE` to change) and asks the site for counts with the signer key.
+
+Reading the log: one line per run — `signer: {…}` with counts when it worked, or `signer failed: fetch failed
+(ETIMEDOUT) host=<host> 20004 ms, 2 attempts (run 41012 ms)` when it could not reach the site. The code says why:
+`ENOTFOUND` (no DNS — offline or Wi-Fi down), `ETIMEDOUT`/`TIMEOUT` (no answer within 20 s), `ECONNRESET`/
+`ECONNREFUSED` (connection dropped). Each request is retried once after 2 s, inside the same run. After 6 failed runs
+in a row (30 minutes) the log gets one `ATTENTION` line; nothing else happens (no email, no notification). Failed
+emails are retried by later runs (up to 5 tries).
+
+Stop and restart the job:
+```sh
+launchctl bootout gui/$(id -u)/com.sidekick.signer                                          # stop
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.sidekick.signer.plist           # start again (runs at once)
+launchctl print gui/$(id -u)/com.sidekick.signer | grep -E "state|runs|last exit"           # is it loaded?
+```
+
+**While testers are being invited, keep this Mac awake and online** (advice only; nothing here changes a setting):
+plug it in; in System Settings › Battery (or Energy) turn on "Prevent automatic sleeping when the display is off";
+or run `caffeinate -i` in a Terminal window and leave it open. Check `--status` after inviting someone: `consecutive
+failed runs: 0` and `0 emails waiting to send` mean the invitation and token went out.
+
 ## 8. Test on a preview first
 
 1. Push the branch yourself (`git push -u origin site/closeout-2026-10-15` after removing the local push guard:

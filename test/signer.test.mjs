@@ -144,3 +144,97 @@ test('token proof (OWNER-SETUP step 1) runs one real signer cycle in memory and 
     assert.equal(bad.status, 2);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+// ── Reliability and diagnostics (Part 3) ─────────────────────────────────────────────────────────────
+const netError = (code) => Object.assign(new TypeError('fetch failed'), { cause: Object.assign(new Error('x'), { code }) });
+
+test('client: a network error is reported with its cause code, the host and the time taken — never the path', async () => {
+  const post = makeClient({ base: 'https://side.example.test', keyId: 'signer', secret: 's'.repeat(32), fetch: async () => { throw netError('ENOTFOUND'); } });
+  const e = await post('pending').then(() => null, (x) => x);
+  assert.ok(e, 'it throws');
+  assert.match(e.message, /^fetch failed \(ENOTFOUND\) host=side\.example\.test \d+ ms, 1 attempt$/);
+  assert.ok(!/\/api|admin|pending/.test(e.message), 'no path or action');
+  assert.equal(e.code, 'ENOTFOUND');
+});
+
+test('client: a request that hangs times out, with code TIMEOUT', async () => {
+  const hang = (u, o) => new Promise((_, rej) => o.signal.addEventListener('abort', () => rej(o.signal.reason)));
+  const post = makeClient({ base: 'https://side.example.test', keyId: 'signer', secret: 's'.repeat(32), fetch: hang, timeoutMs: 30 });
+  const e = await post('pending').then(() => null, (x) => x);
+  assert.equal(e && e.code, 'TIMEOUT');
+});
+
+test('signer client: one retry after a short delay on a network error, freshly signed; never on an HTTP status', async () => {
+  const { signerClient } = await import('../tools/signer/signer.mjs');
+  const seen = [], waits = [];
+  let n = 0;
+  const flaky = async (u, o) => { seen.push(o.headers['x-sk-nonce']); if (n++ === 0) throw netError('ECONNRESET'); return new Response('{"ok":true,"pending":[]}', { status: 200 }); };
+  const post = signerClient({ base: 'https://side.example.test', secret: 's'.repeat(32) }, { fetch: flaky, sleep: async (ms) => { waits.push(ms); } });
+  const r = await post('pending');
+  assert.equal(r.status, 200);
+  assert.equal(seen.length, 2, 'two attempts');
+  assert.notEqual(seen[0], seen[1], 'the retry is signed again (new nonce), so replay protection accepts it');
+  assert.deepEqual(waits, [2000], 'one short delay');
+  let calls = 0;
+  const down = signerClient({ base: 'https://side.example.test', secret: 's'.repeat(32) }, { fetch: async () => { calls++; throw netError('ETIMEDOUT'); }, sleep: async () => {} });
+  const e = await down('pending').then(() => null, (x) => x);
+  assert.match(e.message, /\(ETIMEDOUT\) host=side\.example\.test \d+ ms, 2 attempts$/);
+  assert.equal(calls, 2, 'exactly one retry');
+  let c500 = 0;
+  const err500 = signerClient({ base: 'https://side.example.test', secret: 's'.repeat(32) }, { fetch: async () => { c500++; return new Response('{}', { status: 500 }); }, sleep: async () => {} });
+  assert.equal((await err500('pending')).status, 500);
+  assert.equal(c500, 1, 'no retry on an HTTP answer');
+  let cAdmin = 0;
+  const admin = makeClient({ base: 'https://side.example.test', keyId: 'admin', secret: 's'.repeat(32), fetch: async () => { cAdmin++; throw netError('ECONNRESET'); } });
+  await admin('announce').catch(() => {});
+  assert.equal(cAdmin, 1, 'the admin CLI never retries (an announcement must not be queued twice)');
+});
+
+test('signer log: last successful run, consecutive failures, and one ATTENTION line at the 6th failure in a row', async () => {
+  const { parseSignerLog, failureLines } = await import('../tools/signer/signer.mjs');
+  const ok = (t) => `${t} signer: {"issued":0,"reused":0,"posted":0,"failed":0,"mailed":0,"mailFailed":0,"deferred":false}`;
+  const bad = (t) => `${t} signer failed: fetch failed`;
+  const text = [ok('2026-10-16T11:00:00.000Z'), bad('2026-10-16T11:05:00.000Z'), ok('2026-10-16T11:10:00.000Z'), bad('2026-10-16T11:15:00.000Z'), bad('2026-10-16T11:20:00.000Z'), ''].join('\n');
+  assert.deepEqual(parseSignerLog(text), { lastOk: '2026-10-16T11:10:00.000Z', lastRun: '2026-10-16T11:20:00.000Z', lastRunOk: false, consecutiveFailed: 2, runs: 5 });
+  assert.deepEqual(parseSignerLog(''), { lastOk: null, lastRun: null, lastRunOk: null, consecutiveFailed: 0, runs: 0 });
+  const e = Object.assign(new Error('fetch failed (ETIMEDOUT) host=side.example.test 20001 ms, 2 attempts'), { code: 'ETIMEDOUT' });
+  const t = '2026-10-16T12:00:00.000Z';
+  assert.deepEqual(failureLines(e, { previousFailed: 4, runMs: 22000, iso: t }), [`${t} signer failed: fetch failed (ETIMEDOUT) host=side.example.test 20001 ms, 2 attempts (run 22000 ms)`]);
+  const at6 = failureLines(e, { previousFailed: 5, runMs: 22000, iso: t });
+  assert.equal(at6.length, 2);
+  assert.equal(at6[1], `${t} ATTENTION: 6 signer runs in a row have failed (last: ETIMEDOUT). Nothing can be sent until a run succeeds. Check that this Mac is awake and online; see docs/OWNER-SETUP.md (Signer status).`);
+  assert.equal(failureLines(e, { previousFailed: 6, runMs: 1, iso: t }).length, 1, 'only once per streak');
+  const withAttention = text + [bad(t), `${t} ATTENTION: 6 signer runs in a row have failed`, ''].join('\n');
+  assert.equal(parseSignerLog(withAttention).consecutiveFailed, 3, 'ATTENTION lines are not runs');
+});
+
+test('signer --status: plain lines, counts only, no secret, works when the site is unreachable', async () => {
+  const { formatStatus } = await import('../tools/signer/signer.mjs');
+  const secret = 'S'.repeat(64);
+  const lines = formatStatus({
+    now: Date.parse('2026-10-16T12:00:00Z'), host: 'side.example.test',
+    log: { lastOk: '2026-10-16T11:30:00.000Z', lastRun: '2026-10-16T11:55:00.000Z', lastRunOk: false, consecutiveFailed: 5, runs: 40 },
+    launchd: { loaded: true, runs: 40, lastExit: 1 },
+    queue: { ok: true, outboxQueued: 2, awaitingToken: 1, awaitingPlayList: 3 }
+  }).join('\n');
+  for (const want of ['launchd job com.sidekick.signer: loaded (runs 40, last exit code 1)', 'last run: 2026-10-16T11:55:00.000Z (failed)', 'last successful run: 2026-10-16T11:30:00.000Z (30 min ago)', 'consecutive failed runs: 5',
+    'queue on side.example.test: 2 emails waiting to send, 1 token to issue, 3 waiting for the Play list']) assert.ok(lines.includes(want), want + '\n' + lines);
+  assert.ok(!lines.includes(secret) && !/@/.test(lines), 'no secret, no address');
+  const down = formatStatus({ now: 0, host: 'h.test', log: parseEmpty(), launchd: { loaded: false }, queue: { ok: false, code: 'ENOTFOUND' } }).join('\n');
+  assert.match(down, /launchd job com\.sidekick\.signer: NOT loaded/);
+  assert.match(down, /last successful run: never/);
+  assert.match(down, /queue on h\.test: unavailable \(ENOTFOUND\)/);
+  function parseEmpty() { return { lastOk: null, lastRun: null, lastRunOk: null, consecutiveFailed: 0, runs: 0 }; }
+});
+
+test('API queue (signer key): counts only — emails waiting, tokens to issue, people waiting for the Play list', async () => {
+  const w = world();
+  await w.h.signup();
+  await w.h.confirm();
+  const r = await w.post('queue');
+  assert.equal(r.status, 200);
+  assert.deepEqual(Object.keys(r).sort(), ['awaitingPlayList', 'awaitingToken', 'ok', 'outboxQueued', 'status']);
+  assert.ok(Number.isInteger(r.outboxQueued) && r.outboxQueued >= 1, 'the confirm email is queued');
+  assert.equal(r.awaitingToken + r.awaitingPlayList, 1, 'the approved person is counted once');
+  assert.ok(!JSON.stringify(r).includes('@'), 'no addresses');
+});
