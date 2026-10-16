@@ -409,3 +409,25 @@ test('client: the Vercel protection-bypass header comes from a mode-600 file onl
   await makeClient({ base: ORIGIN, keyId: 'admin', secret: 'x'.repeat(64), fetch: fake })('stats');
   assert.equal(seen[1]['x-vercel-protection-bypass'], undefined, 'no header unless asked');
 });
+
+test('invitation (static storage): the Beta page AND the Drive folder itself, so the download works even if the Beta page does not', async () => {
+  const h = setup({ env: { PLAY_GATE: 'on', STORAGE_PROVIDER: 'static' } });
+  const { invite } = await delivered(h);
+  const t = invite.text;
+  assert.ok(t.includes(ORIGIN + '/Beta.dc.html'), 'Beta page');
+  assert.ok(t.includes('\n' + releases.mac.betaDriveUrl + '\n'), 'the Drive folder link on its own line');
+  assert.ok(t.indexOf(ORIGIN + '/Beta.dc.html') < t.indexOf(releases.mac.betaDriveUrl), 'Beta page first (it has the checks)');
+  const { emails } = await import('../server/emails.mjs');
+  const { betaDriveUrl: _d, ...macNoDrive } = releases.mac;
+  const noDrive = emails.invite({ name: 'A', macUrl: ORIGIN + '/Beta.dc.html', macIsBetaPage: true, release: { ...releases, mac: macNoDrive }, googleEmail: 'a@gmail.com' }).text;
+  assert.ok(!/undefined|drive\.google/.test(noDrive), 'no Drive line without a Drive link');
+});
+
+test('Download page (automated): Android is by invitation through Google Play testing, not "not available"', async () => {
+  const fs = await import('node:fs');
+  const page = fs.readFileSync(new URL('../Download.dc.html', import.meta.url), 'utf8');
+  assert.ok(page.includes('By invitation through Google Play testing.'), 'Android card');
+  assert.ok(page.includes('The Android app is by invitation through Google Play testing: its link comes in your invitation email.'), 'intro line');
+  assert.ok(page.includes('Install the Android app from the Google Play test link in your invitation email.'), 'step list');
+  for (const old of ['Not available yet. When it is', "The Android app isn't available yet"]) assert.ok(!page.includes(old), 'still says: ' + old);
+});

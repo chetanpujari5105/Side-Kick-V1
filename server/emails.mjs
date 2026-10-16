@@ -17,7 +17,7 @@ export const emails = {
     kind: 'confirm',
     subject: 'Confirm your email for the Sidekick beta',
     text: `Hi ${first(name)},\n\nConfirm your email to finish signing up for the Sidekick beta:\n${confirmUrl}\n\nThe link works for 48 hours.` +
-      `\n\nOnce you've confirmed and we've added your Google account to the Google Play test list, we email your invitation and, separately, your beta token. We send them ourselves, so this can take up to a day.` +
+      `\n\nAfter you confirm, we add you to the Android test list and email your download links and token, up to a day later. The token comes in its own email. We send them ourselves.` +
       (updatesUrl ? `\n\nYou also asked for Sidekick updates by email. We'll only send them if you confirm that too:\n${updatesUrl}` : '') +
       `\n\nIf you didn't sign up, ignore this email. Unconfirmed sign-ups are deleted after 7 days.${sign}`
   }),
@@ -38,7 +38,8 @@ export const emails = {
     const steps = release.mac.installSteps || [];
     const play = release.android && release.android.playTestUrl;
     const mac = macIsBetaPage
-      ? `Open the Beta page:\n${macUrl}\n\nIt links to the download folder on Google Drive. Download ${b.file} from there.`
+      ? `Open the Beta page:\n${macUrl}\n\nIt links to the download folder on Google Drive.` +
+        (release.mac.betaDriveUrl ? ` You can also open that folder directly:\n${release.mac.betaDriveUrl}\n\n` : ' ') + `Download ${b.file} from there.`
       : `Open your download page (the link works for 72 hours):\n${macUrl}\n\nDownload ${b.file} there.`;
     const sha = b.sha256 ? `\n\nTo check the download, its SHA-256 checksum is below. It is only for checking the file; it is not your token.\n${b.sha256}` : '';
     const android = play
