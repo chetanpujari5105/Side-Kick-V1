@@ -53,6 +53,12 @@ export class PgRepo {
     if (ins.length) return { signup: camel(ins[0]), created: true };
     return { signup: await this.getSignupByEmail(v.emailNorm), created: false };
   }
+  // The updates choice of the latest submission, for a request not yet confirmed by its own link: ticked keeps (or
+  // starts) the request, unticked withdraws it. Confirmed consent is left to unsubscribe and delete-my-data.
+  async setMarketingRequest(id, wanted, now) {
+    await this.q('update signups set marketing_requested_at = case when $2::boolean then coalesce(marketing_requested_at, $3) else null end, updated_at = $3 where id = $1 and marketing_confirmed_at is null', [id, wanted === true, d(now)]);
+    return this.getSignup(id);
+  }
   async getSignup(id) { return one(await this.q('select * from signups where id = $1', [id])); }
   async getSignupByEmail(e) { return one(await this.q('select * from signups where email_norm = $1', [e])); }
 
