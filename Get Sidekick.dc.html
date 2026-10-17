@@ -67,7 +67,8 @@ a:hover{color:#3A22B8;}
       </div>
     </sc-if>
     <sc-if value="{{ showForm }}" hint-placeholder-val="{{ true }}">
-    <form onSubmit="{{ submit }}" noValidate="{{ true }}" aria-busy="{{ busy }}" aria-labelledby="form-h" style="display:flex;flex-direction:column;gap:24px;">
+    <form onSubmit="{{ submit }}" onKeyDown="{{ noEnter }}" noValidate="{{ true }}" aria-busy="{{ busy }}" aria-labelledby="form-h" style="display:flex;flex-direction:column;gap:24px;">
+      <button type="submit" disabled="{{ true }}" hidden="{{ true }}" aria-hidden="true" tabIndex="-1" style="display:none;"></button>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <h2 id="form-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:34px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Get Sidekick</h2>
         <p style="margin:0;font-size:15.5px;line-height:1.5;color:#55526B;">{{ purpose }}</p>
@@ -147,14 +148,14 @@ a:hover{color:#3A22B8;}
         </label>
         <sc-if value="{{ e.privacy }}"><span id="e-privacy" style="font-size:14.5px;color:#B3341F;display:flex;gap:6px;align-items:center;margin-top:-6px;padding-left:34px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">error</span>{{ e.privacy }}</span></sc-if>
         <label style="display:flex;gap:12px;align-items:flex-start;font-size:16px;line-height:1.5;cursor:pointer;min-height:44px;">
-          <input type="checkbox" checked="{{ v.updates }}" onChange="{{ on.updates }}" disabled="{{ busyBool }}" style="width:22px;height:22px;margin:1px 0 0;accent-color:#5B3DF5;flex:none;">
+          <input id="f-updates" type="checkbox" ref="{{ updRef }}" checked="{{ v.updates }}" onChange="{{ on.updates }}" disabled="{{ busyBool }}" style="width:22px;height:22px;margin:1px 0 0;accent-color:#5B3DF5;flex:none;">
           <span>Email me Sidekick updates. <span style="color:#55526B;">(optional — we'll ask you to confirm)</span></span>
         </label>
       </div>
 
       <sc-if value="{{ showCaptcha }}"><div role="group" aria-label="Human check" ref="{{ botRef }}" style="min-height:65px;font-size:14.5px;color:#55526B;"></div></sc-if>
 
-      <button type="submit" disabled="{{ btnDisabled }}" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:{{ cursor }};opacity:{{ btnOpacity }};transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">
+      <button id="f-send" type="submit" ref="{{ sendRef }}" disabled="{{ btnDisabled }}" style="min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:{{ cursor }};opacity:{{ btnOpacity }};transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;">
         <sc-if value="{{ busyBool }}"><span aria-hidden="true" ref="{{ spinRef }}" style="width:18px;height:18px;border-radius:50%;border:2.5px solid #17142E;border-right-color:transparent;box-sizing:border-box;"></span></sc-if>
         {{ btnLabel }}
       </button>
@@ -185,6 +186,8 @@ class Component extends DCLogic {
     touched: {}, submitted: false, status: 'idle', serverErr: {}, review: 'live' };
   spinRef = React.createRef();
   botRef = React.createRef();
+  sendRef = React.createRef();
+  updRef = React.createRef();
   bot = {};
   componentDidMount() {
     this.onResize = () => this.setState({ w: window.innerWidth });
@@ -236,6 +239,10 @@ class Component extends DCLogic {
   }
   async submit(e) {
     e && e.preventDefault && e.preventDefault();
+    // Only the button sends. Enter in a text field is stopped by the disabled first submit button (the form's default
+    // button) and Enter on a box or radio by noEnter; this also refuses requestSubmit() and any other submitter.
+    const sub = e && e.type === 'submit' && e.nativeEvent ? e.nativeEvent.submitter : undefined;
+    if (sub !== undefined && sub !== this.sendRef.current) return;
     if (this.state.status === 'submitting' || (window.SK_CONFIG && window.SK_CONFIG.mocksEnabled)) return;
     const errs = this.validate(this.state.v);
     if (Object.keys(errs).length) {
@@ -247,7 +254,7 @@ class Component extends DCLogic {
     this.setState({ submitted: true, status: 'submitting', serverErr: {} });
     const v = this.state.v;
     try {
-      const r = await window.SK_API.getSidekick({ name: v.name.trim(), email: v.email.trim(), macChip: v.chip, phoneModel: v.phone.trim(), googleEmail: v.google.trim(), privacyAccepted: v.privacy, marketingOptIn: v.updates, captchaToken });
+      const r = await window.SK_API.getSidekick({ name: v.name.trim(), email: v.email.trim(), macChip: v.chip, phoneModel: v.phone.trim(), googleEmail: v.google.trim(), privacyAccepted: v.privacy === true, marketingOptIn: v.updates === true && !!(this.updRef.current && this.updRef.current.checked), captchaToken });
       if (window.SK_BOT) window.SK_BOT.reset(this.bot);
       if (r && r.ok && r.status === 200) {
         this.setState({ status: 'success' });
@@ -293,9 +300,10 @@ class Component extends DCLogic {
       btnLabel: mocks ? 'Not open yet' : (busy ? 'Sending…' : 'Continue to download'),
       isSuccess: success, showForm: !success,
       bannerServer: status === 'server_error', bannerRate: status === 'rate_limited',
-      bannerBot: status === 'bot_failed' || status === 'bot_needed', botTitle: status === 'bot_needed' ? 'Complete the human check first.' : 'We couldn\'t confirm you\'re not a bot.', botRef: this.botRef,
+      bannerBot: status === 'bot_failed' || status === 'bot_needed', botTitle: status === 'bot_needed' ? 'Complete the human check first.' : 'We couldn\'t confirm you\'re not a bot.', botRef: this.botRef, sendRef: this.sendRef, updRef: this.updRef,
       hasSummary: summary.length > 0, summary, errCount: summary.length === 1 ? '1 thing' : summary.length + ' things',
       submit: (ev) => this.submit(ev),
+      noEnter: (ev) => { if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT' && !(ev.nativeEvent && ev.nativeEvent.isComposing)) ev.preventDefault(); },
       showCaptcha: !(window.SK_CONFIG && window.SK_CONFIG.mocksEnabled),
       showReview: mocks && (this.props.showReview ?? false),
       reviewStates: review.map(r => ({ label: r.replace('_', ' '), on: this.state.review === r ? 'true' : 'false',

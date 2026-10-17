@@ -27,6 +27,12 @@ export class MemoryRepo {
     this.signups.set(s.id, s);
     return { signup: clone(s), created: true };
   }
+  async setMarketingRequest(id, wanted, now) {
+    const s = this.signups.get(id);
+    if (!s) return null;
+    if (!s.marketingConfirmedAt) { s.marketingRequestedAt = wanted === true ? (s.marketingRequestedAt || new Date(now)) : null; s.updatedAt = new Date(now); }
+    return clone(s);
+  }
   async getSignup(id) { return clone(this.signups.get(id)); }
   async getSignupByEmail(emailNorm) { for (const s of this.signups.values()) if (s.emailNorm === emailNorm) return clone(s); return null; }
 

@@ -99,10 +99,14 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     let result;
     try {
       result = await repo.upsertSignup(v.value, now());
-      const s = result.signup;
+      let s = result.signup;
+      // The updates choice is this submission's alone (launch log Part 6): sent again unticked, an unconfirmed request
+      // is withdrawn (its old link stops working); ticked, it is asked for again, but only in a confirm email.
+      const wantsUpdates = v.value.marketingOptIn === true && s.state === 'pending_email';
+      if (!result.created && (wantsUpdates || v.value.marketingOptIn !== true)) s = (await repo.setMarketingRequest(s.id, wantsUpdates, now())) || s;
       if (s.state === 'pending_email') {
         const t = await newLink('signup_confirm', s.id);
-        const u = s.marketingRequestedAt && !s.marketingConfirmedAt ? url('/api/confirm-email', await newLink('marketing_confirm', s.id), 'for=updates') : null;
+        const u = wantsUpdates && s.marketingRequestedAt && !s.marketingConfirmedAt ? url('/api/confirm-email', await newLink('marketing_confirm', s.id), 'for=updates') : null;
         await queueMail(emails.confirm({ name: s.name, confirmUrl: url('/api/confirm-email', t), updatesUrl: u }), { to: s.emailNorm, signupId: s.id });
       } else if (ALLOWED.includes(s.state)) {
         await queueMail(emails.access({ name: s.name, accessUrl: url('/api/access', await newLink('access', s.id)) }), { to: s.emailNorm, signupId: s.id });

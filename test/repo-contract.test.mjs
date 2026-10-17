@@ -42,6 +42,24 @@ for (const [name, make] of [['MemoryRepo', async () => new MemoryRepo()], ['PgRe
     assert.equal(await r.getSignupByEmail('nobody@example.com'), null);
   });
 
+  test(`${name}: setMarketingRequest follows the latest choice, never touches confirmed consent`, async () => {
+    const r = await make();
+    const id = (await r.upsertSignup(person('m@example.com', { marketingOptIn: true }), T)).signup.id;
+    const first = (await r.getSignup(id)).marketingRequestedAt;
+    let s = await r.setMarketingRequest(id, true, T + 1000);
+    assert.deepEqual(s.marketingRequestedAt, first, 'ticked again keeps the first request time');
+    s = await r.setMarketingRequest(id, false, T + 2000);
+    assert.equal(s.marketingRequestedAt, null, 'unticked clears an unconfirmed request');
+    assert.equal(await r.confirmMarketing(id, T + 2500), false, 'nothing left to confirm');
+    s = await r.setMarketingRequest(id, true, T + 3000);
+    assert.equal(s.marketingRequestedAt.getTime(), T + 3000);
+    assert.equal(await r.confirmMarketing(id, T + 3500), true);
+    s = await r.setMarketingRequest(id, false, T + 4000);
+    assert.equal(s.marketingConfirmedAt.getTime(), T + 3500, 'confirmed consent is left to unsubscribe');
+    assert.equal(s.marketingRequestedAt.getTime(), T + 3000);
+    assert.equal(await r.setMarketingRequest('00000000-0000-0000-0000-000000000000', true, T), null);
+  });
+
   test(`${name}: links are single use or capped, and expire`, async () => {
     const r = await make();
     const { signup } = await r.upsertSignup(person('l@example.com'), T);

@@ -70,8 +70,12 @@ export function signupFormHtml() {
   return signupForm({ values: {}, errors: {}, siteKey: null, inv: (k) => hint[k] ? ` aria-describedby="${hint[k]}"` : '', err: () => '', chip });
 }
 
+// The disabled first submit button is the form's default button, so Enter in a text field sends nothing (HTML
+// implicit submission). Chrome still presses Continue on Enter on a box or radio; without JavaScript the human check
+// then refuses it (Get Sidekick.dc.html stops that key with script). The updates box is sent only ticked ("on").
 function signupForm({ values, errors, siteKey, inv, err, chip }) {
   return `<form class="card" method="post" action="/api/get-sidekick" novalidate>
+<button type="submit" disabled hidden aria-hidden="true" tabindex="-1"></button>
 <div class="f"><label for="f-name">Name</label><input id="f-name" name="name" type="text" autocomplete="name" value="${esc(values.name)}"${inv('name')}>${err('name')}</div>
 <div class="f"><label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" value="${esc(values.email)}"${inv('email')}>${err('email')}</div>
 <fieldset id="f-chip"${errors.macChip ? ' aria-describedby="e-macChip"' : ''}><legend>Your Mac's chip</legend>${chip('apple', 'Apple silicon')}${chip('unsure', 'Not sure')}${err('macChip')}</fieldset>

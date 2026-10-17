@@ -57,6 +57,17 @@ async function tab({ noJs = false, context } = {}) {
 }
 const fill = (sel, val) => `(() => { const el = document.querySelector(${JSON.stringify(sel)}); const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(val)}); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
 const click = (sel) => `(() => { const el = document.querySelector(${JSON.stringify(sel)}); if (!el) return false; el.click(); return true; })()`;
+// Real input over the DevTools protocol: typed text, key presses and mouse clicks, as a person (or autofill) makes them.
+const typeIn = async (t, sel, text) => { await t.eval(`document.querySelector(${JSON.stringify(sel)}).focus()`); await send('Input.insertText', { text }, t.sid); };
+const press = async (t, k) => {
+  await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r', unmodifiedText: '\r' }, t.sid);
+  await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 }, t.sid);
+};
+const mouse = async (t, sel) => {
+  const r = await t.eval(`(() => { const el = document.querySelector(${JSON.stringify(sel)}); el.scrollIntoView({ block: 'center' }); const b = el.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })()`);
+  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x: r.x, y: r.y, button: 'left', clickCount: 1 }, t.sid);
+};
+const posts = (t) => t.reqs.filter(u => u.endsWith('/api/get-sidekick')).length;
 const outbox = async () => (await fetch(O + '/__dev/outbox')).json();
 const linkIn = (text, p) => (text.match(new RegExp(O.replace(/[.:/]/g, '\\$&') + p + '(?:\\?[a-z=]+)?#t=[A-Za-z0-9_-]+')) || [])[0];
 
@@ -143,18 +154,18 @@ try {
   check('Turnstile container rendered (local stand-in)', txt.includes('Human check (local test stand-in)'));
   check('previewState in the URL is ignored', !txt.includes('Saved. Taking you to your download'));
   // Submit empty → client-side errors.
-  await a.eval(click('button[type=submit]')); await sleep(400);
+  await a.eval(click('#f-send')); await sleep(400);
   txt = await a.text();
   check('empty submit shows the error summary with Handoff strings', txt.includes('Please fix 6 things') && txt.includes('Enter your name.') && txt.includes("Choose your Mac's chip, or Not sure.") && txt.includes('Enter the Google account email your phone uses for Google Play.'));
   check('focus moves to the error summary', await a.eval(`document.activeElement && document.activeElement.id`) === 'err-summary');
   // A phone number in "Android phone model" is refused on the page, with the plain message and the hint.
-  await a.eval(fill('#f-phone', '07700 900123')); await a.eval(click('button[type=submit]')); await sleep(400);
+  await a.eval(fill('#f-phone', '07700 900123')); await a.eval(click('#f-send')); await sleep(400);
   txt = await a.text();
   check('phone number in the model field: plain message, model-name hint', txt.includes("Enter the phone's model name, for example Pixel 8, not its number.") && txt.includes('The model name, like Pixel 8 or Galaxy S23 — not your phone number.'));
   // Fill and submit.
   await a.eval(fill('#f-name', 'Alex Rivera')); await a.eval(fill('#f-email', 'alex@example.com')); await a.eval(fill('#f-phone', 'Pixel 8')); await a.eval(fill('#f-google', 'alex.rivera@gmail.com'));
   await a.eval(click('input[name=macChip][value=apple]')); await a.eval(click('#f-privacy'));
-  await a.eval(click('button[type=submit]'));
+  await a.eval(click('#f-send'));
   await sleep(3500);
   txt = await a.text();
   check('after submit: Download page says check your email', (await a.eval('location.pathname')) === '/Download.dc.html' && txt.includes('Check your email') && txt.includes('Alex'), txt.replace(/\s+/g, ' ').slice(0, 400));
@@ -239,20 +250,57 @@ try {
   txt = await c.text();
   check('no-JS landing page (check-email.html) says up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?') && txt.includes('After you confirm, we add you to the Android test list and email your download links and token, up to a day later.'));
 
+  // 5. Only the Continue button sends, and the updates choice is the box as shown (launch log Part 6, 2026-10-17).
+  const row = (e) => dev.repo.debugAll('signups').find(s => s.email === e);
+  const confirmTo = async (e) => (await outbox()).filter(m => m.kind === 'confirm' && m.to === e).map(m => m.text).join('\n');
+  const fillAll = async (t, n, e) => {
+    await typeIn(t, '#f-name', n); await typeIn(t, '#f-email', e); await mouse(t, 'input[name=macChip][value=apple]');
+    await typeIn(t, '#f-phone', 'Pixel 8'); await typeIn(t, '#f-google', e.replace('example.com', 'gmail.com'));
+  };
+  const p = await tab();
+  await p.go(O + '/Get%20Sidekick.dc.html');
+  await fillAll(p, 'Pre Set', 'preset@example.com');
+  await p.eval(`(() => { for (const id of ['f-privacy', 'f-updates']) { const el = document.getElementById(id); el.checked = true; el.setAttribute('checked', ''); } return true; })()`);
+  await mouse(p, '#f-send'); await sleep(800);
+  txt = await p.text();
+  check('privacy box pre-set without a click (autofill-like) is not consent: refused on the page, nothing sent', posts(p) === 0 && !row('preset@example.com') && txt.includes("Confirm you've read the Privacy Policy to continue."), txt.slice(0, 200));
+  const f = await tab();
+  await f.go(O + '/Get%20Sidekick.dc.html');
+  await typeIn(f, '#f-name', 'Ena Ter'); await press(f);
+  await typeIn(f, '#f-email', 'enter@example.com'); await press(f);
+  await mouse(f, 'input[name=macChip][value=apple]'); await press(f);
+  await typeIn(f, '#f-phone', 'Pixel 8'); await press(f);
+  await typeIn(f, '#f-google', 'enter@gmail.com'); await press(f);
+  await mouse(f, '#f-privacy'); await press(f);
+  await typeIn(f, '#f-google', ''); await press(f); // every field valid now
+  await f.eval(`document.querySelector('main form').requestSubmit(); true`);
+  await sleep(5000);
+  check('Enter in each field, on the radio and on the ticked privacy box, requestSubmit(), then 5 s idle: nothing sent', posts(f) === 0 && !row('enter@example.com') && (await f.eval('location.pathname')) === '/Get%20Sidekick.dc.html' && (await f.eval(`document.getElementById('f-updates').checked`)) === false, `posts ${posts(f)} ${await f.eval('location.pathname')}`);
+  await f.eval(`(() => { const u = document.getElementById('f-updates'); u.checked = true; u.setAttribute('checked', ''); return true; })()`);
+  await mouse(f, '#f-send'); await sleep(3500);
+  check('a click on Continue sends once; an updates box pre-set without a click (autofill-like) is ignored: no request, no updates link', posts(f) === 1 && !!row('enter@example.com') && row('enter@example.com').marketingRequestedAt === null && (await confirmTo('enter@example.com')).includes('/api/confirm-email#t=') && !(await confirmTo('enter@example.com')).includes('for=updates'), `posts ${posts(f)}`);
+  const g = await tab();
+  await g.go(O + '/Get%20Sidekick.dc.html');
+  await fillAll(g, 'Tick Ed', 'ticked@example.com'); await mouse(g, '#f-privacy'); await mouse(g, '#f-updates');
+  await sleep(300);
+  check('ticking boxes sends nothing', posts(g) === 0);
+  await g.eval(`document.getElementById('f-send').focus(); true`); await press(g); await sleep(3500);
+  check('updates ticked by a click + Enter on the Continue button: sent once, updates requested, its own link in the confirm email', posts(g) === 1 && !!row('ticked@example.com') && !!row('ticked@example.com').marketingRequestedAt && (await confirmTo('ticked@example.com')).includes('/api/confirm-email?for=updates#t='), `posts ${posts(g)}`);
+
   // 6. Hygiene across all tabs.
-  const all = [a, b, c].flatMap(t => t.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));
+  const all = [a, b, c, p, f, g].flatMap(t => t.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));
   const foreign = [...new Set(all.filter(u => !u.startsWith(O) && !u.startsWith('https://files.example.test/')).map(u => new URL(u).origin))];
   check('only same-origin requests (plus the fake file host)', foreign.length === 0, foreign.join(', '));
   // Expected: 401 from /api/session with no session, 403 from the no-JS submit (fails closed). Known and pre-existing
   // (unchanged since 7e7042c): Home's SVG attributes hold {{ seg… }} until the template renders.
-  const raw = [a, b, c].flatMap(t => t.errors);
+  const raw = [a, b, c, p, f, g].flatMap(t => t.errors);
   const preexisting = raw.filter(e => /\{\{ seg(W|H|Box|Path) \}\}/.test(e));
   const errs = raw.filter(e => !preexisting.includes(e) && !/status of (401|403|410)/.test(e));
   check('known pre-existing warnings only: Home SVG template attributes', true, `${preexisting.length} warning(s) — not caused by this branch`);
   check('no console errors or CSP violations', errs.length === 0, [...new Set(errs)].join(' | ').slice(0, 1500));
   const leaks = dev.logs.filter(l => /alex@example\.com|SIDEKICK-TRIAL|127\.0\.0\.1/.test(l));
   check('server logs hold no email, token or IP', leaks.length === 0, leaks[0] || '');
-  console.error('API calls per tab:', JSON.stringify([a, b, c].map(t => t.api)));
+  console.error('API calls per tab:', JSON.stringify([a, b, c, p, f, g].map(t => t.api)));
   } // end automated
 } catch (e) {
   check('run completed', false, e.stack.split('\n').slice(0, 2).join(' '));

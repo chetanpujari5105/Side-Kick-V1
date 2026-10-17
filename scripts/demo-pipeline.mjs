@@ -31,7 +31,7 @@ const linkFor = (to, p) => { const m = repo.debugOutbox().filter(x => x.toEmail 
 const rows = [];
 const step = (name, ok, note = '') => rows.push([ok ? 'PASS' : 'FAIL', name, note]);
 const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
-const person = (name, email) => ({ name, email, macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: email.split('@')[0] + '.play@gmail.com', privacyAccepted: true, marketingOptIn: email.startsWith('asha'), captchaToken: CAP });
+const person = (name, email) => ({ name, email, macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: email.split('@')[0] + '.play@gmail.com', privacyAccepted: true, marketingOptIn: email.toLowerCase().startsWith('asha'), captchaToken: CAP });
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-demo-'));
 try {

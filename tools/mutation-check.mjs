@@ -1,5 +1,6 @@
-// Mutation checks for three safety rules: updates go only to people who opted in AND confirmed, no token or
-// invitation before play-added, and an unsubscribe link works once. Each mutation breaks one rule in a scratch
+// Mutation checks for four safety rules: updates go only to people who opted in AND confirmed, no token or
+// invitation before play-added, an unsubscribe link works once, and the updates choice is the one in the
+// submission being handled (an unticked box never leaves a request or an updates link). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -7,7 +8,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs'];
+const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs'];
 const MUTANTS = [
   ['opt-in only (MemoryRepo): asked is enough', 'server/repo-memory.mjs', 's.marketingRequestedAt && s.marketingConfirmedAt', 's.marketingRequestedAt'],
   ['opt-in only (PgRepo): asked is enough', 'server/repo-pg.mjs', 'marketing_requested_at is not null and marketing_confirmed_at is not null order by created_at', 'marketing_requested_at is not null order by created_at'],
@@ -18,6 +19,11 @@ const MUTANTS = [
   ['play gate (config): default off', 'server/config.mjs', "const playGate = env.PLAY_GATE === undefined || env.PLAY_GATE === '' || env.PLAY_GATE === 'on';", "const playGate = env.PLAY_GATE === 'on';"],
   ['unsubscribe one use: ten uses', 'server/app.mjs', 'unsubscribe: { ttl: 365 * 24 * H, uses: 1 }', 'unsubscribe: { ttl: 365 * 24 * H, uses: 10 }'],
   ['unsubscribe: any link purpose accepted', 'server/app.mjs', "if (!peek || peek.purpose !== 'unsubscribe') return gone();", 'if (!peek) return gone();'],
+  ['this submission (API): the box is ignored', 'server/app.mjs', "const wantsUpdates = v.value.marketingOptIn === true && s.state === 'pending_email';", "const wantsUpdates = s.state === 'pending_email';"],
+  ['this submission (API): a second submission keeps the first choice', 'server/app.mjs', 'if (!result.created && (wantsUpdates || v.value.marketingOptIn !== true)) s = ', 'if (false) s = '],
+  ['this submission (MemoryRepo): unticked keeps the request', 'server/repo-memory.mjs', "s.marketingRequestedAt = wanted === true ? (s.marketingRequestedAt || new Date(now)) : null;", "s.marketingRequestedAt = wanted === true ? (s.marketingRequestedAt || new Date(now)) : s.marketingRequestedAt;"],
+  ['this submission (PgRepo): unticked keeps the request', 'server/repo-pg.mjs', 'coalesce(marketing_requested_at, $3) else null end', 'coalesce(marketing_requested_at, $3) else marketing_requested_at end'],
+  ['this submission (validate): updates default to yes', 'server/validate.mjs', 'marketingOptIn: truthy(body.marketingOptIn)', 'marketingOptIn: body.marketingOptIn !== false'],
   ['unsubscribe token opens a session elsewhere', 'server/app.mjs', "if (!peek || peek.purpose === 'unsubscribe' || ", 'if (!peek || ']
 ];
 
