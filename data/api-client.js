@@ -14,8 +14,11 @@
   let session = null;
   window.SK_API = {
     real: true,
-    // POST /api/get-sidekick → 200 {ok} + HttpOnly session cookie | 400 {fieldErrors} | 403 bot check | 429 {retryAfter} | 5xx
+    // POST /api/get-sidekick → 200 {ok, stage: 'in' (token, download, android) | 'already' | 'check_email'} + HttpOnly
+    // session cookie | 400 {fieldErrors} | 403 bot check | 429 {retryAfter} | 503 SIGNUP_CLOSED | 5xx
     getSidekick: (payload) => post('/api/get-sidekick', payload),
+    // POST /api/email-copy → 202 queued | 200 {stage: 'already_sent'} | 401 (this browser saw no result page)
+    emailCopy: () => post('/api/email-copy', {}),
     // A browser navigation: the API answers 302 to a short-lived file link (or 303 back here without a session).
     download(platform, arch) { window.location.href = '/api/download/' + platform + (arch ? '/' + arch : ''); return Promise.resolve({ status: 0, navigated: true }); },
     roadmapNotify: (email, featureId, captchaToken) => post('/api/roadmap-notify', { email, featureId, captchaToken }),
@@ -43,7 +46,8 @@
   }
   const FAKE = C.turnstileSiteKey === 'local-dev-fake';
   window.SK_BOT = {
-    ensure(holder, el) {
+    // opts: extra Turnstile render options, e.g. { appearance: 'interaction-only' } (shown only if a challenge is needed).
+    ensure(holder, el, opts) {
       if (!el || holder.el === el) return;
       if (holder.id != null && window.turnstile) { try { window.turnstile.remove(holder.id); } catch (e) {} }
       holder.el = el; holder.id = null; holder.token = null;
@@ -51,7 +55,7 @@
       if (!C.turnstileSiteKey) return;
       load().then(() => {
         if (holder.el !== el) return;
-        holder.id = window.turnstile.render(el, { sitekey: C.turnstileSiteKey, callback: (t) => { holder.token = t; },
+        holder.id = window.turnstile.render(el, { ...(opts || {}), sitekey: C.turnstileSiteKey, callback: (t) => { holder.token = t; },
           'expired-callback': () => { holder.token = null; }, 'error-callback': () => { holder.token = null; } });
       }).catch(() => { el.textContent = 'The human check could not load. Check your connection and reload the page.'; });
     },

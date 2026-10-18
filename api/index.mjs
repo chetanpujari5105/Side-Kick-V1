@@ -25,7 +25,7 @@ async function build() {
     : new GitHubReleaseStorage({ token: config.github.token, repo: config.github.repo, tag: config.github.tag });
   const mailer = ok && config.emailProvider === 'resend' ? new ResendMailer({ apiKey: config.resend.apiKey, from: config.resend.from }) : null;
   // vercel.json includes server/*.sql with this function (functions › includeFiles) for admin migrate.
-  const schemas = ['schema.sql', 'schema-v2.sql'].map(f => fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
+  const schemas = ['schema.sql', 'schema-v2.sql', 'schema-v3.sql'].map(f => fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
   return createApp({ config, repo, botCheck, storage, mailer, clock: systemClock, log, releases, roadmapIds: roadmap.ids, schemas });
 }
 

@@ -87,3 +87,11 @@ export function cookieOf(res) {
 }
 
 export const fakeToken = () => 'SIDEKICK-TRIAL-1.' + crypto.randomBytes(60).toString('base64url') + '.' + crypto.randomBytes(64).toString('base64url');
+
+// A token shaped like the Mac app issuer's: notBefore is the start of the UTC day it was made, notAfter `days` later.
+// The signature is random bytes: the server only checks the shape (the app verifies).
+export function poolToken(madeAt = T0, days = 45) {
+  const start = new Date(madeAt); start.setUTCHours(0, 0, 0, 0);
+  const payload = { v: 1, id: crypto.randomBytes(12).toString('base64url'), label: 'Sidekick beta', notBefore: start.toISOString(), notAfter: new Date(start.getTime() + days * 86400000).toISOString() };
+  return 'SIDEKICK-TRIAL-1.' + Buffer.from(JSON.stringify(payload)).toString('base64url') + '.' + crypto.randomBytes(64).toString('base64url');
+}

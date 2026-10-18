@@ -1,7 +1,8 @@
 // The whole beta pipeline on fake adapters, in one process, with a pass/fail table:
 //   npm run demo
 // signup → bot check → stored → confirm email → approval rule (cap, waitlist) → signer signs with a THROWAWAY
-// Ed25519 key through the issuer interface → token email → access link → session → download 302 → logged.
+// Ed25519 key through the issuer interface → token email → download → logged; then the one-click flow (launch log
+// Part 7): the signer fills the token pool, a sign-up gets "You're in" with a token at once, a repeat never sees it.
 // No network, no accounts, nothing written outside a temp folder that is removed at the end.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -12,7 +13,7 @@ import { MemoryRepo } from '../server/repo-memory.mjs';
 import { FakeBotCheck, FakeStorage, FakeClock } from '../server/fakes.mjs';
 import { loadConfig } from '../server/config.mjs';
 import { createLogger } from '../server/log.mjs';
-import { runCycle, loadSignerConfig } from '../tools/signer/signer.mjs';
+import { runCycle, runPool, loadSignerConfig } from '../tools/signer/signer.mjs';
 import { makeClient } from '../tools/lib/client.mjs';
 import releases from '../data/releases.json' with { type: 'json' };
 import roadmap from '../server/roadmap-ids.json' with { type: 'json' };
@@ -81,7 +82,11 @@ try {
   step('waitlist email sent, no token for the waitlisted person', inbox.some(m => m.kind === 'waitlist' && m.to === 'cleo@example.com') && !inbox.some(m => m.kind === 'token' && m.to === 'cleo@example.com'));
 
   step('token email: the token on its own line, no link', tokenMail.text.split('\n').includes(tok) && !/https?:/.test(tokenMail.text));
-  const at = invite.text.match(/access#t=([A-Za-z0-9_-]+)/)[1];
+  r = await call('GET', '/download/mac');
+  step('invitation: the Mac download is /download/mac (302), no access link', invite.text.includes(O + '/download/mac') && !invite.text.includes('/api/access') && r.status === 302, r.headers.get('location') || '');
+  // An access link from an older email (the recovery page) still opens a session.
+  const at = crypto.randomBytes(32).toString('base64url');
+  await repo.createLink({ hash: crypto.createHash('sha256').update(at).digest('hex'), purpose: 'access', refId: (await repo.getSignupByEmail('asha@example.com')).id, expiresAt: clock.now() + 3600000, maxUses: 10 }, clock.now());
   r = await call('POST', '/api/access', { json: { t: at, captchaToken: CAP }, ip: '203.0.113.50' });
   const s = cookie(r);
   r = await call('GET', '/api/session', { cookie: s });
@@ -111,6 +116,19 @@ try {
   await admin('settings', { betaCap: 3 });
   const pr = await admin('promote');
   step('cap raised → waitlisted person promoted', pr.promoted === 1 && (await repo.getSignupByEmail('cleo@example.com')).state === 'approved');
+  // The one-click flow: the signer fills the pool (same issuer, throwaway key, label "Sidekick beta"); a sign-up is in at once.
+  const pcfg = { ...cfg, issuer: path.join(ROOT, 'test/fixtures/fake-issuer-trial.mjs'), poolLow: 3, poolMax: 5 };
+  const pool = await runPool({ cfg: pcfg, post, log: () => {} });
+  step('signer: pool filled below the low-water mark', pool.minted === 5 && pool.ready === 5, JSON.stringify(pool));
+  await admin('settings', { betaCap: 10 });
+  r = await call('POST', '/api/get-sidekick', { json: { name: 'Dev Mac', email: 'dev@example.com', privacyAccepted: true, captchaToken: CAP }, ip: '203.0.113.60' });
+  const inst = await r.json();
+  step('instant sign-up: "You\'re in" with a token, no confirmation email', inst.stage === 'in' && /^SIDEKICK-TRIAL-1\./.test(inst.token) && !repo.debugOutbox().some(m => m.toEmail === 'dev@example.com'), `stage ${inst.stage}, download ${inst.download && inst.download.url}`);
+  const [, pl, sg] = (inst.token || '..').split('.');
+  step('…its token verifies with the throwaway public key', !!pl && crypto.verify(null, Buffer.from('SIDEKICK-TRIAL-1.' + pl), publicKey, Buffer.from(sg, 'base64url')));
+  r = await call('POST', '/api/get-sidekick', { json: { name: 'Not Dev', email: 'dev@example.com', privacyAccepted: true, captchaToken: CAP }, ip: '203.0.113.61' });
+  const again = await r.text();
+  step('repeat sign-up: "already", the token never shown again, a copy emailed', JSON.parse(again).stage === 'already' && !again.includes('SIDEKICK-TRIAL') && repo.debugOutbox().some(m => m.toEmail === 'dev@example.com' && m.kind === 'copy'));
   const st = await admin('stats');
   step('admin stats over HMAC', st.status === 200, `approved ${st.signups.approved}, delivered ${st.signups.delivered}, downloads ${st.downloads}`);
   const del = await admin('delete', { email: 'ben@example.com' });

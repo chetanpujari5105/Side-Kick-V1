@@ -77,6 +77,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const repo = new MemoryRepo();
   const app = createApp({ config: loadConfig(env), repo, botCheck: new FakeBotCheck(), storage: new FakeStorage(clock, 600), mailer: null, clock, log: createLogger(() => {}), releases, roadmapIds: roadmap.ids });
   const call = (method, p, { headers = {}, body } = {}) => app.fetch(new Request(O + p, { method, redirect: 'manual', headers: { origin: O, 'x-real-ip': '198.51.100.9', ...headers }, body }));
+  const rewrites = (JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')).rewrites || []).filter(r => /^\/api\/index\?__route=/.test(r.destination)).map(r => r.source);
   const routeExists = async (p, method = 'GET') => (await call(method, p, method === 'POST' ? { headers: { 'content-type': 'application/json' }, body: '{}' } : {})).status !== 404;
 
   // ── 1. dist/ pages ────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
     let rel = decodeURIComponent(u.pathname).replace(/^\//, '');
     if (u.pathname === '/') rel = 'Home.dc.html'; // vercel.json rewrite
     if (rel.startsWith('api/')) return ok(area, `${from} → ${link}`, await routeExists(u.pathname + u.search), 'API route');
+    if (u.pathname === '/download/mac') return ok(area, `${from} → ${link}`, rewrites.includes('/download/mac') && await routeExists('/download/mac'), 'download route (vercel.json rewrite)');
     const exists = fileExists(rel);
     const h = u.hash ? u.hash.slice(1) : '';
     ok(area, `${from} → ${link}`, exists && (!h || !rel.endsWith('.html') || hashOk(rel, h)), !exists ? 'no such file in dist/' : (h && !hashOk(rel, h) ? `#${h} not on ${rel}` : ''));
@@ -145,6 +147,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
       if (EXTERNAL.test(l) || l.startsWith('#')) { if (EXTERNAL.test(l)) external.add(l); continue; }
       checked++;
       const u = new URL(l, O + '/api/x');
+      if (u.pathname === '/download/mac') { ok('server', `${name} → ${l}`, rewrites.includes('/download/mac') && await routeExists(u.pathname), 'download route (vercel.json rewrite)'); continue; }
       if (u.pathname.startsWith('/api/')) { ok('server', `${name} → ${l}`, await routeExists(u.pathname, m[1] === 'action' ? 'POST' : 'GET'), m[1] === 'action' ? 'form POST route' : 'API route'); continue; }
       const rel = u.pathname === '/' ? 'Home.dc.html' : decodeURIComponent(u.pathname).slice(1);
       ok('server', `${name} → ${l}`, fileExists(rel) && (!u.hash || hashOk(rel, u.hash.slice(1))));
@@ -161,7 +164,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   await loc(await call('GET', '/api/download/mac/arm64', { headers: nav }), 'download without a session (browser)');
   const form = new URLSearchParams({ name: 'Lin Kay', email: 'links@example.com', macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'lin.kay@gmail.com', privacyAccepted: 'on', marketingOptIn: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' });
   await loc(await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), 'no-JS signup success');
-  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')) && fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8').includes('After you confirm, we add you to the Android test list and email your download links and token, up to a day later.'));
+  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')) && fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8').includes('After you confirm, we email your beta token, usually within a day.'));
   form.set('phoneModel', '07700 900123');
   const pn = await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() });
   ok('server', 'no-JS signup with a phone number → 400 page with the plain message', pn.status === 400 && (await pn.text()).includes(MSG.phoneNumber.replace(/'/g, '&#39;')), `HTTP ${pn.status}`);
@@ -188,8 +191,10 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
     for (const l of [...(await post.clone().text()).matchAll(/\shref="([^"]+)"/g)].map(m => m[1])) if (!EXTERNAL.test(l)) await resolve('Download.dc.html', l, 'email');
   }
   const confirmMail = mails().find(m => m.kind === 'confirm');
-  const [confirmUrl, updatesUrl] = urlsIn(confirmMail ? confirmMail.text : '');
+  const cLinks = urlsIn(confirmMail ? confirmMail.text : '');
+  const confirmUrl = cLinks.find(x => /\/api\/confirm-email#t=/.test(x)), updatesUrl = cLinks.find(x => /for=updates#t=/.test(x));
   ok('email', 'confirm email has a confirm and an updates link', confirmUrl && updatesUrl);
+  ok('email', 'confirm email: the Mac download is /download/mac', cLinks.includes(O + '/download/mac') && (await call('GET', '/download/mac')).status === 302);
   if (updatesUrl) await walk('confirm?for=updates', updatesUrl, '/api/confirm-email');
   if (confirmUrl) await walk('confirm', confirmUrl, '/api/confirm-email');
   // The owner adds the Google account to the Play test list (PLAY_GATE=on), then the signer posts a token:
@@ -208,9 +213,33 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const tokenMail = mails().find(m => m.kind === 'token');
   ok('email', 'token email has no link at all', tokenMail && urlsIn(tokenMail.text).length === 0);
   const inviteMail = mails().find(m => m.kind === 'invite');
-  const accessUrl = urlsIn(inviteMail ? inviteMail.text : '').find(x => x.includes('/api/access'));
-  ok('email', 'invitation has an access link (github/r2 storage)', accessUrl);
-  if (accessUrl) await walk('access', accessUrl, '/api/access');
+  ok('email', 'invitation: the Mac download is /download/mac, no access link any more', inviteMail && urlsIn(inviteMail.text).includes(O + '/download/mac') && !inviteMail.text.includes('/api/access'));
+  // An access link from an older email still opens the Download page (the recovery page, launch log Part 7).
+  const at = crypto.randomBytes(32).toString('base64url');
+  await repo.createLink({ hash: crypto.createHash('sha256').update(at).digest('hex'), purpose: 'access', refId: s.id, expiresAt: clock.now() + 3600000, maxUses: 10 }, clock.now());
+  await walk('access', `${O}/api/access#t=${at}`, '/api/access');
+  // The instant flow: a pool token, the no-JS result page and its links, "Email me a copy".
+  const poolTok = () => { const st = new Date(clock.now()); st.setUTCHours(0, 0, 0, 0); return 'SIDEKICK-TRIAL-1.' + Buffer.from(JSON.stringify({ v: 1, id: crypto.randomBytes(12).toString('base64url'), label: 'Sidekick beta', notBefore: st.toISOString(), notAfter: new Date(st.getTime() + 45 * 864e5).toISOString() })).toString('base64url') + '.' + crypto.randomBytes(64).toString('base64url'); };
+  const pb = JSON.stringify({ tokens: [poolTok()] });
+  const ph = signRequest({ keyId: 'signer', secret: env.ADMIN_AUTH_SIGNER_SECRET, method: 'POST', path: '/api/admin/pool-add', body: pb, now: clock.now() });
+  ok('email', 'signer fills the pool (fake token)', (await call('POST', '/api/admin/pool-add', { headers: { ...ph, 'content-type': 'application/json' }, body: pb })).status === 200);
+  const inst = await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded', 'x-real-ip': '198.51.100.77' }, body: new URLSearchParams({ name: 'Ina Stant', email: 'instant@example.com', privacyAccepted: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' }).toString() });
+  const instHtml = await inst.text();
+  ok('server', 'no-JS instant result page (200, You\'re in)', inst.status === 200 && /You(&#39;|')re in, Ina/.test(instHtml), `HTTP ${inst.status}`);
+  for (const m of instHtml.matchAll(/\s(href|action)="([^"]*)"/g)) {
+    const l = m[2];
+    if (EXTERNAL.test(l)) { ok('server', `result page → ${l.slice(0, 60)}`, l === releases.mac.betaDriveUrl, 'only the Drive fallback leaves the site'); continue; }
+    checked++;
+    const u = new URL(l, O + '/api/x');
+    if (u.pathname === '/download/mac') ok('server', `result page → ${l}`, (await call('GET', l)).status === 302, 'download route');
+    else if (u.pathname.startsWith('/api/')) ok('server', `result page → ${l}`, await routeExists(u.pathname, m[1] === 'action' ? 'POST' : 'GET'));
+    else ok('server', `result page → ${l}`, fileExists(u.pathname === '/' ? 'Home.dc.html' : decodeURIComponent(u.pathname).slice(1)) && (!u.hash || hashOk(decodeURIComponent(u.pathname).slice(1), u.hash.slice(1))));
+  }
+  const ic = (inst.headers.get('set-cookie') || '').split(';')[0];
+  const cp = await call('POST', '/api/email-copy', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded', cookie: ic }, body: '' });
+  ok('email', '"Email me a copy" (no-JS button) → a page', cp.status === 200, `HTTP ${cp.status}`);
+  const copyMail = mails().find(m => m.kind === 'copy');
+  ok('email', 'copy email: /download/mac, the Drive folder only as the fallback, the setup guide', copyMail && urlsIn(copyMail.text).includes(O + '/download/mac') && urlsIn(copyMail.text).includes(O + '/Support.dc.html#setup'));
   // An update to people who confirmed updates; its one-use unsubscribe link.
   ok('email', 'announce (admin)', (await adminPost('announce', { subject: 'Links check', body: 'Hello.' })).status === 200);
   const unsubUrl = urlsIn((mails().find(m => m.kind === 'announce') || { text: '' }).text).find(x => x.includes('/api/unsubscribe'));
@@ -220,13 +249,13 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const notifyUrl = urlsIn((mails().find(m => m.kind === 'notify') || { text: '' }).text)[0];
   ok('email', 'notify email has a link', notifyUrl);
   if (notifyUrl) await walk('confirm?for=notify', notifyUrl, '/api/confirm-email');
-  // Every link in our emails is ours, except the Play test link from releases.json in the invitation.
-  for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/') || (m.kind === 'invite' && x === releases.android.playTestUrl), x.replace(/#t=.*/, '#t=…'));
-  // STORAGE_PROVIDER=static (Production): the invitation's outside links are exactly the Beta page, the Drive folder and
-  // the Play test link, all from release facts.
-  const staticInvite = emails.invite({ name: 'Lin Kay', macUrl: O + '/Beta.dc.html', macIsBetaPage: true, release: releases, googleEmail: 'lin.kay@gmail.com' }).text;
+  // Every link in our emails is ours, except release facts: the Play test link (invitation, Android invitation) and
+  // the Drive folder as the download fallback (invitation, copy).
+  for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/') || (['invite', 'android'].includes(m.kind) && x === releases.android.playTestUrl) || (['invite', 'copy'].includes(m.kind) && x === releases.mac.betaDriveUrl), x.replace(/#t=.*/, '#t=…'));
+  // The invitation's links are exactly /download/mac, the Drive folder (fallback) and the Play test link.
+  const staticInvite = emails.invite({ name: 'Lin Kay', downloadUrl: O + '/download/mac', release: releases, googleEmail: 'lin.kay@gmail.com' }).text;
   const staticLinks = [...new Set(urlsIn(staticInvite))].sort();
-  ok('email', 'invite (static storage): links are the Beta page, the Drive folder and the Play test link', JSON.stringify(staticLinks) === JSON.stringify([O + '/Beta.dc.html', releases.mac.betaDriveUrl, releases.android.playTestUrl].sort()), staticLinks.join(' '));
+  ok('email', 'invite: links are /download/mac, the Drive folder (fallback) and the Play test link', JSON.stringify(staticLinks) === JSON.stringify([O + '/download/mac', releases.mac.betaDriveUrl, releases.android.playTestUrl].sort()), staticLinks.join(' '));
   } // end automated-only sections 2 and 3
 
   // ── 4. the unlisted Beta page ─────────────────────────────────────────────

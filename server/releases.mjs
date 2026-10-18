@@ -19,6 +19,10 @@ export function releaseProblems(r) {
   const st = (r.mac || {}).installSteps;
   if (!Array.isArray(st) || st.length < 1 || st.length > 12 || st.some(s => typeof s !== 'string' || s.length < 10 || s.length > 500 || /[<>\u0000-\u001f]/.test(s))) p.push('mac.installSteps must be 1–12 plain sentences');
   // The invited-beta links on the unlisted Beta page: null (not available) or https on exactly these hosts.
+  // The direct download (GitHub Release asset of THIS file), or null until the owner has published it and
+  // scripts/data-sync.mjs --verify-direct-url has checked its size and SHA-256. Server-only: pages link to /download/mac.
+  const du = (r.mac || {}).directUrl, file = builds && builds.arm64 && builds.arm64.file;
+  if (du !== undefined && !linkOn(du, 'github.com', /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/releases\/download\/v\d+\.\d+\.\d+\/([A-Za-z0-9._-]+\.dmg)$/) || (typeof du === 'string' && du.split('/').pop() !== file)) p.push('mac.directUrl must be null or https://github.com/<owner>/<repo>/releases/download/v<version>/<the .dmg file>');
   if (!linkOn((r.mac || {}).betaDriveUrl, 'drive.google.com', /^\/drive\/folders\/[A-Za-z0-9_-]{10,100}$/)) p.push('mac.betaDriveUrl must be null or https://drive.google.com/drive/folders/…');
   const a = r.android || {};
   if (a.build !== undefined) p.push('android.build is not allowed: this site never serves an APK (store URL or nothing)');
@@ -38,7 +42,10 @@ function linkOn(v, host, pathRe) {
   return u.protocol === 'https:' && u.hostname === host && !u.port && !u.username && !u.search && !u.hash && u.href === v && pathRe.test(u.pathname);
 }
 
+// The public copy (GET /api/releases, data/releases.js): no comment, and no mac.directUrl — pages link to
+// /download/mac, so the asset can move without touching them (and the manual build stays byte-identical).
 export function publicReleases(r) {
   const { _comment, ...rest } = r;
+  if (rest.mac && 'directUrl' in rest.mac) { const { directUrl, ...mac } = rest.mac; return { ...rest, mac }; }
   return rest;
 }

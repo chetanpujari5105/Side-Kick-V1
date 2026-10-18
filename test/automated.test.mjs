@@ -154,11 +154,12 @@ async function delivered(h) {
   return { id, token, invite: out.find(m => m.kind === 'invite'), tokenMail: out.find(m => m.kind === 'token') };
 }
 
-test('invitation email: Beta page, checksum, install steps, Play link and when it works, contact, removal; never the token', async () => {
+test('invitation email: /download/mac (Drive only as the fallback), checksum, install steps, Play link and when it works, contact, removal; never the token', async () => {
   const h = setup({ env: { PLAY_GATE: 'on', STORAGE_PROVIDER: 'static' } });
   const { invite, token } = await delivered(h);
   const t = invite.text;
-  assert.ok(t.includes(ORIGIN + '/Beta.dc.html'), 'the Beta page address');
+  assert.ok(t.includes(ORIGIN + '/download/mac'), 'the direct download address (launch log Part 7)');
+  assert.ok(!t.includes('Beta.dc.html'), 'no Beta page step any more');
   assert.ok(t.includes(releases.mac.builds.arm64.sha256), 'the SHA-256');
   assert.ok(t.includes(releases.mac.builds.arm64.file));
   assert.ok(releases.mac.installSteps.length >= 4);
@@ -378,7 +379,7 @@ test('admin migrate: owner key only, runs every schema on the real SQL (PGlite),
   const { PgRepo } = await import('../server/repo-pg.mjs');
   const pg = new PGlite();
   const repo = new PgRepo({ query: async (t, p = []) => (await pg.query(t, p)).rows, transaction: (l) => pg.transaction(async (tx) => { const o = []; for (const q of l) o.push((await tx.query(q.text, q.params || [])).rows); return o; }) });
-  const schemas = ['schema.sql', 'schema-v2.sql'].map(f => fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
+  const schemas = ['schema.sql', 'schema-v2.sql', 'schema-v3.sql'].map(f => fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
   const { createApp } = await import('../server/app.mjs');
   const h = setup(GATED);
   const app = createApp({ config: h.config, repo, botCheck: h.botCheck, storage: h.storage, clock: h.clock, log: { info() {}, warn() {}, error() {} }, releases, roadmapIds: [], schemas });
@@ -390,7 +391,7 @@ test('admin migrate: owner key only, runs every schema on the real SQL (PGlite),
   assert.equal((await call('admin', h.env.ADMIN_AUTH_SECRET).then(r => r)).status, 200);
   const r1 = await call('admin', h.env.ADMIN_AUTH_SECRET);
   assert.equal(r1.status, 200);
-  assert.equal((await r1.json()).version, 2);
+  assert.equal((await r1.json()).version, 3);
   assert.equal((await call('admin', h.env.ADMIN_AUTH_SECRET)).status, 200, 'twice is fine');
 });
 
@@ -410,16 +411,17 @@ test('client: the Vercel protection-bypass header comes from a mode-600 file onl
   assert.equal(seen[1]['x-vercel-protection-bypass'], undefined, 'no header unless asked');
 });
 
-test('invitation (static storage): the Beta page AND the Drive folder itself, so the download works even if the Beta page does not', async () => {
+test('invitation (static storage): /download/mac first, the Drive folder only "if the download doesn\'t start"', async () => {
   const h = setup({ env: { PLAY_GATE: 'on', STORAGE_PROVIDER: 'static' } });
   const { invite } = await delivered(h);
   const t = invite.text;
-  assert.ok(t.includes(ORIGIN + '/Beta.dc.html'), 'Beta page');
+  assert.ok(t.includes('\n' + ORIGIN + '/download/mac\n'), 'the download link on its own line');
   assert.ok(t.includes('\n' + releases.mac.betaDriveUrl + '\n'), 'the Drive folder link on its own line');
-  assert.ok(t.indexOf(ORIGIN + '/Beta.dc.html') < t.indexOf(releases.mac.betaDriveUrl), 'Beta page first (it has the checks)');
+  assert.ok(t.indexOf(ORIGIN + '/download/mac') < t.indexOf(releases.mac.betaDriveUrl), 'the direct download first');
+  assert.match(t.slice(0, t.indexOf(releases.mac.betaDriveUrl)), /If the download doesn't start[^\n]*\n$/, 'Drive is only the fallback');
   const { emails } = await import('../server/emails.mjs');
   const { betaDriveUrl: _d, ...macNoDrive } = releases.mac;
-  const noDrive = emails.invite({ name: 'A', macUrl: ORIGIN + '/Beta.dc.html', macIsBetaPage: true, release: { ...releases, mac: macNoDrive }, googleEmail: 'a@gmail.com' }).text;
+  const noDrive = emails.invite({ name: 'A', downloadUrl: ORIGIN + '/download/mac', release: { ...releases, mac: macNoDrive }, googleEmail: 'a@gmail.com' }).text;
   assert.ok(!/undefined|drive\.google/.test(noDrive), 'no Drive line without a Drive link');
 });
 

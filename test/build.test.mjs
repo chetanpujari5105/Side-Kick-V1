@@ -1,5 +1,6 @@
 // The production build can't carry design-review switches, and each SITE_MODE ships only what it needs: proves it
 // on a fresh dist/.
+import { stripRegions } from '../scripts/site-modes.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -48,7 +49,7 @@ test('automated: dist/ is real mode — no mock client, no review bar, no sessio
     assert.ok(!fs.existsSync(path.join(DIST, f)), `${f} must not be served`);
   const gs = fs.readFileSync(path.join(DIST, 'Get Sidekick.dc.html'), 'utf8');
   assert.match(gs, /<noscript><style>[\s\S]*action="\/api\/get-sidekick"/, 'the no-JS form is embedded');
-  assert.equal(fs.readFileSync(path.join(DIST, 'Beta.dc.html'), 'utf8'), fs.readFileSync(path.join(ROOT, 'Beta.dc.html'), 'utf8'), 'Beta page ships as written');
+  assert.equal(fs.readFileSync(path.join(DIST, 'Beta.dc.html'), 'utf8'), stripRegions(fs.readFileSync(path.join(ROOT, 'Beta.dc.html'), 'utf8'), 'automated'), 'Beta page ships as written (its automated regions kept)');
   // Source stays in design-review mode.
   assert.match(fs.readFileSync(path.join(ROOT, 'data/site-config.js'), 'utf8'), /mocksEnabled: true,/);
   restoreLocal();
@@ -72,7 +73,7 @@ test('manual: builds on Vercel with no secret at all, and ships nothing that tal
   const gs = fs.readFileSync(path.join(DIST, 'Get Sidekick.dc.html'), 'utf8');
   assert.match(gs, /href="mailto:chetanpujari\.sitit@gmail\.com\?subject=Sidekick%20beta%3A%20request%20access&amp;body=/, 'Get Sidekick is the request-access email');
   assert.match(fs.readFileSync(path.join(DIST, 'Download.dc.html'), 'utf8'), /Beta by invitation/);
-  assert.equal(fs.readFileSync(path.join(DIST, 'Beta.dc.html'), 'utf8'), fs.readFileSync(path.join(ROOT, 'Beta.dc.html'), 'utf8'), 'Beta page ships as written');
+  assert.equal(fs.readFileSync(path.join(DIST, 'Beta.dc.html'), 'utf8'), stripRegions(fs.readFileSync(path.join(ROOT, 'Beta.dc.html'), 'utf8'), 'manual'), 'Beta page ships as written (its automated regions removed)');
   restoreLocal();
 });
 

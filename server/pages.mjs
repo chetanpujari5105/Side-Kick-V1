@@ -2,6 +2,7 @@
 // System fonts and one nonce'd <style>, so the strict CSP in http.mjs holds.
 import { esc } from './http.mjs';
 import { MSG } from './validate.mjs';
+import { SHORT_STEPS } from './emails.mjs';
 
 const STYLE = `body{margin:0;background:#F6F3EC;color:#17142E;font:17px/1.55 -apple-system,BlinkMacSystemFont,Inter,sans-serif}
 main{max-width:620px;margin:0 auto;padding:48px 20px}h1{font-size:40px;line-height:1;letter-spacing:-.03em;margin:0 0 16px}
@@ -12,12 +13,15 @@ input[type=text],input[type=email]{height:54px;padding:0 16px;border-radius:14px
 input[aria-invalid=true]{border-color:#D9432F;background:#FFF8F6}.err{color:#B3341F;font-size:14.5px}.hint{color:#55526B;font-size:14.5px}
 fieldset{border:0;margin:0;padding:0}legend{font-weight:600;font-size:15px;padding:0 0 8px}.row{display:flex;gap:10px;align-items:flex-start}
 button{min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;cursor:pointer}
-[hidden]{display:none!important}.m0{margin:0}.alert{border-radius:16px;background:#FCEBE7;border:1.5px solid #D9432F;padding:16px 18px}.alert a{color:#B3341F}`;
+[hidden]{display:none!important}.m0{margin:0}.alert{border-radius:16px;background:#FCEBE7;border:1.5px solid #D9432F;padding:16px 18px}.alert a{color:#B3341F}
+a.btn{display:inline-flex;align-items:center;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;text-decoration:none;box-sizing:border-box}
+code.tok{display:block;font:13.5px/1.5 ui-monospace,Menlo,monospace;word-break:break-all;background:#F6F3EC;border-radius:12px;padding:12px 14px;user-select:all}
+button.sec{min-height:44px;padding:0 18px;background:#fff;font-size:15px}ol{margin:0;padding-left:22px}details summary{cursor:pointer;font-weight:600}`;
 
-function shell({ title, nonce, body, siteKey }) {
+function shell({ title, nonce, body, siteKey, head = '' }) {
   const ts = siteKey && siteKey !== 'local-dev-fake' ? `<script nonce="${nonce}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : '';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex"><title>${esc(title)} · Sidekick</title><style nonce="${nonce}">${STYLE}</style>${ts}</head>
+<meta name="robots" content="noindex">${head}<title>${esc(title)} · Sidekick</title><style nonce="${nonce}">${STYLE}</style>${ts}</head>
 <body><main id="main">${body}<p><a href="/">Sidekick home</a> · <a href="/Support.dc.html#help">Help</a></p></main></body></html>`;
 }
 
@@ -46,13 +50,50 @@ export function linkPage({ purpose, nonce, siteKey, valid }) {
 <script nonce="${nonce}">(function(){var m=location.hash.match(/[#&]t=([A-Za-z0-9_-]{43})(?:&|$)/);if(m){document.getElementById('t').value=m[1];history.replaceState(null,'',location.pathname+location.search);}else{document.getElementById('nolink').hidden=false;}})();</script>` });
 }
 
+// The result page's Android line, per ANDROID_ACCESS (Get Sidekick.dc.html shows the same words).
+export const ANDROID_TEXT = {
+  'manual-batch': "Android: we're adding your Google account to the test list. Your Google Play link comes by email, usually within a day.",
+  'google-group': "Android: we're adding your Google account to the test list. Your Google Play link comes by email, usually within the hour."
+};
+
+// The instant result (launch log Part 7) for a browser without JavaScript: the form post answers with this page.
+// The token is shown here once. With a verified direct download the file starts by itself (meta refresh, no script)
+// and "Download again" is a normal link; without one (the Drive fallback) nothing starts by itself, because the Drive
+// folder would replace this page and the token with it, so the button opens a new tab.
+export function resultPage({ nonce, firstName, token, download, release, android }) {
+  const b = release.mac.builds.arm64;
+  const head = download.auto ? `<meta http-equiv="refresh" content="2;url=${download.url}">` : '';
+  const button = download.auto
+    ? `<p class="m0">Your download starts in a moment.</p><p class="m0"><a class="btn" href="${download.url}">Download again</a></p>`
+    : `<p class="m0"><a class="btn" href="${download.url}" target="_blank" rel="noopener">Download the Mac app</a></p>`;
+  const steps = SHORT_STEPS(b.file).map(x => `<li class="step">${esc(x)}</li>`).join('');
+  const all = (release.mac.installSteps || []).map(x => `<li>${esc(x)}</li>`).join('');
+  const drive = release.mac.betaDriveUrl ? `<p>If the download doesn't start, <a href="${esc(release.mac.betaDriveUrl)}" rel="noopener noreferrer">open our Google Drive folder</a> and download ${esc(b.file)} there.</p>` : '';
+  const androidBlock = android === 'manual-batch'
+    ? `<section class="card"><p class="m0">${esc(ANDROID_TEXT['manual-batch'])}</p></section>`
+    : android === 'google-group' ? `<section class="card"><p class="m0">${esc(ANDROID_TEXT['google-group'])}</p></section>` : '';
+  const body = `<h1>You're in, ${esc(firstName)}.</h1>${button}
+<section class="card" aria-labelledby="tok-h"><h2 id="tok-h" class="m0">Your beta token</h2><p class="m0">Paste it in Sidekick the first time you open it. It is shown only here, so copy it now (or use Email me a copy below).</p>
+<code class="tok" id="tok">${esc(token)}</code><button type="button" class="sec" id="copy" hidden>Copy</button></section>
+<section class="card" aria-labelledby="inst-h"><h2 id="inst-h" class="m0">Install</h2><ol>${steps}</ol>
+<details><summary>More details</summary><ol>${all}</ol><p>SHA-256 of ${esc(b.file)} (to check the download; not your token):<br><code>${esc(b.sha256 || 'not staged yet')}</code></p>${drive}</details></section>
+${androidBlock}<form method="post" action="/api/email-copy"><button type="submit" class="sec">Email me a copy</button></form>
+<script nonce="${nonce}">(function(){var b=document.getElementById('copy'),t=document.getElementById('tok');if(!b||!t)return;b.hidden=false;b.addEventListener('click',function(){var v=t.textContent;var ok=function(){b.textContent='Copied';};var sel=function(){var r=document.createRange();r.selectNodeContents(t);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected: press Command-C';};if(navigator.clipboard)navigator.clipboard.writeText(v).then(ok,sel);else sel();});})();</script>`;
+  return shell({ title: "You're in", nonce, body, head });
+}
+
+// A repeat sign-up: never the token again (anyone could type another person's address); the copy goes by email.
+export function alreadyPage({ nonce }) {
+  return shell({ title: 'Already signed up', nonce, body: `<h1>You already signed up.</h1><p>We emailed you your link. It comes from our own mailbox, so it can take a while: check your spam folder too.</p><p><a class="btn" href="/download/mac" target="_blank" rel="noopener">Download the Mac app</a></p>` });
+}
+
 export function messagePage({ nonce, title, text, status = 200 }) {
   return { status, body: shell({ title, nonce, body: `<h1>${esc(title)}</h1><p>${esc(text)}</p>` }) };
 }
 
 // The signup form for browsers without JavaScript, with errors. Field names match the JSON API.
 export function signupFormPage({ nonce, siteKey, values = {}, errors = {}, banner = '' }) {
-  const ids = { name: 'f-name', email: 'f-email', macChip: 'f-chip', phoneModel: 'f-phone', googleEmail: 'f-google', privacyAccepted: 'f-privacy' };
+  const ids = { name: 'f-name', email: 'f-email', macChip: 'f-name', phoneModel: 'f-phone', googleEmail: 'f-google', privacyAccepted: 'f-privacy' };
   const keys = Object.keys(ids).filter(k => errors[k]);
   const hint = { phoneModel: 'h-phone', googleEmail: 'h-google' };
   const inv = (k) => errors[k] ? ` aria-invalid="true" aria-describedby="e-${k}${hint[k] ? ' ' + hint[k] : ''}"` : (hint[k] ? ` aria-describedby="${hint[k]}"` : '');
@@ -78,12 +119,13 @@ function signupForm({ values, errors, siteKey, inv, err, chip }) {
 <button type="submit" disabled hidden aria-hidden="true" tabindex="-1"></button>
 <div class="f"><label for="f-name">Name</label><input id="f-name" name="name" type="text" autocomplete="name" value="${esc(values.name)}"${inv('name')}>${err('name')}</div>
 <div class="f"><label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" value="${esc(values.email)}"${inv('email')}>${err('email')}</div>
-<fieldset id="f-chip"${errors.macChip ? ' aria-describedby="e-macChip"' : ''}><legend>Your Mac's chip</legend>${chip('apple', 'Apple silicon')}${chip('unsure', 'Not sure')}${err('macChip')}</fieldset>
-<div class="f"><label for="f-phone">Android phone model</label><input id="f-phone" name="phoneModel" type="text" value="${esc(values.phoneModel)}"${inv('phoneModel')}><span class="hint" id="h-phone">The model name, like Pixel 8 or Galaxy S23 — not your phone number. Settings › About phone shows it.</span>${err('phoneModel')}</div>
-<div class="f"><label for="f-google">Google account email for Google Play</label><input id="f-google" name="googleEmail" type="email" autocomplete="off" value="${esc(values.googleEmail)}"${inv('googleEmail')}><span class="hint" id="h-google">The account your phone's Play Store uses. We add it to Sidekick's Google Play test list so you can install the Android app.</span>${err('googleEmail')}</div>
+<p class="hint m0">For Macs with Apple silicon (M1 or later).</p>
+<label class="row"><input id="f-android" type="checkbox" name="android" value="on"${values.android ? ' checked' : ''}> <span>I also want the Android app (Google Play test). (optional)</span></label>
+<div class="f"><label for="f-phone">Android phone model <span class="hint">(only with Android)</span></label><input id="f-phone" name="phoneModel" type="text" value="${esc(values.phoneModel)}"${inv('phoneModel')}><span class="hint" id="h-phone">The model name, like Pixel 8 or Galaxy S23 — not your phone number. Settings › About phone shows it.</span>${err('phoneModel')}</div>
+<div class="f"><label for="f-google">Google account email for Google Play <span class="hint">(only with Android)</span></label><input id="f-google" name="googleEmail" type="email" autocomplete="off" value="${esc(values.googleEmail)}"${inv('googleEmail')}><span class="hint" id="h-google">The account your phone's Play Store uses. We add it to Sidekick's Google Play test list so you can install the Android app.</span>${err('googleEmail')}</div>
 <label class="row"><input id="f-privacy" type="checkbox" name="privacyAccepted" value="on"${values.privacyAccepted ? ' checked' : ''}${inv('privacyAccepted')}> <span>I've read the <a href="/Support.dc.html#privacy">Privacy Policy</a>. (required)</span></label>${err('privacyAccepted')}
 <label class="row"><input type="checkbox" name="marketingOptIn" value="on"${values.marketingOptIn ? ' checked' : ''}> <span>Email me Sidekick updates. (optional — we'll ask you to confirm)</span></label>
-${widget(siteKey)}<button type="submit">Continue</button></form>`;
+${widget(siteKey)}<button type="submit">Get the Mac app</button></form>`;
 }
 
 export const FORM_STYLE = STYLE;

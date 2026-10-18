@@ -15,6 +15,6 @@ if (i > 0) {
 }
 if (!url) { console.error('Set DATABASE_URL in the environment or pass --url-file (see docs/OWNER-SETUP.md).'); process.exit(2); }
 const repo = new PgRepo(await neonDb(url));
-for (const f of ['schema.sql', 'schema-v2.sql']) await repo.migrate(fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
+for (const f of ['schema.sql', 'schema-v2.sql', 'schema-v3.sql']) await repo.migrate(fs.readFileSync(new URL('../server/' + f, import.meta.url), 'utf8'));
 const rows = await repo.q('select max(version) as v from schema_migrations', []);
 console.log(`Database ready: schema version ${rows[0].v}.`);

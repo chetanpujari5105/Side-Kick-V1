@@ -2,6 +2,9 @@
 //
 // One cycle: ask the site which approved people need a token → run the Mac app's own issuer for each →
 // post back only the finished token → send queued emails from the owner's own mailbox (Mail.app) → report.
+// Then the token pool (launch log Part 7): discard pool tokens too old to give 35 days, and when fewer than the
+// low-water mark are ready, mint up to the max with the same issuer (label "Sidekick beta") and upload only the
+// token strings. With SK_ANDROID_ACCESS=google-group it also adds waiting Google accounts to the Google Group.
 // The private key is read by the issuer, never by this script, and never leaves the Mac.
 //
 //   node tools/signer/signer.mjs --once          one cycle (what launchd runs every 5 minutes)
@@ -27,6 +30,11 @@
 //   SK_MAIL_PER_DAY     default 400 — per rolling 24 hours, under Gmail's documented consumer limit (docs/OWNER-SETUP.md)
 //   SK_STATE_DIR        default ~/Library/Application Support/sidekick-signer — sent-times.json (send times only, mode 600)
 //   SK_LOG_FILE         default ~/Library/Logs/sidekick-signer.log — the launchd job's log, read by --status and failed runs
+//   SK_POOL             on (default) | off — keep the token pool for instant sign-ups filled
+//   SK_POOL_LOW         default 40 — mint only when fewer pool tokens than this are ready (also the ATTENTION level)
+//   SK_POOL_MAX         default 100 — mint up to this many ready tokens
+//   SK_ANDROID_ACCESS   manual-batch (default: the owner pastes play-batch into Play Console) | google-group (see
+//                       tools/signer/android-group.mjs and docs/ANDROID-GROUP-SETUP.md; NOT tested against real Google)
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -34,6 +42,8 @@ import { spawn, execFile, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { makeClient, secretFrom, keychainSecret } from '../lib/client.mjs';
 import { isTokenShaped, normaliseEmail } from '../../server/validate.mjs';
+import { POOL_LABEL, POOL_ADD_MAX } from '../../server/pool.mjs';
+import { loadGroupConfig, runAndroidGroup } from './android-group.mjs';
 
 const HOME = os.homedir();
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -55,7 +65,11 @@ export function loadSignerConfig(env = process.env) {
     perHour: Number.isInteger(Number(env.SK_MAIL_PER_HOUR)) && Number(env.SK_MAIL_PER_HOUR) >= 0 && env.SK_MAIL_PER_HOUR !== undefined && env.SK_MAIL_PER_HOUR !== '' ? Number(env.SK_MAIL_PER_HOUR) : 30,
     perDay: Number.isInteger(Number(env.SK_MAIL_PER_DAY)) && Number(env.SK_MAIL_PER_DAY) >= 0 && env.SK_MAIL_PER_DAY !== undefined && env.SK_MAIL_PER_DAY !== '' ? Number(env.SK_MAIL_PER_DAY) : 400,
     // null: the budget is kept for this cycle only (tests, the demo). main() fills in the real folder.
-    stateDir: env.SK_STATE_DIR || null
+    stateDir: env.SK_STATE_DIR || null,
+    pool: env.SK_POOL !== 'off',
+    poolLow: /^\d{1,4}$/.test(env.SK_POOL_LOW || '') ? Number(env.SK_POOL_LOW) : 40,
+    poolMax: /^\d{1,4}$/.test(env.SK_POOL_MAX || '') ? Number(env.SK_POOL_MAX) : 100,
+    poolLabel: POOL_LABEL
   };
 }
 
@@ -161,6 +175,60 @@ export async function runCycle({ cfg, post, issue = (o) => runIssuer(cfg, o), ma
   return out;
 }
 
+// The token pool. Order: discard stale ones (the server decides: older than 10 days or under 35 days left), upload
+// any tokens a failed run left on disk, then — only below the low-water mark — mint up to the max and upload them.
+// Minted tokens wait in <tokensDir>/pool (mode 600) only until the upload succeeds; then they are deleted. No token
+// value is ever logged. Returns counts only.
+const UPLOAD_CHUNK = Math.min(25, POOL_ADD_MAX);
+export async function runPool({ cfg, post, issue = (o) => runIssuer(cfg, o), pem = null, log = console.log }) {
+  const out = { discarded: 0, minted: 0, uploaded: 0, ready: 0, failed: 0 };
+  const dir = path.join(cfg.tokensDir, 'pool');
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const pr = await post('pool-prune');
+  if (pr.status !== 200) throw new Error(`pool-prune: HTTP ${pr.status}`);
+  out.discarded = pr.discarded;
+  const upload = async () => {
+    const files = fs.readdirSync(dir).filter(f => f.endsWith('.sidekick-token')).sort();
+    for (let i = 0; i < files.length; i += UPLOAD_CHUNK) {
+      const chunk = files.slice(i, i + UPLOAD_CHUNK).map(f => [f, readTokenFile(path.join(dir, f))]);
+      for (const [f, t] of chunk) if (!t) { fs.rmSync(path.join(dir, f), { force: true }); out.failed++; log(`pool: ${f} held no token; removed`); }
+      const good = chunk.filter(([, t]) => t);
+      if (!good.length) continue;
+      const r = await post('pool-add', { tokens: good.map(([, t]) => t) });
+      if (r.status !== 200) { out.failed += good.length; log(`pool-add: HTTP ${r.status}; ${good.length} token(s) kept for the next run`); continue; }
+      for (const [f] of good) fs.rmSync(path.join(dir, f), { force: true });
+      out.uploaded += good.length;
+    }
+  };
+  await upload();
+  if (out.failed) { out.ready = (await post('pool-status')).ready ?? 0; return out; }
+  const st = await post('pool-status');
+  if (st.status !== 200) throw new Error(`pool-status: HTTP ${st.status}`);
+  if (st.ready < cfg.poolLow) {
+    const need = Math.max(0, cfg.poolMax - st.ready);
+    for (let i = 0; i < need; i++) {
+      const file = path.join(dir, `pool-${Date.now()}-${String(i).padStart(3, '0')}-${Math.random().toString(36).slice(2, 8)}.sidekick-token`);
+      try {
+        await issue({ label: cfg.poolLabel, outFile: file, pem });
+        if (!readTokenFile(file)) throw new Error('the issuer wrote no token');
+        fs.chmodSync(file, 0o600);
+        out.minted++;
+      } catch (e) { out.failed++; fs.rmSync(file, { force: true }); log(`pool mint: ${e.message}`); break; }
+    }
+    await upload();
+  }
+  const after = await post('pool-status');
+  out.ready = after.status === 200 ? after.ready : st.ready + out.uploaded;
+  return out;
+}
+
+// The log lines of a pool run: one summary, plus ATTENTION while fewer than the low-water mark are ready.
+export function poolLines(r, { poolLow, iso }) {
+  const lines = [`${iso} signer pool: ${JSON.stringify(r)}`];
+  if (r.ready < poolLow) lines.push(`${iso} ATTENTION: token pool below the low-water mark (${r.ready} ready, low-water ${poolLow}). Instant sign-ups fall back to the email flow when it is empty.`);
+  return lines;
+}
+
 // The signer's client: one retry on a network error (its actions are safe to repeat; see tools/lib/client.mjs).
 export const signerClient = (cfg, deps = {}) => makeClient({ base: cfg.base, keyId: 'signer', secret: cfg.secret, retries: 1, retryDelayMs: 2000, ...deps });
 
@@ -183,7 +251,7 @@ export function failureLines(e, { previousFailed, runMs, iso }) {
 }
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-export function formatStatus({ now, host, log, launchd, queue }) {
+export function formatStatus({ now, host, log, launchd, queue, poolLow = 40 }) {
   const ago = (iso) => `${Math.max(0, Math.round((now - Date.parse(iso)) / 60000))} min ago`;
   return [
     `Sidekick signer status at ${new Date(now).toISOString()}`,
@@ -193,7 +261,11 @@ export function formatStatus({ now, host, log, launchd, queue }) {
     `consecutive failed runs: ${log.consecutiveFailed}${log.consecutiveFailed >= ATTENTION_AT ? ' — ATTENTION: check that this Mac is awake and online' : ''}`,
     queue.ok ? `queue on ${host}: ${plural(queue.outboxQueued, 'email', 'emails')} waiting to send, ${plural(queue.awaitingToken, 'token', 'tokens')} to issue, ${queue.awaitingPlayList} waiting for the Play list`
       : `queue on ${host}: unavailable (${queue.code || 'error'})`
-  ];
+  ].concat(queue.ok && Number.isInteger(queue.poolReady) ? [
+    `token pool on ${host}: ${queue.poolReady} ready (low-water ${poolLow})${queue.poolReady < poolLow ? ' — ATTENTION: below the low-water mark' : ''}`
+  ] : queue.ok ? [`token pool on ${host}: unavailable (not migrated yet?)`] : []).concat(queue.ok && Number.isInteger(queue.androidPending) ? [
+    `Android: ${plural(queue.androidPending, 'Google account', 'Google accounts')} waiting to be added to the Play test list (admin play-batch)`
+  ] : []);
 }
 
 const LABEL = 'com.sidekick.signer';
@@ -214,11 +286,11 @@ async function status(cfg) {
       if (!cfg.secret) queue = { ok: false, code: 'NO_SECRET' };
       else {
         const r = await signerClient(cfg)('queue');
-        queue = r.status === 200 ? { ok: true, outboxQueued: r.outboxQueued, awaitingToken: r.awaitingToken, awaitingPlayList: r.awaitingPlayList } : { ok: false, code: `HTTP ${r.status}` };
+        queue = r.status === 200 ? { ok: true, outboxQueued: r.outboxQueued, awaitingToken: r.awaitingToken, awaitingPlayList: r.awaitingPlayList, poolReady: r.poolReady, androidPending: r.androidPending } : { ok: false, code: `HTTP ${r.status}` };
       }
     } catch (e) { queue = { ok: false, code: e.code || 'error' }; }
   }
-  console.log(formatStatus({ now: Date.now(), host, log: parseSignerLog(readLog()), launchd: launchdStatus(), queue }).join('\n'));
+  console.log(formatStatus({ now: Date.now(), host, log: parseSignerLog(readLog()), launchd: launchdStatus(), queue, poolLow: cfg.poolLow }).join('\n'));
 }
 
 const STARTED = Date.now();
@@ -239,6 +311,19 @@ async function main() {
   const post = signerClient(cfg);
   const r = await runCycle({ cfg, post, mail: makeMailer(cfg), pem });
   console.log(`${new Date().toISOString()} signer: ${JSON.stringify(r)}`);
+  // The pool and the Google Group come after the run line, and their failures never fail the run: invitations and
+  // emails above are what people are waiting for.
+  if (cfg.pool) {
+    try { for (const line of poolLines(await runPool({ cfg, post, pem }), { poolLow: cfg.poolLow, iso: new Date().toISOString() })) console.log(line); }
+    catch (e) { console.log(`${new Date().toISOString()} signer pool failed: ${e.message}`); }
+  }
+  const group = loadGroupConfig();
+  if (group.enabled) {
+    try {
+      if (group.problems.length) throw new Error('not configured: ' + group.problems.join(', '));
+      console.log(`${new Date().toISOString()} signer android-group: ${JSON.stringify(await runAndroidGroup({ cfg: group, post }))}`);
+    } catch (e) { console.log(`${new Date().toISOString()} signer android-group failed: ${e.message}`); }
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {

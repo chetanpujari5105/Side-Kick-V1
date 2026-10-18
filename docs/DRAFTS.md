@@ -23,11 +23,13 @@ people as the Play list and your Mac can handle — see docs/OWNER-CLICKS.md §5
 
 ## Tester guide (one page)
 
-**What you get.** Two emails from us: "Your Sidekick beta invitation" (where to get both apps) and "Your Sidekick
-beta token" (the token, on its own). They can take up to a day; check your spam folder.
+**What you get.** After the Get Sidekick form, a page that says "You're in": the Mac download starts (or a
+button starts it), your beta token is on that page with a Copy button, and "Email me a copy" sends it to you. If the
+page says we're doing it by email instead, you get "Your Sidekick beta invitation" and "Your Sidekick beta token";
+they can take up to a day; check your spam folder. (Updated 2026-10-18 for the one-click flow.)
 
-**The Mac app.** Open the Beta page link in the invitation, or the Google Drive folder link next to it, and download
-`Sidekick-2.0.1-arm64.dmg` (121,668,061 bytes). To check the download (optional), open Terminal and run
+**The Mac app.** The download is `https://side-henna.vercel.app/download/mac` (if it doesn't start, the page and the
+emails name a Google Drive folder as the fallback): `Sidekick-2.0.1-arm64.dmg` (121,668,061 bytes). To check the download (optional), open Terminal and run
 `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg`; it must print exactly:
 `a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284`
 That line is only for checking the file; it is not your token.

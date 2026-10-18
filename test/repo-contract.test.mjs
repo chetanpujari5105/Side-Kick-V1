@@ -9,6 +9,7 @@ import { PgRepo } from '../server/repo-pg.mjs';
 
 const SCHEMA = fs.readFileSync(new URL('../server/schema.sql', import.meta.url), 'utf8');
 const SCHEMA2 = fs.readFileSync(new URL('../server/schema-v2.sql', import.meta.url), 'utf8');
+const SCHEMA3 = fs.readFileSync(new URL('../server/schema-v3.sql', import.meta.url), 'utf8');
 const T = Date.parse('2026-10-15T10:00:00Z');
 const H = 3600000, DAY = 24 * H;
 
@@ -21,8 +22,10 @@ export async function pgliteRepo() {
   const repo = new PgRepo(db);
   await repo.migrate(SCHEMA);
   await repo.migrate(SCHEMA2);
+  await repo.migrate(SCHEMA3);
   await repo.migrate(SCHEMA); // idempotent
   await repo.migrate(SCHEMA2);
+  await repo.migrate(SCHEMA3);
   return repo;
 }
 
@@ -200,8 +203,9 @@ for (const [name, make] of [['MemoryRepo', async () => new MemoryRepo()], ['PgRe
     assert.deepEqual(await r.claimPending(T, 10, 900000, { gate: true }), [], 'gated: approved is not enough');
     assert.equal(await r.storeToken(signup.id, 'TOKEN-G', T, { gate: true }), 'conflict', 'gated: no token before play-added');
     assert.deepEqual((await r.playPending()).map(x => x.googleEmail), ['pg.play@gmail.com']);
-    assert.deepEqual(await r.markPlayAdded(['pg.play@gmail.com', 'other@gmail.com'], T + 1), { marked: 1, unmatched: 1 });
-    assert.deepEqual(await r.markPlayAdded(['pg.play@gmail.com'], T + 2), { marked: 0, unmatched: 1 }, 'only approved people are marked');
+    const mu = ({ marked, unmatched }) => ({ marked, unmatched });
+    assert.deepEqual(mu(await r.markPlayAdded(['pg.play@gmail.com', 'other@gmail.com'], T + 1)), { marked: 1, unmatched: 1 });
+    assert.deepEqual(mu(await r.markPlayAdded(['pg.play@gmail.com'], T + 2)), { marked: 0, unmatched: 1 }, 'only approved people are marked');
     const s1 = await r.getSignup(signup.id);
     assert.equal(s1.state, 'play_added'); assert.ok(s1.playAddedAt instanceof Date);
     assert.deepEqual(await r.playPending(), []);
@@ -232,4 +236,94 @@ for (const [name, make] of [['MemoryRepo', async () => new MemoryRepo()], ['PgRe
     await r.unsubscribe('yes@example.com', T + 3000);
     assert.deepEqual(await r.announceRecipients(), []);
   });
+
+  // ── the token pool (launch log Part 7) ──
+  const tok = (madeAt, days = 45) => { const st = new Date(madeAt); st.setUTCHours(0, 0, 0, 0); return { token: 'SIDEKICK-TRIAL-1.p' + madeAt + '-' + Math.random().toString(36).slice(2) + '.' + 'A'.repeat(86), notAfter: st.getTime() + days * DAY }; };
+  const POOL = { maxAgeMs: 10 * DAY, minLeftMs: 35 * DAY };
+
+  test(`${name}: pool: add (no duplicates), status, oldest ready token first, daily cap, stale tokens skipped and pruned`, async () => {
+    const r = await make();
+    const old = tok(T - 3 * DAY), fresh = tok(T), stale = tok(T - 11 * DAY);
+    assert.equal(await r.addPoolTokens([fresh, old, stale], T), 3);
+    assert.equal(await r.addPoolTokens([fresh], T), 0, 'a token already there is not added again');
+    assert.deepEqual(await r.poolStatus(T, { ...POOL, dayStart: T - 10 * H }), { ready: 2, stale: 1, issuedToday: 0 });
+    const a = (await r.upsertSignup(person('a@example.com'), T)).signup;
+    const b = (await r.upsertSignup(person('b@example.com'), T)).signup;
+    const c = (await r.upsertSignup(person('c@example.com'), T)).signup;
+    const opts = { ...POOL, dayStart: T - 10 * H, dailyCap: 2 };
+    assert.equal(await r.issuePoolToken(a.id, T, opts), old.token, 'oldest ready first');
+    const sa = await r.getSignup(a.id);
+    assert.equal(sa.state, 'delivered'); assert.equal(sa.tokenSource, 'pool'); assert.ok(sa.tokenIssuedAt instanceof Date); assert.equal(sa.token, null, 'the token lives in the pool row only');
+    assert.equal(await r.issuePoolToken(a.id, T, opts), null, 'a row that already has a token gets no second one');
+    assert.equal(await r.poolTokenFor(a.id), old.token);
+    assert.equal(await r.issuePoolToken(b.id, T, { ...opts, dailyCap: 1 }), null, 'daily cap reached');
+    assert.equal(await r.issuePoolToken(b.id, T, opts), fresh.token);
+    assert.equal(await r.issuePoolToken(c.id, T, { ...opts, dailyCap: 5 }), null, 'only a stale one is left');
+    assert.deepEqual(await r.poolStatus(T, { ...POOL, dayStart: T - 10 * H }), { ready: 0, stale: 1, issuedToday: 2 });
+    assert.equal(await r.prunePool(T, POOL), 1);
+    assert.deepEqual(await r.poolStatus(T, { ...POOL, dayStart: T - 10 * H }), { ready: 0, stale: 0, issuedToday: 2 });
+    // A token with under 35 days left is stale even if it was made recently.
+    await r.addPoolTokens([tok(T, 40)], T);
+    assert.deepEqual(await r.poolStatus(T + 6 * DAY, { ...POOL, dayStart: T + 6 * DAY }), { ready: 0, stale: 1, issuedToday: 0 });
+    // Delete-my-data takes the issued token's record with the row.
+    await r.deleteByEmail('a@example.com');
+    assert.equal(await r.poolTokenFor(a.id), null);
+    assert.equal(await r.poolTokenFor(b.id), fresh.token);
+  });
+
+  test(`${name}: Mac-only sign-ups store no phone model or Google account; pool rows with a Google account wait for the Play list`, async () => {
+    const r = await make();
+    const m = (await r.upsertSignup(person('mac@example.com', { phoneModel: null, googleEmail: null, macChip: null }), T)).signup;
+    assert.equal(m.phoneModel, null); assert.equal(m.googleEmail, null); assert.equal(m.macChip, null);
+    const g = (await r.upsertSignup(person('g@example.com'), T)).signup;
+    await r.addPoolTokens([tok(T), tok(T)], T);
+    await r.issuePoolToken(m.id, T, { ...POOL, dayStart: T - H, dailyCap: 9 });
+    await r.issuePoolToken(g.id, T, { ...POOL, dayStart: T - H, dailyCap: 9 });
+    assert.deepEqual((await r.playPending()).map(x => x.googleEmail), ['g.g@example.com']);
+    assert.equal(await r.androidPendingCount(), 1);
+    const res = await r.markPlayAdded(['g.g@example.com'], T + 1);
+    assert.deepEqual({ marked: res.marked, unmatched: res.unmatched }, { marked: 1, unmatched: 0 });
+    assert.deepEqual(res.androidInvite, [g.id], 'the pool row needs its Android invitation');
+    assert.equal((await r.getSignup(g.id)).state, 'delivered', 'state unchanged');
+    assert.ok((await r.getSignup(g.id)).playAddedAt instanceof Date);
+    assert.equal((await r.markPlayAdded(['g.g@example.com'], T + 2)).marked, 0);
+    assert.deepEqual(await r.playPending(), []);
+    assert.equal(await r.markCopyEmailed(m.id, T), true);
+    assert.equal(await r.markCopyEmailed(m.id, T), false, 'one copy only');
+  });
+
+  test(`${name}: gated claimPending also hands out approved rows with no Google account`, async () => {
+    const r = await make();
+    const a = (await r.upsertSignup(person('nog@example.com', { googleEmail: null, phoneModel: null }), T)).signup;
+    const b = (await r.upsertSignup(person('withg@example.com'), T)).signup;
+    await r.confirmSignup(a.id, T, 25); await r.confirmSignup(b.id, T, 25);
+    assert.deepEqual((await r.claimPending(T + 1, 10, 900000, { gate: true })).map(x => x.id), [a.id]);
+    assert.equal(await r.storeToken(a.id, 'TOKEN-N', T + 2, { gate: true }), 'ok');
+    assert.equal(await r.storeToken(b.id, 'TOKEN-B', T + 2, { gate: true }), 'conflict', 'with a Google account it still waits for the Play list');
+  });
+
+  test(`${name}: download counter per UTC day, platform and target, nothing personal; retention keeps 180 days`, async () => {
+    const r = await make();
+    await r.countDownload({ platform: 'mac', target: 'drive' }, T);
+    await r.countDownload({ platform: 'mac', target: 'drive' }, T + 1000);
+    await r.countDownload({ platform: 'mac', target: 'direct' }, T + DAY);
+    assert.deepEqual(await r.downloadCounts(), [
+      { day: '2026-10-15', platform: 'mac', target: 'drive', count: 2 },
+      { day: '2026-10-16', platform: 'mac', target: 'direct', count: 1 }]);
+    await r.retention(T + 181 * DAY, { signupDays: 365 });
+    assert.deepEqual((await r.downloadCounts()).map(c => c.day), ['2026-10-16'], 'days before the cut-off date (180 days back) removed');
+    await r.retention(T + 182 * DAY, { signupDays: 365 });
+    assert.deepEqual(await r.downloadCounts(), []);
+  });
+
+  test(`${name}: retention drops issued pool records after 46 days and unissued stale ones`, async () => {
+    const r = await make();
+    const s = (await r.upsertSignup(person('ret@example.com'), T)).signup;
+    await r.addPoolTokens([tok(T), tok(T)], T);
+    await r.issuePoolToken(s.id, T, { ...POOL, dayStart: T - H, dailyCap: 9 });
+    await r.retention(T + 47 * DAY, { signupDays: 365 });
+    assert.equal(await r.poolTokenFor(s.id), null);
+    assert.deepEqual(await r.poolStatus(T + 47 * DAY, { ...POOL, dayStart: T + 47 * DAY }), { ready: 0, stale: 0, issuedToday: 0 });
+  });
 }
+
