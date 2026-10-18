@@ -41,6 +41,11 @@ test('automated: dist/ is real mode — no mock client, no review bar, no sessio
   assert.ok(!fs.existsSync(path.join(DIST, 'data/mailto.js')));
   assert.ok(fs.existsSync(path.join(DIST, 'data/api-client.js')));
   assert.ok(fs.existsSync(path.join(DIST, 'check-email.html')));
+  // The email logo (launch log Part 11): served only by the automated site, a 2x PNG on a solid background.
+  const logo = fs.readFileSync(path.join(DIST, 'email/logo.png'));
+  assert.equal(logo.subarray(1, 4).toString(), 'PNG');
+  assert.deepEqual([logo.readUInt32BE(16), logo.readUInt32BE(20)], [272, 72], '2x of the 136x36 the template shows');
+  assert.equal(logo[25], 2, 'RGB with no alpha channel: a solid background');
   const cfg = fs.readFileSync(path.join(DIST, 'data/site-config.js'), 'utf8');
   assert.match(cfg, /mocksEnabled: false,/);
   assert.match(cfg, /siteMode: 'automated',/);
@@ -58,6 +63,7 @@ test('automated: dist/ is real mode — no mock client, no review bar, no sessio
 test('manual: builds on Vercel with no secret at all, and ships nothing that talks to a backend, Cloudflare or a cookie', () => {
   const r = build({ VERCEL: '1', SITE_MODE: 'manual' });
   assert.equal(r.status, 0, r.stderr);
+  assert.ok(!fs.existsSync(path.join(DIST, 'email')), 'the email logo is automated-only');
   const files = distText();
   assert.ok(files.length > 15);
   for (const [f, t] of files) {

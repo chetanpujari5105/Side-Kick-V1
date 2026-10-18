@@ -8,7 +8,10 @@ import { checkLinks, mailtoProblem } from '../tools/check-links.mjs';
 after(() => execFileSync(process.execPath, ['scripts/build-site.mjs', '--local'], { stdio: 'ignore' }));
 
 const BETA_CHECKS = [/robots noindex, nofollow in the static <head>/, /X-Robots-Tag/, /no other file in dist\/ names it/, /no server page names it/,
-  /exactly the Drive and Play test links/, /no \.apk anywhere/, /SHA-256 from releases\.json/, /Download\.dc\.html carries neither/];
+  /no \.apk anywhere/, /Download\.dc\.html carries neither/];
+// The manual site shares the file through Drive with its checksum; the automated one does not (launch log Part 11).
+const BETA_MANUAL = [/exactly the Drive and Play test links/, /SHA-256 from releases\.json/];
+const BETA_AUTOMATED = [/exactly the Play test link/, /no SHA-256 and no Drive folder/];
 
 test('links (automated): every internal link and every email link form resolves on the built site', async () => {
   const { rows, failures, checked } = await checkLinks({ mode: 'automated' });
@@ -16,7 +19,8 @@ test('links (automated): every internal link and every email link form resolves 
   assert.ok(rows.some(r => r.area === 'email' && /access: page script reads/.test(r.what)), 'email walk ran');
   // The unlisted Beta page: noindex/nofollow, linked from nowhere, only the release-facts links, no APK.
   const beta = rows.filter(r => r.area === 'beta').map(r => r.what);
-  for (const want of [...BETA_CHECKS, /no email names it/]) assert.ok(beta.some(w => want.test(w)), `beta check missing: ${want}`);
+  for (const want of [...BETA_CHECKS, ...BETA_AUTOMATED, /no email names it/]) assert.ok(beta.some(w => want.test(w)), `beta check missing: ${want}`);
+  assert.ok(rows.some(r => r.area === 'email' && /\(HTML\): image \/email\/logo\.png/.test(r.what)), 'the HTML emails\' logo is served');
   assert.deepEqual(failures.map(f => `${f.area} ${f.what} ${f.note}`), []);
 });
 
@@ -25,7 +29,7 @@ test('links (manual): every internal link resolves, every mailto is ours, and th
   assert.ok(checked > 80, `only ${checked} links found: the extractor broke`);
   assert.ok(!rows.some(r => r.area === 'email' || r.area === 'server' || r.area === 'redirect'), 'no API sections in manual mode');
   const beta = rows.filter(r => r.area === 'beta').map(r => r.what);
-  for (const want of BETA_CHECKS) assert.ok(beta.some(w => want.test(w)), `beta check missing: ${want}`);
+  for (const want of [...BETA_CHECKS, ...BETA_MANUAL]) assert.ok(beta.some(w => want.test(w)), `beta check missing: ${want}`);
   const manual = rows.filter(r => r.area === 'manual').map(r => r.what);
   for (const want of [/Get Sidekick\.dc\.html: the request-access email/, /Download\.dc\.html: the request-access email/, /Roadmap\.dc\.html: the suggestion email/, /Notify link/, /Beta by invitation/, /consent/])
     assert.ok(manual.some(w => want.test(w)), `manual check missing: ${want}`);

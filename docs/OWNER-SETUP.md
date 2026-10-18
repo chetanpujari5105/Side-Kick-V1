@@ -35,7 +35,8 @@ Read `docs/backend-design.md` for how it works. Facts marked **[V]** were read i
    carries ML Kit (facts file) — never share it.
 3. **Which mailbox sends the emails.** By default the signer on your Mac sends every email through **Mail.app**,
    from whichever account Mail uses by default (or `SK_MAIL_FROM`). Recipients see that address. Pick one you're
-   happy to reply from.
+   happy to reply from. Once a Gmail app password file exists (`docs/OWNER-CLICKS.md` §7), it sends branded HTML
+   emails through Gmail SMTP as `Sidekick <chetanpujari.sitit@gmail.com>` instead, and falls back to Mail.app by itself.
 
 ## 1. Prove the token in the Mac app — before creating any account
 

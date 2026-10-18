@@ -201,7 +201,7 @@ try {
   check('after confirming: Download page with the Mac card, token on its way', txt.includes("You're") && txt.includes('Download for Apple silicon (.dmg)') && txt.includes('once it\'s ready'), (await a.eval('location.pathname')) + ' ' + txt.replace(/\s+/g, ' ').slice(0, 300));
   check('Android card: by invitation through Google Play testing (no "not available")', txt.includes('By invitation through Google Play testing.') && !/Not available yet|isn.t available yet/.test(txt));
   const sha = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/releases.json'), 'utf8')).mac.builds.arm64.sha256;
-  check('checksum is exactly releases.json\'s (placeholder while it is null)', sha ? txt.includes(sha) : txt.includes('The checksum appears here once the beta build is staged.'), sha ? sha.slice(0, 12) + '…' : 'null');
+  check('checksum is exactly releases.json\'s, only under a closed "More details" (launch log Part 11)', await a.eval(`(() => { const d = document.getElementById('more-details'); return !!d && !d.open && d.querySelector('summary').textContent.trim() === 'More details' && d.textContent.includes(${JSON.stringify(sha || 'The checksum appears here once the beta build is staged.')}); })()`) && (!sha || !txt.includes(sha)), sha ? sha.slice(0, 12) + '…' : 'null');
 
   // 3. Signer on "the owner's Mac": throwaway key, fake issuer, posts token, sends the outbox.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-signer-'));
@@ -324,7 +324,7 @@ try {
   await send('Fetch.enable', { patterns: [{ urlPattern: 'https://github.com/*' }, { urlPattern: 'https://release-assets.githubusercontent.com/*' }] }, i.sid);
   await send('Browser.grantPermissions', { origin: O, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] });
   await i.go(O + '/Get%20Sidekick.dc.html');
-  await typeIn(i, '#f-name', 'Ina Stant'); await typeIn(i, '#f-email', 'ina@example.com');
+  await typeIn(i, '#f-name', 'ina stant'); await typeIn(i, '#f-email', 'ina@example.com'); // lower-case name on purpose: the page must say "Ina" (launch log Part 11)
   await mouse(i, '#f-android'); await sleep(200); await typeIn(i, '#f-phone', 'Pixel 8'); await typeIn(i, '#f-google', 'ina.stant@gmail.com');
   await mouse(i, '#f-privacy');
   await i.eval(`window.__sameDocument = 'yes'; true`); // gone if this tab ever navigates or reloads
@@ -334,7 +334,7 @@ try {
   check('one click → "You\'re in, Ina" on the same page, with the token, three steps and More details', txt.includes("You're in, Ina.") && /SIDEKICK-TRIAL-1\./.test(txt) && (await i.eval(`document.querySelectorAll('#result li.step').length`)) === 3 && txt.includes('More details') && txt.includes('Download again'), `api ${i.api.join(',')} errors ${i.errors.join(' | ').slice(0, 300)} page ${txt.slice(txt.indexOf('Get Sidekick', 30), txt.indexOf('Get Sidekick', 30) + 500)}`);
   check('the result shows the Android line exactly once, and not the form note', txt.split("Android: we're adding your Google account").length === 2 && !txt.includes('Android: join the Google Play test'), `${txt.split('Android:').length - 1} Android lines`);
   check('"Download again" is visible and opens a new tab (never this one)', await i.eval(`(() => { const a = document.getElementById('dl-again'); return !!a && a.offsetParent !== null && a.textContent.trim() === 'Download again' && a.target === '_blank' && a.getAttribute('href') === '/download/mac'; })()`));
-  check('Drive appears only as "If the download fails"', await i.eval(`[...document.querySelectorAll('#result a[href*="drive.google.com"]')].length === 1 && document.querySelector('#result a[href*="drive.google.com"]').parentElement.textContent.trim().startsWith('If the download fails,')`));
+  check('no Drive link on the result page (short content, launch log Part 11)', await i.eval(`document.querySelectorAll('#result a[href*="drive.google.com"]').length === 0 && !/Google Drive/.test(document.getElementById('result').textContent)`));
   check('no confirmation email for the instant sign-up; the row has its pool token', !(await outbox()).some(m => m.to === 'ina@example.com') && !!shown && shown.tokenSource === 'pool');
   await sleep(2500);
   const r302 = i.redirects.find(x => new URL(x.url).pathname === '/download/mac');

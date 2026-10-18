@@ -75,7 +75,10 @@ try {
   res = await runCycle({ cfg, post, mail: async (m) => inbox.push(m), log: () => {} });
   step('signer: tokens issued and posted', res.issued === 2 && res.posted === 2, JSON.stringify(res));
   const invite = inbox.find(m => m.kind === 'invite' && m.to === 'asha@example.com');
-  step('invitation: Play link, checksum and install steps, no token', invite && invite.text.includes(releases.android.playTestUrl) && invite.text.includes(releases.mac.builds.arm64.sha256) && !invite.text.includes('SIDEKICK-TRIAL-1.'));
+  step('invitation: Play link and the three install steps; no checksum, no Drive, no token', invite && invite.text.includes(releases.android.playTestUrl) && invite.text.includes('INSTALL IN THREE STEPS') && !invite.text.includes(releases.mac.builds.arm64.sha256) && !/drive\.google/.test(invite.text) && !invite.text.includes('SIDEKICK-TRIAL-1.'));
+  const { renderEmail } = await import('../server/email-html.mjs');
+  const inviteHtml = renderEmail(invite).html;
+  step('invitation (HTML): a Download for Mac button, three numbered steps, under 60 KB', /bgcolor="#C6FF33"[^>]*>\s*<a href="[^"]+\/download\/mac"[^>]*>Download for Mac</.test(inviteHtml) && (inviteHtml.match(/data-sk="step"/g) || []).length >= 3 && Buffer.byteLength(inviteHtml) < 61440);
   const tokenMail = inbox.find(m => m.kind === 'token' && m.to === 'asha@example.com');
   const tok = tokenMail.text.match(/SIDEKICK-TRIAL-1\.\S+/)[0];
   step('token email carries a token that verifies (throwaway key)', crypto.verify(null, Buffer.from(tok.split('.')[1]), publicKey, Buffer.from(tok.split('.')[2], 'base64url')));

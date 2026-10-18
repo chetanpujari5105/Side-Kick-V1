@@ -154,18 +154,18 @@ async function delivered(h) {
   return { id, token, invite: out.find(m => m.kind === 'invite'), tokenMail: out.find(m => m.kind === 'token') };
 }
 
-test('invitation email: /download/mac (Drive only as the fallback), checksum, install steps, Play link and when it works, contact, removal; never the token', async () => {
+test('invitation email: /download/mac, three install steps, Play link and whose account it works with, contact, removal; no Drive, no checksum, never the token', async () => {
   const h = setup({ env: { PLAY_GATE: 'on', STORAGE_PROVIDER: 'static' } });
   const { invite, token } = await delivered(h);
   const t = invite.text;
   assert.ok(t.includes(ORIGIN + '/download/mac'), 'the direct download address (launch log Part 7)');
   assert.ok(!t.includes('Beta.dc.html'), 'no Beta page step any more');
-  assert.ok(t.includes(releases.mac.builds.arm64.sha256), 'the SHA-256');
+  assert.ok(!t.includes(releases.mac.builds.arm64.sha256) && !/SHA-256|checksum|drive\.google/i.test(t), 'short content (launch log Part 11): no checksum, no Drive');
   assert.ok(t.includes(releases.mac.builds.arm64.file));
-  assert.ok(releases.mac.installSteps.length >= 4);
-  for (const step of releases.mac.installSteps) assert.ok(t.includes(step), 'install step: ' + step.slice(0, 40));
+  const { SHORT_STEPS } = await import('../server/emails.mjs');
+  for (const step of SHORT_STEPS(releases.mac.builds.arm64.file)) assert.ok(t.includes(step), 'install step: ' + step.slice(0, 40));
   assert.ok(t.includes(releases.android.playTestUrl), 'the Play test link');
-  assert.match(t, /works only (once|after) we('ve| have) added your Google account/i);
+  assert.match(t, /only works with the Google account you entered/i);
   assert.ok(t.includes('alex.rivera@gmail.com'), 'names the Google account we added');
   assert.ok(t.includes('chetanpujari.sitit@gmail.com'), 'contact');
   assert.match(t, /remove/i, 'how to be removed');
@@ -186,7 +186,7 @@ test('token email: the token alone on its own line, how to paste it, 45 days (Ma
   assert.match(tokenMail.text, /Settings › About › Beta access/);
   assert.match(tokenMail.text, /45 days/);
   assert.ok(!/https?:\/\//.test(tokenMail.text), 'no link of any kind: the token travels apart from the download');
-  assert.match(tokenMail.text, /not the (download )?checksum|isn't the SHA-256|is not the SHA-256/i);
+  assert.ok(!/checksum|SHA-256/i.test(tokenMail.text), 'short content (launch log Part 11): no checksum talk');
   assert.ok(tokenMail.text.includes('chetanpujari.sitit@gmail.com'));
   assert.match(tokenMail.text, /remove/i);
 });
@@ -411,14 +411,12 @@ test('client: the Vercel protection-bypass header comes from a mode-600 file onl
   assert.equal(seen[1]['x-vercel-protection-bypass'], undefined, 'no header unless asked');
 });
 
-test('invitation (static storage): /download/mac first, the Drive folder only "if the download fails"', async () => {
+test('invitation (static storage): /download/mac on its own line, and no Drive folder (short content, launch log Part 11)', async () => {
   const h = setup({ env: { PLAY_GATE: 'on', STORAGE_PROVIDER: 'static' } });
   const { invite } = await delivered(h);
   const t = invite.text;
   assert.ok(t.includes('\n' + ORIGIN + '/download/mac\n'), 'the download link on its own line');
-  assert.ok(t.includes('\n' + releases.mac.betaDriveUrl + '\n'), 'the Drive folder link on its own line');
-  assert.ok(t.indexOf(ORIGIN + '/download/mac') < t.indexOf(releases.mac.betaDriveUrl), 'the direct download first');
-  assert.match(t.slice(0, t.indexOf(releases.mac.betaDriveUrl)), /If the download fails[^\n]*\n$/, 'Drive is only the fallback');
+  assert.ok(!t.includes(releases.mac.betaDriveUrl) && !/Google Drive/.test(t), 'no Drive folder (the server falls back to it by itself)');
   const { emails } = await import('../server/emails.mjs');
   const { betaDriveUrl: _d, ...macNoDrive } = releases.mac;
   const noDrive = emails.invite({ name: 'A', downloadUrl: ORIGIN + '/download/mac', release: { ...releases, mac: macNoDrive }, googleEmail: 'a@gmail.com' }).text;

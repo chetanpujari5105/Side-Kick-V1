@@ -123,8 +123,9 @@ Group on a closed track; needs a domain and has NOT been tested against real Goo
 
 ### When a tester writes "no download" or "Play says not available"
 
-1. **Mac download:** `https://side-henna.vercel.app/download/mac` must answer with the file (GitHub Release) or, until
-   that is published, the Drive folder. A private window shows which. Checksum:
+1. **Mac download:** `https://side-henna.vercel.app/download/mac` must answer with the file (GitHub Release); only
+   if `mac.directUrl` is ever set back to `null` does it send people to the Drive folder by itself (no page or email
+   names Drive any more). A private window shows which. Checksum:
    `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg` must print the SHA-256 shown under "More details".
 2. **Token lost:** they can sign up again with the same email: the page never shows the token again (anyone could
    type their address), but the copy email goes to that address with the token.
@@ -132,8 +133,8 @@ Group on a closed track; needs a domain and has NOT been tested against real Goo
    `play_added_at`; that address is in **Sidekick beta testers**, ticked for Internal testing; a release is
    "Available to internal testers"; they opened the Play link on the phone signed in to that account. It can take a
    few minutes after you add them; Play may show "com.chetan.connectsuite (unreviewed)".
-4. **No email at all:** spam folder; then `signer --status` (failed runs, emails waiting) and `docs/OWNER-SETUP.md`
-   §7 "Signer status".
+4. **No email at all:** spam folder; then `signer --status` (failed runs, emails waiting, `sender:`) and
+   `docs/OWNER-SETUP.md` §7 "Signer status".
 
 ### Remove a tester and delete their data
 
@@ -148,8 +149,8 @@ made): the Mac app checks it offline.
 
 - [ ] **Token test:** the packaged Mac app accepted a token from this pipeline (section 1 or the token emailed to
       cpujari12@gmail.com) — then TOKEN OK.
-- [ ] **Invitation check:** your own test invitation arrived and has the Beta page link, the Drive folder link, the
-      checksum, the six install steps and the Google Play test link.
+- [ ] **Invitation check:** your own test invitation arrived with the Download for Mac button (`/download/mac`), the
+      three install steps and the Google Play test link — and no Drive folder or checksum (launch log Part 11).
 - [ ] **DNS:** `signer --status` shows `consecutive failed runs: 0`, and the signer log has no new `ENOTFOUND`. If it
       does: System Settings › Network › Wi-Fi › Details… › DNS › add `1.1.1.1` and `1.0.0.1` › OK (remove them the
       same way with "−").
@@ -188,4 +189,39 @@ upload needs a file picker, so it is yours:
 - Only instant tokens (keep signups, everyone takes the email flow): `SIGNUP_DAILY_CAP` = `0`, redeploy.
 - Only the pool on your Mac: `SK_POOL=off` in the signer's launchd plist, then `launchctl bootout` / `bootstrap`
   (OWNER-SETUP §7).
+
+## 7. Branded HTML emails through Gmail (launch log Part 11)
+
+Since 2026-10-19 the signer sends every email as a branded HTML email with a plain-text copy inside, through Gmail's
+mail server (SMTP) as `Sidekick <chetanpujari.sitit@gmail.com>`, Reply-To the same address. It needs one thing only
+you can make: a Google **app password**. Until it exists, nothing changes: the signer keeps sending plain text through
+Mail.app, and logs one line per run that says so.
+
+1. In Chrome, signed in as chetanpujari.sitit@gmail.com, open https://myaccount.google.com/apppasswords. (Google may
+   ask for your password or a 2-Step Verification code; app passwords need 2-Step Verification to be on.)
+2. App name: `Sidekick signer` › **Create**. Google shows a 16-letter code once. Press its copy control (or select
+   it and press Command-C).
+3. In Terminal, paste this one line and press Return (it writes the file from the clipboard, mode 600, prints only
+   its length, then clears the clipboard):
+
+   ```
+   cd ~/Documents/Sidekick-private/secrets && umask 077 && pbpaste | tr -d ' \n' > gmail-app-password && chmod 600 gmail-app-password && wc -c < gmail-app-password && pbcopy < /dev/null
+   ```
+
+   It must print `16`. Close Google's dialog.
+4. Check: `cd ~/Desktop/Side-Kick-V1 && node tools/signer/signer.mjs --check-mail` must print `sender: smtp (Gmail SMTP
+   as chetanpujari.sitit@gmail.com, login ok)`.
+5. Optional preview: `node tools/signer/signer.mjs --check-mail --send-test` sends one preview of each of the 10
+   emails, with the dummy token `SIDEKICK-TRIAL-1.PREVIEW-ONLY`, to cpujari12@gmail.com and chetanpujari92@gmail.com
+   only (20 emails of the hourly budget of 30).
+
+The next signer run (every 5 minutes) uses SMTP by itself; no restart. To check the designs without sending anything:
+`node tools/email-preview.mjs` writes every email (HTML, text, .eml) to `~/Documents/Sidekick-private/email-previews`.
+
+**Budget.** Gmail allows about 500 recipients per rolling 24 hours from a consumer account; the signer stops at 400 a
+day and 30 an hour (`SK_MAIL_PER_DAY`, `SK_MAIL_PER_HOUR`), whichever sender it uses.
+
+**Undo.** Delete `~/Documents/Sidekick-private/secrets/gmail-app-password` (the next run uses Mail.app plain text),
+or set `SK_SMTP=off` in the signer's plist. Revoke the app password at https://myaccount.google.com/apppasswords.
+Revert the merge commit on GitHub for the old plain-text emails and pages.
 

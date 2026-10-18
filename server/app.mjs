@@ -5,7 +5,7 @@ import { hmac, safeEqual, sha256hex, randomToken, signingString } from './crypto
 import { openSession, sessionCookie, COOKIE, SESSION_TTL_S } from './session.mjs';
 import { validateSignup, validateFeedback, validateNotify, isTokenShaped, tokenLabel, normaliseEmail } from './validate.mjs';
 import { publicReleases, releaseProblems } from './releases.mjs';
-import { emails } from './emails.mjs';
+import { emails, capFirst } from './emails.mjs';
 import { linkPage, messagePage, signupFormPage, resultPage, alreadyPage, NO_JS_BOT, BOT_FAILED, RATE_TEXT, SERVER_TEXT } from './pages.mjs';
 import { poolRules, poolTokenEnd, POOL_ADD_MAX } from './pool.mjs';
 
@@ -79,7 +79,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     return c ? openSession(c, config.sessionSecrets, now()) : null;
   }
   const setSession = (payload) => sessionCookie({ v: 1, iat: Math.floor(now() / 1000), exp: Math.floor(now() / 1000) + SESSION_TTL_S, ...payload }, secret, { secure: config.secure });
-  const firstName = (name) => String(name || '').split(' ')[0].slice(0, 40);
+  const firstName = (name) => capFirst(String(name || '').split(' ')[0].slice(0, 40));
   // The Mac download everyone is sent to: GET /download/mac redirects to the asset, so it can move without new pages.
   const DOWNLOAD_PATH = '/download/mac';
   const downloadUrl = config.appOrigin + DOWNLOAD_PATH;
