@@ -15,6 +15,7 @@ const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
 const DIRECT = 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.1/Sidekick-2.0.1-arm64.dmg';
 const DRIVE = releasesJson.mac.betaDriveUrl;
 const withDirect = () => { const r = JSON.parse(JSON.stringify(releasesJson)); r.mac.directUrl = DIRECT; return r; };
+const noDirect = () => { const r = JSON.parse(JSON.stringify(releasesJson)); r.mac.directUrl = null; return r; };
 const page = () => read('Get Sidekick.dc.html');
 // The result block of the JavaScript page (what a visitor sees after "You're in").
 const resultBlock = () => { const p = page(); return p.slice(p.indexOf('<sc-if value="{{ isIn }}">'), p.indexOf('<sc-if value="{{ showForm }}"')); };
@@ -79,7 +80,7 @@ test('(b) the download never navigates away from the page that shows the token',
   const p = page();
   assert.ok(!/location\.href = r\.download|location\.(assign|replace)\(r\.download/.test(p), 'no top-level navigation to the download');
   for (const a of resultBlock().match(/<a [^>]*href="\/download\/mac"[^>]*>/g)) assert.match(a, /target="_blank" rel="noopener"/, `JS result: ${a}`);
-  for (const html of [await noJsResult(withDirect()), await noJsResult()]) {
+  for (const html of [await noJsResult(withDirect()), await noJsResult(noDirect())]) {
     assert.ok(!html.includes('http-equiv="refresh"'));
     for (const a of html.match(/<a [^>]*href="\/download\/mac"[^>]*>/g)) assert.match(a, /target="_blank" rel="noopener"/, `no-JS result: ${a}`);
   }
@@ -89,7 +90,7 @@ test('(c) Drive appears on the result pages only as "If the download fails"', as
   const block = resultBlock();
   assert.equal((block.match(/href="\{\{ resDrive \}\}"/g) || []).length, 1, 'one Drive link (from releases.js)');
   assert.match(block, /<p style="margin:0;">If the download fails, <a href="\{\{ resDrive \}\}"/);
-  for (const html of [await noJsResult(withDirect()), await noJsResult()]) {
+  for (const html of [await noJsResult(withDirect()), await noJsResult(noDirect())]) {
     assert.equal(html.split(DRIVE).length, 2, 'the Drive folder once');
     assert.match(html.slice(0, html.indexOf(DRIVE)), /If the download fails, <a href="$/);
   }
@@ -137,4 +138,20 @@ test('(f) every email that offers the Mac app links /download/mac; Drive only "I
     }
   }
   for (const k of ['token', 'updates', 'android', 'waitlist', 'notify']) assert.ok(!(emails[k].toString().includes('betaDriveUrl')), `${k}: no Drive`);
+});
+
+test('(d) the release tag is v<version> or sidekick-mac-<version> of this version; nothing else', async () => {
+  const { releaseProblems } = await import('../server/releases.mjs');
+  const base = 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/';
+  const at = (tag, file = 'Sidekick-2.0.1-arm64.dmg') => { const r = withDirect(); r.mac.directUrl = base + tag + '/' + file; return releaseProblems(r).filter(p => p.startsWith('mac.directUrl')); };
+  assert.deepEqual(at('v2.0.1'), []);
+  assert.deepEqual(at('sidekick-mac-2.0.1'), []);
+  for (const tag of ['v2.0.2', 'sidekick-mac-2.0.2', 'sidekick-mac-v2.0.1', 'latest', 'sidekick-2.0.1', 'untagged-1f371627e9ee170df609']) assert.equal(at(tag).length, 1, tag);
+  assert.equal(at('sidekick-mac-2.0.1', 'Sidekick-2.0.1.dmg').length, 1, 'the arm64 file only');
+});
+
+test('(d) releases.json: mac.directUrl is the verified sidekick-mac-2.0.1 asset (launch log P8R2)', () => {
+  assert.equal(releasesJson.mac.directUrl, 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/sidekick-mac-2.0.1/Sidekick-2.0.1-arm64.dmg');
+  assert.equal(releasesJson.mac.builds.arm64.bytes, 121668061);
+  assert.equal(releasesJson.mac.builds.arm64.sha256, 'a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284');
 });

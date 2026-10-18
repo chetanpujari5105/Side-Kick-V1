@@ -23,6 +23,8 @@ const status = async (h) => (await (await h.admin('/api/admin/pool-status', {}, 
 const macOnly = (o = {}) => ({ name: 'Asha Rao', email: 'asha@example.com', privacyAccepted: true, marketingOptIn: false, captchaToken: CAP, ...o });
 const signupJson = (h, body, opts = {}) => h.call('POST', '/api/get-sidekick', { json: body, headers: { origin: ORIGIN }, ...opts });
 const withDirect = () => { const r = JSON.parse(JSON.stringify(releasesJson)); r.mac.directUrl = DIRECT; return r; };
+// The Drive fallback: no verified direct URL (as before the release was published, launch log P7-1).
+const noDirect = () => { const r = JSON.parse(JSON.stringify(releasesJson)); r.mac.directUrl = null; return r; };
 
 // ── configuration ─────────────────────────────────────────────────────────────
 test('config: SIGNUP_DAILY_CAP defaults to 60, ANDROID_ACCESS to manual-batch, SITE_MODE=manual is the kill switch', () => {
@@ -48,7 +50,7 @@ test('releases: mac.directUrl is null or the GitHub Release asset for the same f
     assert.ok(releaseProblems(r).some(p => p.startsWith('mac.directUrl')), bad);
   }
   assert.equal(publicReleases(withDirect()).mac.directUrl, undefined);
-  assert.equal(releasesJson.mac.directUrl, null, 'null until the asset is verified (launch log P7-1)');
+  assert.deepEqual(releaseProblems(releasesJson), [], 'the verified asset in releases.json (launch log P8R2) passes');
 });
 
 // ── the pool ──────────────────────────────────────────────────────────────────
@@ -66,7 +68,7 @@ test('pool-add takes only well-formed tokens from the signer; pool-status counts
 });
 
 test('signup with a ready token: "You\'re in" at once, the token shown once, no confirm email, pool down by one', async () => {
-  const h = setup();
+  const h = setup({ releases: noDirect() });
   const [oldest] = await fill(h, 3, T0 - 2 * DAY);
   await fill(h, 2);
   const res = await signupJson(h, macOnly());
@@ -202,7 +204,7 @@ test('no JavaScript: the form post answers with the result page itself — token
   assert.match(html, /<form [^>]*action="\/api\/email-copy"/, '"Email me a copy" works without JavaScript');
   assert.match(res.headers.get('content-security-policy'), /script-src 'nonce-/);
   // Without a verified direct URL: the same normal link (to the Drive folder through /download/mac), in a new tab.
-  const g = setup();
+  const g = setup({ releases: noDirect() });
   await fill(g, 1);
   const html2 = await (await g.call('POST', '/api/get-sidekick', { form: { name: 'Asha Rao', email: 'asha@example.com', privacyAccepted: 'on', 'cf-turnstile-response': CAP }, headers: { origin: ORIGIN } })).text();
   assert.ok(!html2.includes('http-equiv="refresh"'));
@@ -256,7 +258,7 @@ test('"Email me a copy" queues ONE email, only for the browser that saw the resu
 
 // ── /download/mac ─────────────────────────────────────────────────────────────
 test('GET /download/mac: 302 to the Drive folder while directUrl is null, counted with no personal data', async () => {
-  const h = setup();
+  const h = setup({ releases: noDirect() });
   const r = await h.call('GET', '/download/mac');
   assert.equal(r.status, 302);
   assert.equal(r.headers.get('location'), DRIVE);

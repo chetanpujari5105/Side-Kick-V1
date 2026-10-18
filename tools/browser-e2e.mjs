@@ -27,7 +27,7 @@ if (!['manual', 'automated'].includes(MODE)) { console.error('--mode must be man
 // browser never reaches GitHub: the DevTools Fetch domain answers github.com with a 302 to GitHub's file host (as GitHub
 // does) and that with a small synthetic disk image, so the page's CSP sees the real redirect chain.
 const RELEASES = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/releases.json'), 'utf8'));
-const DIRECT = `https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v${RELEASES.version}/${RELEASES.mac.builds.arm64.file}`;
+const DIRECT = RELEASES.mac.directUrl || `https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v${RELEASES.version}/${RELEASES.mac.builds.arm64.file}`;
 const ASSET = 'https://release-assets.githubusercontent.com/github-production-release-asset/stand-in?response-content-disposition=attachment';
 const dev = await startDevServer({ port: PORT, quiet: true, mode: MODE, releases: MODE === 'automated' ? { ...RELEASES, mac: { ...RELEASES.mac, directUrl: DIRECT } } : RELEASES });
 const O = dev.origin;

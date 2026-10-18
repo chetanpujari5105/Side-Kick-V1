@@ -160,6 +160,11 @@ made): the Mac app checks it offline.
 
 ## 7. Publish the Mac app as a GitHub Release (the direct download)
 
+**Done 2026-10-18** (launch log Part 8): release tag `sidekick-mac-2.0.1` (pre-release, on main), asset verified
+anonymously (121668061 bytes, SHA-256 `a03b3390…f71284`) and set as `mac.directUrl`. The site accepts the tag
+`v<version>` or `sidekick-mac-<version>` of the version in data/releases.json. For a later version, repeat the steps
+below with the new file and `--verify-direct-url <the asset URL>`.
+
 `/download/mac` sends visitors to the Drive folder until the DMG is on a GitHub Release of this (public) repo. That
 upload needs a file picker, so it is yours:
 

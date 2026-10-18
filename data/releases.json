@@ -4,7 +4,7 @@
   "mac": {
     "minOS": "macOS 11.0 (Big Sur) or later",
     "betaDriveUrl": "https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL",
-    "directUrl": null,
+    "directUrl": "https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/sidekick-mac-2.0.1/Sidekick-2.0.1-arm64.dmg",
     "builds": {
       "arm64": {
         "label": "Apple silicon",
