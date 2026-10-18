@@ -1,9 +1,10 @@
 # Drafts (not sent anywhere)
 
-Written 2026-10-17, final messages added 2026-10-18. Nothing here has been posted or emailed. Facts come from `data/releases.json` (version
+Written 2026-10-17, final messages added 2026-10-18, refreshed 2026-10-19 for the designed emails (launch log Parts
+11–12). Nothing here has been posted or emailed. Facts come from `data/releases.json` (version
 2.0.1); if that file changes, update the tester guide's steps and checksum.
 
-## Final messages (ready to send, 2026-10-18)
+## Final messages (ready to send, 2026-10-19)
 
 Nothing below has been sent. The owner sends them. They use the short link `https://side-henna.vercel.app/get`, which
 opens the Get Sidekick form (launch log Part 10). The short link works while `SITE_MODE=automated`. With the kill
@@ -14,8 +15,8 @@ updates emails (the DRAFT banner stays until then), and only while the cap is 50
 ### WhatsApp / DM (3 lines)
 
 > I'm opening a small beta of Sidekick: your Android phone on your Mac (screen, notifications, files, clipboard) over your own Wi-Fi, no cloud, no account.
-> Mac with Apple silicon (M1 or later), macOS 11 or later: one click at https://side-henna.vercel.app/get downloads the app and shows your beta token on the page.
-> Android (10 or later) comes by Google Play test invitation: tick Android, type the Google email your phone uses, and the link arrives within a day. It's a small invited beta, limited to 50 people.
+> Mac with Apple silicon (M1 or later), macOS 11 or later: one click at https://side-henna.vercel.app/get downloads the app and shows your beta token on the page, and "Email me a copy" sends you a designed email with the token.
+> Android (10 or later) comes by Google Play test invitation: tick Android, type the Google email your phone uses, and the invitation email arrives within a day. It's a small invited beta, limited to 50 people.
 
 ### Email
 
@@ -32,12 +33,13 @@ updates emails (the DRAFT banner stays until then), and only while the cap is 50
 >
 > **How to join:** open https://side-henna.vercel.app/get, type your name and email, tick the privacy box and click
 > **Get the Mac app**. That one click starts the download, and your beta token is shown on the same page with a Copy
-> button. The page lists three install steps. macOS asks you once to allow the app, because this beta isn't notarized
-> by Apple yet.
+> button. The page lists three install steps, and "Email me a copy" sends you an email from "Sidekick" with the
+> download button, your token and the same three steps. macOS asks you once to allow the app, because this beta isn't
+> notarized by Apple yet.
 >
 > **Android:** tick "I also want the Android app" and type the Google email your phone's Play Store uses. Android
-> comes by Google Play test invitation: I add you to the test list and you get an email with the Play link, within a
-> day.
+> comes by Google Play test invitation: I add you to the test list and you get an email from "Sidekick" with the
+> Google Play button, within a day. If an email from Sidekick isn't in your inbox, look in Spam and press "Not spam".
 >
 > If something breaks, just reply to this email (see below).
 >
@@ -48,8 +50,8 @@ updates emails (the DRAFT banner stays until then), and only while the cap is 50
 
 > Sidekick beta is open to 50 people: your Android phone on your Mac, over your own Wi-Fi, with no cloud and no account.
 > Mac with Apple silicon, macOS 11+. One click at https://side-henna.vercel.app/get downloads it and shows your beta
-> token on the page. Android comes by Google Play test invitation: type the Google email your phone uses, and the link
-> arrives within a day. Small invited beta, 50 places.
+> token on the page (with a designed copy by email if you want one). Android comes by Google Play test invitation: type
+> the Google email your phone uses, and the invitation email arrives within a day. Small invited beta, 50 places.
 
 ### What to do if something breaks (for testers; paste under any message)
 
@@ -57,9 +59,23 @@ updates emails (the DRAFT banner stays until then), and only while the cap is 50
 > your Mac model and macOS version, your phone model and Android version, the step you were on and the exact message
 > you saw. Never send your token or a screenshot of it. **Lost your token?** On the page, click "Email me a copy", or
 > fill in the form at https://side-henna.vercel.app/get again with the same email. The page won't show the token a
-> second time, but it emails "You're in, <your first name>: your Sidekick beta" to that address. **Download failed?**
+> second time, but it emails "You're in, <your first name>: your Sidekick beta" to that address (at most a few
+> emails per address per day; check Spam too). **Download failed?**
 > Use "Download again" on the page, or https://side-henna.vercel.app/download/mac. **No Android email after a day?**
 > Check spam, then reply and tell us which Google account your phone uses.
+
+## First 10 minutes after announcing
+
+1. **Signer:** `cd ~/Desktop/Side-Kick-V1 && SK_API_BASE=https://side-henna.vercel.app SK_SIGNER_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SIGNER_SECRET node tools/signer/signer.mjs --status`
+   — every few minutes at first. Good: `last run … (ok)`, `consecutive failed runs: 0`, `sender: smtp (… login ok)`,
+   the queue going back to `0 emails waiting`, `token pool … N ready` with N of 40 or more. `sender: mail-app` means
+   the emails go out as plain text through Mail.app (still delivered); see OWNER-CLICKS §7.
+2. **Sign-ups:** `~/Documents/Sidekick-private/sk-admin.sh stats` — `total`, `delivered`, `betaCap`, `outboxPending`.
+3. **Android:** once the first people ticked Android, run the daily Android prompt (point 2 below) — the Play
+   invitation emails go out within ~5 minutes of `play-mark-added`.
+4. **Something wrong:** kill switch — Vercel › `side` › Settings › Environment Variables › Production
+   `SITE_MODE=manual` › Redeploy (sign-ups close, `/get` answers 404). Too many people: `sk-admin.sh settings --cap 25`
+   (new sign-ups over the cap are waitlisted; nobody loses a place).
 
 ## Owner checklist: day one (one page)
 
