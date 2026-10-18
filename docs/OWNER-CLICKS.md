@@ -164,13 +164,16 @@ made): the Mac app checks it offline.
 upload needs a file picker, so it is yours:
 
 1. github.com/chetanpujari5105/Side-Kick-V1 › **Releases** › **Draft a new release**.
-2. **Choose a tag** › type `v2.0.1` › **Create new tag: v2.0.1 on publish**. Title: `Sidekick 2.0.1`.
+2. **Choose a tag** › type `v2.0.1` › **Create new tag: v2.0.1 on publish**; **Target**: `main`. Title: `Sidekick 2.0.1`.
 3. Drag `Sidekick-2.0.1-arm64.dmg` (the Drive-synced copy or your local file, 121668061 bytes) onto **Attach binaries**
-   and wait until the upload finishes.
+   and wait until the upload finishes. The asset name must be exactly `Sidekick-2.0.1-arm64.dmg` (rename the file
+   before dragging if it has ` (1)` or similar).
 4. **Publish release**.
 5. Then, in this repo on a branch: `node scripts/data-sync.mjs --verify-direct-url` downloads it anonymously into a
    scratch folder, checks 121668061 bytes and SHA-256 `a03b3390…f71284` against data/releases.json, deletes the copy,
-   and only then writes `mac.directUrl`. Open a PR, merge. From then on the download starts by itself on "You're in".
+   and only then writes `mac.directUrl`. Open a PR, merge. From then on the download starts by itself on "You're in"
+   (in a hidden frame, so the page with the token never navigates; "Download again" stays; without JavaScript it is a
+   normal link), `/download/mac` answers 302 to the asset, and Drive is named only "If the download fails".
    To go back to Drive: set `mac.directUrl` to `null` (PR, merge).
 
 ## 8. Switching the one-click flow off

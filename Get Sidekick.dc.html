@@ -79,7 +79,7 @@ a:hover{color:#3A22B8;}
           <h2 id="res-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(34px,4vw,44px);line-height:1;font-weight:800;letter-spacing:-0.035em;">You're in, {{ resName }}.</h2>
           <p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">{{ resDlLine }}</p>
         </div>
-        <sc-if value="{{ resAuto }}"><a id="dl-again" href="/download/mac" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;text-decoration:none;box-sizing:border-box;">Download again</a></sc-if>
+        <sc-if value="{{ resAuto }}"><a id="dl-again" href="/download/mac" target="_blank" rel="noopener" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;text-decoration:none;box-sizing:border-box;">Download again</a></sc-if>
         <sc-if value="{{ resManual }}"><a id="dl-again" href="/download/mac" target="_blank" rel="noopener" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;text-decoration:none;box-sizing:border-box;">Download the Mac app</a></sc-if>
         <section aria-labelledby="tok-h" style="border-radius:20px;background:#17142E;color:#F6F3EC;padding:20px;display:flex;flex-direction:column;gap:12px;">
           <span id="tok-h" style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR BETA TOKEN</span>
@@ -98,7 +98,7 @@ a:hover{color:#3A22B8;}
               <sc-for list="{{ resAllSteps }}" as="st" hint-placeholder-count="6"><li>{{ st }}</li></sc-for>
             </ol>
             <p style="margin:0 0 10px;">SHA-256 of {{ resFile }} (to check the download; not your token):<br><code style="font:13px/1.5 'JetBrains Mono',monospace;word-break:break-all;">{{ resSha }}</code></p>
-            <sc-if value="{{ resDrive }}"><p style="margin:0;">If the download doesn't start, <a href="{{ resDrive }}" rel="noopener noreferrer" style="color:#5B3DF5;font-weight:600;">open our Google Drive folder</a> and download {{ resFile }} there.</p></sc-if>
+            <sc-if value="{{ resDrive }}"><p style="margin:0;">If the download fails, <a href="{{ resDrive }}" rel="noopener noreferrer" style="color:#5B3DF5;font-weight:600;">open our Google Drive folder</a> and download {{ resFile }} there.</p></sc-if>
           </details>
         </section>
         <sc-if value="{{ resAndroid }}"><p id="res-android" style="margin:0;border-radius:16px;background:#E8E2FF;padding:14px 16px;font-size:15.5px;line-height:1.5;">{{ resAndroid }}</p></sc-if>
@@ -113,7 +113,7 @@ a:hover{color:#3A22B8;}
       <button type="submit" disabled="{{ true }}" hidden="{{ true }}" aria-hidden="true" tabIndex="-1" style="display:none;"></button>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <h2 id="form-h" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:34px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Get Sidekick</h2>
-        <p style="margin:0;font-size:15.5px;line-height:1.5;color:#55526B;">{{ purpose }}</p>
+        <sc-if value="{{ purpose }}"><p style="margin:0;font-size:15.5px;line-height:1.5;color:#55526B;">{{ purpose }}</p></sc-if>
       </div>
 
       <sc-if value="{{ bannerServer }}">
@@ -242,6 +242,14 @@ class Component extends DCLogic {
     'manual-batch': "Android: we're adding your Google account to the test list. Your Google Play link comes by email, usually within a day.",
     'google-group': "Android: we're adding your Google account to the test list. Your Google Play link comes by email, usually within the hour."
   };
+  // The automatic download: a hidden frame loads /download/mac (302 to the verified asset, a file download), so this
+  // page and its token stay put even if the download fails. Never a top-level navigation (launch log Part 8).
+  static AUTO_DOWNLOAD = (url, doc) => {
+    const f = doc.createElement('iframe');
+    f.hidden = true; f.style.display = 'none'; f.setAttribute('aria-hidden', 'true'); f.setAttribute('tabindex', '-1');
+    f.src = url;
+    doc.body.appendChild(f);
+  };
   componentDidMount() {
     this.onResize = () => this.setState({ w: window.innerWidth });
     window.addEventListener('resize', this.onResize);
@@ -322,9 +330,9 @@ class Component extends DCLogic {
       if (window.SK_BOT) window.SK_BOT.reset(this.bot);
       if (r && r.ok && r.status === 200 && r.stage === 'in' && r.token) {
         // You're in: the token is shown here, once. The download starts by itself only when it is the file itself
-        // (a verified direct link); the Drive fallback would replace this page and the token with it.
+        // (a verified direct link), in a hidden frame; the Drive fallback would replace this page and the token with it.
         this.setState({ status: 'in', result: r }, () => { const el = document.getElementById('res-h'); el && el.focus && el.focus(); });
-        if (r.download && r.download.auto) this.dlTimer = setTimeout(() => { window.location.href = r.download.url; }, 1500);
+        if (r.download && r.download.auto) this.dlTimer = setTimeout(() => Component.AUTO_DOWNLOAD(r.download.url, document), 1500);
       } else if (r && r.ok && r.status === 200 && r.stage === 'already') {
         this.setState({ status: 'already' }, () => { const el = document.getElementById('already'); el && el.focus(); });
       } else if (r && r.ok && r.status === 200) {
@@ -370,7 +378,7 @@ class Component extends DCLogic {
       cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',
       reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', mocks ? 'Your beta token comes from the person who invited you. They send it to you privately.' : 'Your beta token is on the next page, with three install steps.'],
       intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.' : 'For Macs with Apple silicon (M1 or later). Your name, your email and one tick: the Mac app downloads right away.',
-      purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : 'Android: join the Google Play test, we\'ll email you the link.',
+      purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : '',
       purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to run the beta. Ask us any time and we\'ll delete them.',
       v, on: { name: set('name'), email: set('email'), android: set('android'), phone: set('phone'), google: set('google'), privacy: set('privacy'), updates: set('updates') },
       blur: Object.fromEntries(['name','email','phone','google'].map(k => [k, () => this.setState(s => ({ touched: { ...s.touched, [k]: true } }))])),

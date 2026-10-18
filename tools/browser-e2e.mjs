@@ -24,9 +24,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const MODE = process.argv.includes('--mode') ? process.argv[process.argv.indexOf('--mode') + 1] : 'automated';
 if (!['manual', 'automated'].includes(MODE)) { console.error('--mode must be manual or automated'); process.exit(2); }
 // Automated mode runs with a verified-looking direct URL so the result page's automatic download can be watched; the
-// browser never reaches GitHub: the DevTools Fetch domain answers that request with a small synthetic disk image.
+// browser never reaches GitHub: the DevTools Fetch domain answers github.com with a 302 to GitHub's file host (as GitHub
+// does) and that with a small synthetic disk image, so the page's CSP sees the real redirect chain.
 const RELEASES = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/releases.json'), 'utf8'));
 const DIRECT = `https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v${RELEASES.version}/${RELEASES.mac.builds.arm64.file}`;
+const ASSET = 'https://release-assets.githubusercontent.com/github-production-release-asset/stand-in?response-content-disposition=attachment';
 const dev = await startDevServer({ port: PORT, quiet: true, mode: MODE, releases: MODE === 'automated' ? { ...RELEASES, mac: { ...RELEASES.mac, directUrl: DIRECT } } : RELEASES });
 const O = dev.origin;
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-chrome-'));
@@ -155,7 +157,7 @@ try {
   await a.eval(`sessionStorage.setItem('sk_mock_outcome','server_error'); sessionStorage.setItem('sk_session', JSON.stringify({name:'Mock', expiresAt: Date.now()+1e9})); true`);
   await a.go(O + '/Get%20Sidekick.dc.html?previewState=success&showReview=true');
   let txt = await a.text();
-  check('signup page renders in real mode: one button "Get the Mac app", the one-line Android note', txt.includes('Get the Mac app') && txt.includes("Android: join the Google Play test, we'll email you the link."), '');
+  check('signup page renders in real mode: one button "Get the Mac app", the one-line Android note exactly once', txt.includes('Get the Mac app') && txt.split("Android: join the Google Play test, we'll email you the link.").length === 2, `${txt.split('Android: join').length - 1} times`);
   check('no Design review bar in production build', !/DESIGN REVIEW/i.test(txt));
   check('Turnstile container rendered (local stand-in)', txt.includes('Human check (local test stand-in)'));
   check('previewState in the URL is ignored', !txt.includes('Saved. One more step by email.') && !txt.includes("You're in"));
@@ -293,9 +295,10 @@ try {
   await g.eval(`document.getElementById('f-send').focus(); true`); await press(g); await sleep(3500);
   check('updates ticked by a click + Enter on the "Get the Mac app" button: sent once, updates requested, its own link in the confirm email', posts(g) === 1 && !!row('ticked@example.com') && !!row('ticked@example.com').marketingRequestedAt && (await confirmTo('ticked@example.com')).includes('/api/confirm-email?for=updates#t='), `posts ${posts(g)}`);
 
-  // 5b. The one-click flow (launch log Part 7): the signer fills the pool, the form → "You're in" → the download starts by
-  // itself. GitHub is never contacted: the DevTools Fetch domain answers the asset request with a synthetic disk image
-  // (random bytes plus a UDIF "koly" trailer, the DMG format's magic, which sits in the last 512 bytes).
+  // 5b. The one-click flow (launch log Parts 7–8): the signer fills the pool, the form → "You're in" → the download starts
+  // by itself in a hidden frame, and the page with the token never navigates. GitHub is never contacted: the DevTools
+  // Fetch domain answers github.com with a 302 to the file host and that with a synthetic disk image (random bytes
+  // plus a UDIF "koly" trailer, the DMG format's magic, which sits in the last 512 bytes).
   await runPool({ cfg: { ...cfg, issuer: path.join(ROOT, 'test/fixtures/fake-issuer-trial.mjs'), poolLow: 3, poolMax: 3 }, post: makeClient({ base: O, keyId: 'signer', secret: dev.secrets.ADMIN_AUTH_SIGNER_SECRET }), log: () => {} });
   const fake = Buffer.concat([crypto.randomBytes(65536 - 512), Buffer.from('koly'), Buffer.alloc(508)]);
   const dlDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-dl-'));
@@ -305,29 +308,40 @@ try {
   const i = await tab();
   listeners.push(m => {
     if (m.sessionId !== i.sid || m.method !== 'Fetch.requestPaused') return;
-    send('Fetch.fulfillRequest', { requestId: m.params.requestId, responseCode: 200, responseHeaders: [
+    if (m.params.request.url === DIRECT) send('Fetch.fulfillRequest', { requestId: m.params.requestId, responseCode: 302, responseHeaders: [
+      { name: 'location', value: ASSET }, { name: 'x-frame-options', value: 'deny' }], body: '' }, i.sid);
+    else if (m.params.request.url === ASSET) send('Fetch.fulfillRequest', { requestId: m.params.requestId, responseCode: 200, responseHeaders: [
       { name: 'content-type', value: 'application/octet-stream' }, { name: 'content-length', value: String(fake.length) },
       { name: 'content-disposition', value: `attachment; filename=${RELEASES.mac.builds.arm64.file}` }], body: fake.toString('base64') }, i.sid);
+    else send('Fetch.failRequest', { requestId: m.params.requestId, errorReason: 'BlockedByClient' }, i.sid);
   });
-  await send('Fetch.enable', { patterns: [{ urlPattern: 'https://github.com/*' }] }, i.sid);
+  await send('Fetch.enable', { patterns: [{ urlPattern: 'https://github.com/*' }, { urlPattern: 'https://release-assets.githubusercontent.com/*' }] }, i.sid);
   await send('Browser.grantPermissions', { origin: O, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] });
   await i.go(O + '/Get%20Sidekick.dc.html');
-  await typeIn(i, '#f-name', 'Ina Stant'); await typeIn(i, '#f-email', 'ina@example.com'); await mouse(i, '#f-privacy');
+  await typeIn(i, '#f-name', 'Ina Stant'); await typeIn(i, '#f-email', 'ina@example.com');
+  await mouse(i, '#f-android'); await sleep(200); await typeIn(i, '#f-phone', 'Pixel 8'); await typeIn(i, '#f-google', 'ina.stant@gmail.com');
+  await mouse(i, '#f-privacy');
+  await i.eval(`window.__sameDocument = 'yes'; true`); // gone if this tab ever navigates or reloads
   await mouse(i, '#f-send'); await sleep(1200);
   txt = await i.text();
   const shown = dev.repo.debugAll('signups').find(s => s.email === 'ina@example.com');
   check('one click → "You\'re in, Ina" on the same page, with the token, three steps and More details', txt.includes("You're in, Ina.") && /SIDEKICK-TRIAL-1\./.test(txt) && (await i.eval(`document.querySelectorAll('#result li.step').length`)) === 3 && txt.includes('More details') && txt.includes('Download again'), `api ${i.api.join(',')} errors ${i.errors.join(' | ').slice(0, 300)} page ${txt.slice(txt.indexOf('Get Sidekick', 30), txt.indexOf('Get Sidekick', 30) + 500)}`);
+  check('the result shows the Android line exactly once, and not the form note', txt.split("Android: we're adding your Google account").length === 2 && !txt.includes('Android: join the Google Play test'), `${txt.split('Android:').length - 1} Android lines`);
+  check('"Download again" is visible and opens a new tab (never this one)', await i.eval(`(() => { const a = document.getElementById('dl-again'); return !!a && a.offsetParent !== null && a.textContent.trim() === 'Download again' && a.target === '_blank' && a.getAttribute('href') === '/download/mac'; })()`));
+  check('Drive appears only as "If the download fails"', await i.eval(`[...document.querySelectorAll('#result a[href*="drive.google.com"]')].length === 1 && document.querySelector('#result a[href*="drive.google.com"]').parentElement.textContent.trim().startsWith('If the download fails,')`));
   check('no confirmation email for the instant sign-up; the row has its pool token', !(await outbox()).some(m => m.to === 'ina@example.com') && !!shown && shown.tokenSource === 'pool');
   await sleep(2500);
   const r302 = i.redirects.find(x => new URL(x.url).pathname === '/download/mac');
   const h302 = r302 ? Object.fromEntries(Object.entries(r302.headers).map(([k, v]) => [k.toLowerCase(), v])) : {};
   check('the download started by itself: GET /download/mac → 302 to the GitHub asset, no-store, noindex, no-referrer', !!r302 && r302.status === 302 && r302.to === DIRECT && h302['cache-control'] === 'no-store' && h302['x-robots-tag'] === 'noindex' && h302['referrer-policy'] === 'no-referrer', JSON.stringify(r302 && { status: r302.status, to: r302.to }));
-  const asset = i.responses.find(x => x.url === DIRECT);
+  check('…in one hidden frame, through github.com → GitHub\'s file host (allowed by the page CSP)', (await i.eval(`[...document.querySelectorAll('iframe')].filter(f => f.getAttribute('src') === '/download/mac' && f.hidden && getComputedStyle(f).display === 'none').length`)) === 1 && i.redirects.some(x => x.url === DIRECT && x.status === 302 && x.to === ASSET), JSON.stringify(i.redirects.map(x => [x.url.slice(0, 60), x.status])));
+  const asset = i.responses.find(x => x.url === ASSET);
   const ah = asset ? Object.fromEntries(Object.entries(asset.headers).map(([k, v]) => [k.toLowerCase(), v])) : {};
   check('the asset response is a file download (attachment, octet-stream)', !!asset && /^attachment; filename=Sidekick-2\.0\.1-arm64\.dmg$/.test(ah['content-disposition'] || '') && ah['content-type'] === 'application/octet-stream');
   for (let k = 0; k < 30 && !downloads.length; k++) await sleep(200);
   const got = downloads.length ? fs.readFileSync(path.join(dlDir, downloads[0])) : Buffer.alloc(0);
   check('Chrome saved the file: same bytes, DMG "koly" magic in the trailer; the result page stayed', got.length === fake.length && got.subarray(got.length - 512, got.length - 508).toString() === 'koly' && got.equals(fake) && (await i.eval('location.pathname')) === '/Get%20Sidekick.dc.html' && (await i.text()).includes("You're in, Ina."), `${got.length} bytes`);
+  check('the tab never navigated: same document, token still on the page', (await i.eval('window.__sameDocument')) === 'yes' && /SIDEKICK-TRIAL-1\./.test(await i.text()));
   fs.rmSync(dlDir, { recursive: true, force: true });
   check('the downloaded copy is deleted', !fs.existsSync(dlDir));
   check('the download was counted with no personal data', JSON.stringify(await dev.repo.downloadCounts()).includes('"target":"direct"') && !JSON.stringify(await dev.repo.downloadCounts()).includes('@'));
@@ -346,8 +360,8 @@ try {
 
   // 6. Hygiene across all tabs.
   const all = [a, b, c, p, f, g, i, j].flatMap(t => t.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));
-  const foreign = [...new Set(all.filter(u => !u.startsWith(O) && u !== DIRECT).map(u => new URL(u).origin))];
-  check('only same-origin requests (plus the intercepted GitHub asset, answered locally)', foreign.length === 0, foreign.join(', '));
+  const foreign = [...new Set(all.filter(u => !u.startsWith(O) && u !== DIRECT && u !== ASSET).map(u => new URL(u).origin))];
+  check('only same-origin requests (plus the intercepted GitHub asset and its file host, answered locally)', foreign.length === 0, foreign.join(', '));
   // Expected: 401 from /api/session with no session, 403 from the no-JS submit (fails closed). Known and pre-existing
   // (unchanged since 7e7042c): Home's SVG attributes hold {{ seg… }} until the template renders.
   const raw = [a, b, c, p, f, g, i, j].flatMap(t => t.errors);

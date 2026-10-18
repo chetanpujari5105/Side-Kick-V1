@@ -194,14 +194,14 @@ test('no JavaScript: the form post answers with the result page itself — token
   const html = (await res.text()).replace(/&#39;/g, "'");
   assert.ok(html.includes("You're in, Asha"));
   assert.ok(html.includes(t), 'the token, shown once');
-  assert.match(html, /<meta http-equiv="refresh" content="2;url=\/download\/mac">/, 'the download starts by itself, without JavaScript');
-  assert.match(html, /<a [^>]*href="\/download\/mac"[^>]*>Download again<\/a>/);
+  assert.ok(!html.includes('http-equiv="refresh"'), 'nothing navigates away from the token (launch log Part 8)');
+  assert.match(html, /<a [^>]*href="\/download\/mac" target="_blank" rel="noopener">Download the Mac app<\/a>/, 'a normal link without JavaScript');
   assert.equal((html.match(/<li class="step">/g) || []).length, 3, 'three install steps');
   assert.ok(html.includes('<details>') && html.includes('More details') && html.includes(releasesJson.mac.builds.arm64.sha256));
   assert.ok(html.includes("Android: we're adding your Google account to the test list. Your Google Play link comes by email, usually within a day."));
   assert.match(html, /<form [^>]*action="\/api\/email-copy"/, '"Email me a copy" works without JavaScript');
   assert.match(res.headers.get('content-security-policy'), /script-src 'nonce-/);
-  // Without a verified direct URL there is no automatic start: the Drive folder would replace the page holding the token.
+  // Without a verified direct URL: the same normal link (to the Drive folder through /download/mac), in a new tab.
   const g = setup();
   await fill(g, 1);
   const html2 = await (await g.call('POST', '/api/get-sidekick', { form: { name: 'Asha Rao', email: 'asha@example.com', privacyAccepted: 'on', 'cf-turnstile-response': CAP }, headers: { origin: ORIGIN } })).text();
@@ -362,7 +362,7 @@ test('the invitation and access emails point at /download/mac, with Drive only a
   const inv = h.repo.debugOutbox().find(m => m.kind === 'invite');
   assert.ok(inv.text.includes(ORIGIN + '/download/mac'));
   const drive = inv.text.indexOf('drive.google.com');
-  assert.ok(drive === -1 || inv.text.slice(0, drive).includes("If the download doesn't start"), 'Drive is never the way to download');
+  assert.ok(drive === -1 || inv.text.slice(0, drive).includes('If the download fails'), 'Drive is never the way to download');
   assert.ok(!inv.text.includes('Beta.dc.html'));
   const conf = h.repo.debugOutbox().find(m => m.kind === 'confirm');
   assert.ok(!/Drive/i.test(conf.text));

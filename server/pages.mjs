@@ -18,10 +18,10 @@ a.btn{display:inline-flex;align-items:center;min-height:56px;padding:0 30px;bord
 code.tok{display:block;font:13.5px/1.5 ui-monospace,Menlo,monospace;word-break:break-all;background:#F6F3EC;border-radius:12px;padding:12px 14px;user-select:all}
 button.sec{min-height:44px;padding:0 18px;background:#fff;font-size:15px}ol{margin:0;padding-left:22px}details summary{cursor:pointer;font-weight:600}`;
 
-function shell({ title, nonce, body, siteKey, head = '' }) {
+function shell({ title, nonce, body, siteKey }) {
   const ts = siteKey && siteKey !== 'local-dev-fake' ? `<script nonce="${nonce}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : '';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">${head}<title>${esc(title)} · Sidekick</title><style nonce="${nonce}">${STYLE}</style>${ts}</head>
+<meta name="robots" content="noindex"><title>${esc(title)} · Sidekick</title><style nonce="${nonce}">${STYLE}</style>${ts}</head>
 <body><main id="main">${body}<p><a href="/">Sidekick home</a> · <a href="/Support.dc.html#help">Help</a></p></main></body></html>`;
 }
 
@@ -57,18 +57,14 @@ export const ANDROID_TEXT = {
 };
 
 // The instant result (launch log Part 7) for a browser without JavaScript: the form post answers with this page.
-// The token is shown here once. With a verified direct download the file starts by itself (meta refresh, no script)
-// and "Download again" is a normal link; without one (the Drive fallback) nothing starts by itself, because the Drive
-// folder would replace this page and the token with it, so the button opens a new tab.
+// The token is shown here once, so nothing here navigates this tab away (launch log Part 8): no meta refresh, and the
+// download is a normal link that opens a new tab, whether /download/mac sends the file itself or the Drive folder.
 export function resultPage({ nonce, firstName, token, download, release, android }) {
   const b = release.mac.builds.arm64;
-  const head = download.auto ? `<meta http-equiv="refresh" content="2;url=${download.url}">` : '';
-  const button = download.auto
-    ? `<p class="m0">Your download starts in a moment.</p><p class="m0"><a class="btn" href="${download.url}">Download again</a></p>`
-    : `<p class="m0"><a class="btn" href="${download.url}" target="_blank" rel="noopener">Download the Mac app</a></p>`;
+  const button = `<p class="m0"><a class="btn" href="${download.url}" target="_blank" rel="noopener">Download the Mac app</a></p>`;
   const steps = SHORT_STEPS(b.file).map(x => `<li class="step">${esc(x)}</li>`).join('');
   const all = (release.mac.installSteps || []).map(x => `<li>${esc(x)}</li>`).join('');
-  const drive = release.mac.betaDriveUrl ? `<p>If the download doesn't start, <a href="${esc(release.mac.betaDriveUrl)}" rel="noopener noreferrer">open our Google Drive folder</a> and download ${esc(b.file)} there.</p>` : '';
+  const drive = release.mac.betaDriveUrl ? `<p>If the download fails, <a href="${esc(release.mac.betaDriveUrl)}" rel="noopener noreferrer">open our Google Drive folder</a> and download ${esc(b.file)} there.</p>` : '';
   const androidBlock = android === 'manual-batch'
     ? `<section class="card"><p class="m0">${esc(ANDROID_TEXT['manual-batch'])}</p></section>`
     : android === 'google-group' ? `<section class="card"><p class="m0">${esc(ANDROID_TEXT['google-group'])}</p></section>` : '';
@@ -79,7 +75,7 @@ export function resultPage({ nonce, firstName, token, download, release, android
 <details><summary>More details</summary><ol>${all}</ol><p>SHA-256 of ${esc(b.file)} (to check the download; not your token):<br><code>${esc(b.sha256 || 'not staged yet')}</code></p>${drive}</details></section>
 ${androidBlock}<form method="post" action="/api/email-copy"><button type="submit" class="sec">Email me a copy</button></form>
 <script nonce="${nonce}">(function(){var b=document.getElementById('copy'),t=document.getElementById('tok');if(!b||!t)return;b.hidden=false;b.addEventListener('click',function(){var v=t.textContent;var ok=function(){b.textContent='Copied';};var sel=function(){var r=document.createRange();r.selectNodeContents(t);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected: press Command-C';};if(navigator.clipboard)navigator.clipboard.writeText(v).then(ok,sel);else sel();});})();</script>`;
-  return shell({ title: "You're in", nonce, body, head });
+  return shell({ title: "You're in", nonce, body });
 }
 
 // A repeat sign-up: never the token again (anyone could type another person's address); the copy goes by email.
