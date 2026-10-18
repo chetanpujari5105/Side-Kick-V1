@@ -153,6 +153,12 @@ try {
   if (MODE === 'manual') await manualChecks(); else {
   // 1. Signup page in real mode; design-review switches have no effect.
   const a = await tab();
+  // The short links (launch log Part 10) land on the form at its real path.
+  for (const p of ['/get', '/beta']) {
+    await a.go(O + p);
+    const r = await a.eval(`({ path: location.pathname, form: !!document.querySelector('form'), button: document.body.innerText.includes('Get the Mac app') })`);
+    check(`${p} lands on the Get Sidekick form`, r && r.path === '/Get%20Sidekick.dc.html' && r.form && r.button, JSON.stringify(r));
+  }
   await a.go(O + '/');
   await a.eval(`sessionStorage.setItem('sk_mock_outcome','server_error'); sessionStorage.setItem('sk_session', JSON.stringify({name:'Mock', expiresAt: Date.now()+1e9})); true`);
   await a.go(O + '/Get%20Sidekick.dc.html?previewState=success&showReview=true');

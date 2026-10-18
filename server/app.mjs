@@ -83,6 +83,9 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
   // The Mac download everyone is sent to: GET /download/mac redirects to the asset, so it can move without new pages.
   const DOWNLOAD_PATH = '/download/mac';
   const downloadUrl = config.appOrigin + DOWNLOAD_PATH;
+  // The short links to share (launch log Part 10): /get and /beta lead to the form, whose real path holds a space.
+  const SHORT_PATHS = ['/get', '/beta'];
+  const FORM_PATH = '/Get%20Sidekick.dc.html';
   const stageOf = (s) => s.tokenSource === 'pool' && s.state === 'delivered' ? 'token_shown' : (STAGE[s.state] || 'check_email');
 
   // ── instant tokens (launch log Part 7) ─────────────────────────────────────
@@ -218,6 +221,14 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
       log.info('download.mac', { target });
     }
     return redirect(302, location, { 'x-robots-tag': 'noindex' });
+  }
+
+  // ── GET /get, /beta ────────────────────────────────────────────────────────
+  // vercel.json rewrites both here because a rewrite cannot depend on SITE_MODE: automated mode answers 302 to the
+  // form; the kill switch (SITE_MODE=manual) answers 404, so the short links exist in automated mode only.
+  function shortLink() {
+    if (config.signupClosed) return json(404, { ok: false, error: 'NOT_FOUND' });
+    return redirect(302, FORM_PATH);
   }
 
   // ── email links ────────────────────────────────────────────────────────────
@@ -557,7 +568,8 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     const u = new URL(request.url);
     // Vercel rewrites /api/* to /api/index?__route=*; locally the path arrives as is.
     // /download/mac is rewritten to __route=download-mac on Vercel (vercel.json); locally it arrives as is.
-    const path = u.pathname === DOWNLOAD_PATH ? 'download-mac' : u.pathname.startsWith('/api/') && u.pathname !== '/api/index' ? u.pathname.slice(5) : (u.searchParams.get('__route') || '');
+    // /get and /beta are rewritten to __route=get (vercel.json); locally they arrive as is.
+    const path = u.pathname === DOWNLOAD_PATH ? 'download-mac' : SHORT_PATHS.includes(u.pathname) ? 'get' : u.pathname.startsWith('/api/') && u.pathname !== '/api/index' ? u.pathname.slice(5) : (u.searchParams.get('__route') || '');
     const parts = path.split('/').filter(Boolean);
     const m = request.method;
     const only = (method, fn) => m === method ? fn() : json(405, { ok: false, error: 'METHOD_NOT_ALLOWED' }, { allow: method });
@@ -567,6 +579,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
       case 'get-sidekick': if (parts.length === 1) return only('POST', () => getSidekick(request)); break;
       case 'email-copy': if (parts.length === 1) return only('POST', () => emailCopy(request)); break;
       case 'download-mac': if (parts.length === 1) return m === 'HEAD' ? downloadMac(request) : only('GET', () => downloadMac(request)); break;
+      case 'get': if (parts.length === 1) return m === 'HEAD' ? shortLink() : only('GET', shortLink); break;
       case 'confirm-email': if (parts.length === 1) return m === 'GET' ? linkGet(request, 'confirm') : only('POST', () => linkPost(request, 'confirm')); break;
       case 'unsubscribe': if (parts.length === 1) return m === 'GET' ? (() => { const nonce = newNonce(); return html(200, linkPage({ purpose: 'unsubscribe', nonce, siteKey: null, valid: true }), nonce); })() : only('POST', () => unsubscribePost(request)); break;
       case 'access': if (parts.length === 1) return m === 'GET' ? linkGet(request, 'access') : only('POST', () => linkPost(request, 'access')); break;

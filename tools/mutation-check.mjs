@@ -5,7 +5,7 @@
 // hold, the Drive fallback never auto-starts, a Google account is marked only after Google accepted it, deleting a
 // sign-up deletes its token record, no token in the logs), and the direct download of Part 8 (the automatic start never
 // navigates the tab that shows the token, the page CSP lets its hidden frame through, the Android note once, Drive only
-// as the fallback in emails). Each mutation breaks one rule in a scratch
+// as the fallback in emails), and the short links of Part 10 (/get and /beta exist in automated mode only). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs'];
+const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs'];
 const MUTANTS = [
   ['opt-in only (MemoryRepo): asked is enough', 'server/repo-memory.mjs', 's.marketingRequestedAt && s.marketingConfirmedAt', 's.marketingRequestedAt'],
   ['opt-in only (PgRepo): asked is enough', 'server/repo-pg.mjs', 'marketing_requested_at is not null and marketing_confirmed_at is not null order by created_at', 'marketing_requested_at is not null order by created_at'],
@@ -45,7 +45,9 @@ const MUTANTS = [
   ['direct download (page CSP): the hidden frame is blocked', 'vercel.json', "frame-src 'self' https://github.com https://release-assets.githubusercontent.com https://objects.githubusercontent.com ", 'frame-src '],
   ['direct download (page): the Android note twice on the form', 'Get Sidekick.dc.html', "this form isn\\'t open yet.' : '',", "this form isn\\'t open yet.' : 'Android: join the Google Play test, we\\'ll email you the link.',"],
   ['direct download (releases): an asset of any version accepted', 'server/releases.mjs', '(?:v|sidekick-mac-)${ver}/', '(?:v|sidekick-mac-)\\\\d+\\\\.\\\\d+\\\\.\\\\d+/'],
-  ['direct download (emails): Drive offered as the way to download', 'server/emails.mjs', 'If the download fails, download ${b.file} from our Google Drive folder instead:', 'Download ${b.file} from our Google Drive folder:']
+  ['direct download (emails): Drive offered as the way to download', 'server/emails.mjs', 'If the download fails, download ${b.file} from our Google Drive folder instead:', 'Download ${b.file} from our Google Drive folder:'],
+  ['short link (API): /get open with the kill switch on', 'server/app.mjs', "if (config.signupClosed) return json(404, { ok: false, error: 'NOT_FOUND' });", ''],
+  ['short link (vercel.json): a static rewrite serves the form in both modes', 'vercel.json', '{ "source": "/get", "destination": "/api/index?__route=get" }', '{ "source": "/get", "destination": "/Get Sidekick.dc.html" }']
 ];
 
 const skip = new Set(['.git', 'node_modules', 'dist']);

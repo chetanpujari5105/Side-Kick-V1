@@ -43,13 +43,14 @@ export async function startDevServer({ port = 8787, build = true, quiet = false,
 
   const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, origin);
-    // vercel.json rewrites /download/mac to the API function; do the same here.
-    if ((u.pathname.startsWith('/api/') || u.pathname === '/download/mac') && manual) {
+    // vercel.json rewrites /download/mac, /get and /beta to the API function; do the same here.
+    const rewritten = ['/download/mac', '/get', '/beta'].includes(u.pathname);
+    if ((u.pathname.startsWith('/api/') || rewritten) && manual) {
       apiHits.push(req.method + ' ' + u.pathname);
       res.writeHead(404, { 'content-type': 'text/plain' });
       return res.end('No API in a SITE_MODE=manual build.');
     }
-    if (u.pathname.startsWith('/api/') || u.pathname === '/download/mac') {
+    if (u.pathname.startsWith('/api/') || rewritten) {
       const chunks = [];
       for await (const c of req) chunks.push(c);
       const headers = new Headers();
