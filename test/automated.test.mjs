@@ -411,14 +411,14 @@ test('client: the Vercel protection-bypass header comes from a mode-600 file onl
   assert.equal(seen[1]['x-vercel-protection-bypass'], undefined, 'no header unless asked');
 });
 
-test('invitation (static storage): /download/mac first, the Drive folder only "if the download doesn\'t start"', async () => {
+test('invitation (static storage): /download/mac first, the Drive folder only "if the download fails"', async () => {
   const h = setup({ env: { PLAY_GATE: 'on', STORAGE_PROVIDER: 'static' } });
   const { invite } = await delivered(h);
   const t = invite.text;
   assert.ok(t.includes('\n' + ORIGIN + '/download/mac\n'), 'the download link on its own line');
   assert.ok(t.includes('\n' + releases.mac.betaDriveUrl + '\n'), 'the Drive folder link on its own line');
   assert.ok(t.indexOf(ORIGIN + '/download/mac') < t.indexOf(releases.mac.betaDriveUrl), 'the direct download first');
-  assert.match(t.slice(0, t.indexOf(releases.mac.betaDriveUrl)), /If the download doesn't start[^\n]*\n$/, 'Drive is only the fallback');
+  assert.match(t.slice(0, t.indexOf(releases.mac.betaDriveUrl)), /If the download fails[^\n]*\n$/, 'Drive is only the fallback');
   const { emails } = await import('../server/emails.mjs');
   const { betaDriveUrl: _d, ...macNoDrive } = releases.mac;
   const noDrive = emails.invite({ name: 'A', downloadUrl: ORIGIN + '/download/mac', release: { ...releases, mac: macNoDrive }, googleEmail: 'a@gmail.com' }).text;

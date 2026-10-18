@@ -22,7 +22,7 @@ test('Get Sidekick: the result page\'s three steps and Android lines are the ser
 test('Get Sidekick: one button "Get the Mac app", the one-line Android note, no chip question, Enter guard kept', () => {
   const page = read('Get Sidekick.dc.html');
   assert.ok(page.includes("'Get the Mac app'"));
-  assert.ok(page.includes("Android: join the Google Play test, we\\'ll email you the link.") && page.includes("Android: join the Google Play test, we'll email you the link."));
+  assert.ok(page.includes("Android: join the Google Play test, we'll email you the link."), 'the one-line Android note (once: test/direct-download.test.mjs)');
   assert.ok(!/Your Mac's chip|name="macChip"/.test(page));
   assert.ok(page.includes('onKeyDown="{{ noEnter }}"') && page.includes('<button type="submit" disabled="{{ true }}" hidden="{{ true }}"'), 'Part 6 keyboard fix kept');
   assert.ok(page.includes('href="/download/mac"'), 'the result page links to /download/mac');

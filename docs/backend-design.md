@@ -212,8 +212,11 @@ https://challenges.cloudflare.com; style-src 'nonce-…'; form-action 'self'; ba
 Static pages (`vercel.json`): the same HSTS, nosniff, `Referrer-Policy: strict-origin-when-cross-origin`,
 `Permissions-Policy` (camera, microphone, geolocation off) and `Content-Security-Policy: default-src 'self';
 script-src 'self' 'unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src
-'self' data:; font-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none';
-base-uri 'none'; form-action 'self'; frame-ancestors 'none'`. `'unsafe-eval'` is needed because `support.js`
+'self' data:; font-src 'self'; connect-src 'self'; frame-src 'self' https://github.com
+https://release-assets.githubusercontent.com https://objects.githubusercontent.com https://challenges.cloudflare.com;
+object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`. The GitHub hosts in `frame-src` are
+for the result page's hidden download frame: `/download/mac` → 302 github.com → 302 GitHub's file host (a download,
+never shown); without them the browser blocks the redirect and only "Download again" works. `'unsafe-eval'` is needed because `support.js`
 compiles the page templates with `new Function`; inline styles are everywhere. Removing them needs the
 Astro/Next rebuild Handoff §8 already asks for.
 

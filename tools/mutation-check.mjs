@@ -3,7 +3,9 @@
 // submission being handled (an unticked box never leaves a request or an updates link), and the one-click rules of
 // launch log Part 7 (a repeat sign-up never sees a token, pool tokens give 35+ days, the daily cap and the kill switch
 // hold, the Drive fallback never auto-starts, a Google account is marked only after Google accepted it, deleting a
-// sign-up deletes its token record, no token in the logs). Each mutation breaks one rule in a scratch
+// sign-up deletes its token record, no token in the logs), and the direct download of Part 8 (the automatic start never
+// navigates the tab that shows the token, the page CSP lets its hidden frame through, the Android note once, Drive only
+// as the fallback in emails). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -11,7 +13,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs'];
+const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs'];
 const MUTANTS = [
   ['opt-in only (MemoryRepo): asked is enough', 'server/repo-memory.mjs', 's.marketingRequestedAt && s.marketingConfirmedAt', 's.marketingRequestedAt'],
   ['opt-in only (PgRepo): asked is enough', 'server/repo-pg.mjs', 'marketing_requested_at is not null and marketing_confirmed_at is not null order by created_at', 'marketing_requested_at is not null order by created_at'],
@@ -37,7 +39,12 @@ const MUTANTS = [
   ['one-click (API): the Drive fallback starts by itself', 'server/app.mjs', 'auto: !!releases.mac.directUrl', 'auto: true'],
   ['one-click (signer): a refused Google account is marked anyway', 'tools/signer/android-group.mjs', 'if (r.status === 200 || r.status === 409) {', 'if (true) {'],
   ['one-click (MemoryRepo): deleting keeps the token record', 'server/repo-memory.mjs', 'this.pool = this.pool.filter(p => p.signupId !== id);', ''],
-  ['one-click (API): pool-add takes tokens whose end date cannot be read', 'server/app.mjs', 'if (items.some(x => x.notAfter === null))', 'if (false)']
+  ['one-click (API): pool-add takes tokens whose end date cannot be read', 'server/app.mjs', 'if (items.some(x => x.notAfter === null))', 'if (false)'],
+  ['direct download (page): the automatic start navigates the tab', 'Get Sidekick.dc.html', 'setTimeout(() => Component.AUTO_DOWNLOAD(r.download.url, document), 1500);', 'setTimeout(() => { window.location.href = r.download.url; }, 1500);'],
+  ['direct download (no-JS page): the link replaces the page with the token', 'server/pages.mjs', 'href="${download.url}" target="_blank" rel="noopener"', 'href="${download.url}"'],
+  ['direct download (page CSP): the hidden frame is blocked', 'vercel.json', "frame-src 'self' https://github.com https://release-assets.githubusercontent.com https://objects.githubusercontent.com ", 'frame-src '],
+  ['direct download (page): the Android note twice on the form', 'Get Sidekick.dc.html', "this form isn\\'t open yet.' : '',", "this form isn\\'t open yet.' : 'Android: join the Google Play test, we\\'ll email you the link.',"],
+  ['direct download (emails): Drive offered as the way to download', 'server/emails.mjs', 'If the download fails, download ${b.file} from our Google Drive folder instead:', 'Download ${b.file} from our Google Drive folder:']
 ];
 
 const skip = new Set(['.git', 'node_modules', 'dist']);

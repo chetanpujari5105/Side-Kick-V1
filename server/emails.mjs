@@ -19,11 +19,11 @@ export const SHORT_STEPS = (file) => [
   'Open Sidekick. On the macOS warning choose Done, then open System Settings › Privacy & Security and click Open Anyway.',
   'Paste your beta token when Sidekick asks for it (press Paste token).'
 ];
-// The Mac download: /download/mac, with the Drive folder only for when the download doesn't start.
+// The Mac download: /download/mac, with the Drive folder only for when the download fails.
 const macDownload = (downloadUrl, release) => {
   const b = release.mac.builds.arm64;
   return `Download it here (Apple silicon Macs only):\n${downloadUrl}` +
-    (release.mac.betaDriveUrl ? `\n\nIf the download doesn't start, download ${b.file} from our Google Drive folder instead:\n${release.mac.betaDriveUrl}` : '');
+    (release.mac.betaDriveUrl ? `\n\nIf the download fails, download ${b.file} from our Google Drive folder instead:\n${release.mac.betaDriveUrl}` : '');
 };
 const shaLine = (b) => b.sha256 ? `\n\nTo check the download, its SHA-256 checksum is below. It is only for checking the file; it is not your token.\n${b.sha256}` : '';
 const androidPara = (release, googleEmail) => {
@@ -83,7 +83,7 @@ export const emails = {
     text: `Hi ${first(name)},\n\nThanks for confirming your email. The beta is full for now, so you're on the waitlist. We'll email you when a place opens. There's nothing else to do.${sign}`
   }),
   // The invitation of the email flow: where the apps come from. Never the token (that is its own email).
-  // downloadUrl is /download/mac; the Drive folder is mentioned only for when the download doesn't start.
+  // downloadUrl is /download/mac; the Drive folder is mentioned only for when the download fails.
   invite: ({ name, downloadUrl, release, googleEmail }) => {
     const b = release.mac.builds.arm64;
     const steps = release.mac.installSteps || [];
