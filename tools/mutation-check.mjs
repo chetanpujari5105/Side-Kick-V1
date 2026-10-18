@@ -44,6 +44,7 @@ const MUTANTS = [
   ['direct download (no-JS page): the link replaces the page with the token', 'server/pages.mjs', 'href="${download.url}" target="_blank" rel="noopener"', 'href="${download.url}"'],
   ['direct download (page CSP): the hidden frame is blocked', 'vercel.json', "frame-src 'self' https://github.com https://release-assets.githubusercontent.com https://objects.githubusercontent.com ", 'frame-src '],
   ['direct download (page): the Android note twice on the form', 'Get Sidekick.dc.html', "this form isn\\'t open yet.' : '',", "this form isn\\'t open yet.' : 'Android: join the Google Play test, we\\'ll email you the link.',"],
+  ['direct download (releases): an asset of any version accepted', 'server/releases.mjs', '(?:v|sidekick-mac-)${ver}/', '(?:v|sidekick-mac-)\\\\d+\\\\.\\\\d+\\\\.\\\\d+/'],
   ['direct download (emails): Drive offered as the way to download', 'server/emails.mjs', 'If the download fails, download ${b.file} from our Google Drive folder instead:', 'Download ${b.file} from our Google Drive folder:']
 ];
 

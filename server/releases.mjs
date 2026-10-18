@@ -21,8 +21,11 @@ export function releaseProblems(r) {
   // The invited-beta links on the unlisted Beta page: null (not available) or https on exactly these hosts.
   // The direct download (GitHub Release asset of THIS file), or null until the owner has published it and
   // scripts/data-sync.mjs --verify-direct-url has checked its size and SHA-256. Server-only: pages link to /download/mac.
+  // The release tag is v<version> or sidekick-mac-<version> (the owner's tag for 2.0.1), of THIS version.
   const du = (r.mac || {}).directUrl, file = builds && builds.arm64 && builds.arm64.file;
-  if (du !== undefined && !linkOn(du, 'github.com', /^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/releases\/download\/v\d+\.\d+\.\d+\/([A-Za-z0-9._-]+\.dmg)$/) || (typeof du === 'string' && du.split('/').pop() !== file)) p.push('mac.directUrl must be null or https://github.com/<owner>/<repo>/releases/download/v<version>/<the .dmg file>');
+  const ver = typeof r.version === 'string' && /^\d+\.\d+\.\d+$/.test(r.version) ? r.version.replace(/\./g, '\\.') : '(?!)';
+  const assetRe = new RegExp(`^/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/(?:v|sidekick-mac-)${ver}/([A-Za-z0-9._-]+\\.dmg)$`);
+  if (du !== undefined && !linkOn(du, 'github.com', assetRe) || (typeof du === 'string' && du.split('/').pop() !== file)) p.push('mac.directUrl must be null or https://github.com/<owner>/<repo>/releases/download/<v<version> or sidekick-mac-<version>>/<the .dmg file>');
   if (!linkOn((r.mac || {}).betaDriveUrl, 'drive.google.com', /^\/drive\/folders\/[A-Za-z0-9_-]{10,100}$/)) p.push('mac.betaDriveUrl must be null or https://drive.google.com/drive/folders/…');
   const a = r.android || {};
   if (a.build !== undefined) p.push('android.build is not allowed: this site never serves an APK (store URL or nothing)');
