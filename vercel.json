@@ -8,7 +8,8 @@
   },
   "rewrites": [
     { "source": "/", "destination": "/Home.dc.html" },
-    { "source": "/api/:path*", "destination": "/api/index?__route=:path*" }
+    { "source": "/api/:path*", "destination": "/api/index?__route=:path*" },
+    { "source": "/download/mac", "destination": "/api/index?__route=download-mac" }
   ],
   "crons": [
     { "path": "/api/cron/retention", "schedule": "17 3 * * *" }

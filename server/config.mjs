@@ -5,6 +5,8 @@ export const DEFAULT_LIMITS = {
   notify_ip: [20, 3600], notify_email: [5, 86400],
   feedback_ip: [5, 3600],
   download: [30, 3600],
+  download_ip: [30, 3600], // GET /download/mac, per IP (hashed)
+  instant_ip: [3, 3600], // tokens handed out on the page, per IP; over it, that sign-up takes the email flow
   mail_address: [3, 3600], // emails we send to one address per hour, whatever triggers them
   mail_address_day: [6, 86400] // …and per day
 };
@@ -42,6 +44,14 @@ export function loadConfig(env = process.env) {
   const playGate = env.PLAY_GATE === undefined || env.PLAY_GATE === '' || env.PLAY_GATE === 'on';
   if (!playGate && env.PLAY_GATE !== 'off') problems.push('PLAY_GATE');
   if (!['outbox', 'resend'].includes(emailProvider)) problems.push('EMAIL_PROVIDER');
+  // The one-click flow (launch log Part 7). SIGNUP_DAILY_CAP: tokens handed out on the result page per UTC day (0 turns
+  // that off; everyone takes the email flow). ANDROID_ACCESS: how a Google account reaches the Play test list —
+  // manual-batch (the owner pastes a daily batch into Play Console) or google-group (the signer adds it to a Google
+  // Group from the owner's Mac). SITE_MODE=manual is the kill switch: the signup API closes (the build then serves the
+  // email-only pages). Unset leaves signups as they are.
+  const dailyCap = env.SIGNUP_DAILY_CAP === undefined || env.SIGNUP_DAILY_CAP === '' ? 60 : (/^\d{1,6}$/.test(env.SIGNUP_DAILY_CAP) ? Number(env.SIGNUP_DAILY_CAP) : (problems.push('SIGNUP_DAILY_CAP'), 0));
+  const androidAccess = env.ANDROID_ACCESS === undefined || env.ANDROID_ACCESS === '' ? 'manual-batch' : env.ANDROID_ACCESS;
+  if (!['manual-batch', 'google-group'].includes(androidAccess)) problems.push('ANDROID_ACCESS');
   const cfg = {
     appOrigin,
     secure: typeof appOrigin === 'string' && appOrigin.startsWith('https://'),
@@ -55,6 +65,9 @@ export function loadConfig(env = process.env) {
     storageProvider,
     betaPageUrl,
     playGate,
+    signupDailyCap: dailyCap,
+    androidAccess,
+    signupClosed: env.SITE_MODE === 'manual',
     github: { token: env.GITHUB_RELEASES_TOKEN, repo: env.GITHUB_RELEASES_REPO, tag: env.GITHUB_RELEASE_TAG || null },
     r2: { accountId: env.R2_ACCOUNT_ID, accessKeyId: env.R2_ACCESS_KEY_ID, secretAccessKey: env.R2_SECRET_ACCESS_KEY, bucket: env.R2_BUCKET },
     downloadTtl: Math.min(Math.max(Number(env.DOWNLOAD_URL_TTL) || 600, 60), 3600),

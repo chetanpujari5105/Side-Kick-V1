@@ -11,7 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { startDevServer } from '../scripts/dev-server.mjs';
-import { runCycle, loadSignerConfig } from './signer/signer.mjs';
+import { runCycle, runPool, loadSignerConfig } from './signer/signer.mjs';
 import { makeClient } from './lib/client.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -23,7 +23,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const MODE = process.argv.includes('--mode') ? process.argv[process.argv.indexOf('--mode') + 1] : 'automated';
 if (!['manual', 'automated'].includes(MODE)) { console.error('--mode must be manual or automated'); process.exit(2); }
-const dev = await startDevServer({ port: PORT, quiet: true, mode: MODE });
+// Automated mode runs with a verified-looking direct URL so the result page's automatic download can be watched; the
+// browser never reaches GitHub: the DevTools Fetch domain answers that request with a small synthetic disk image.
+const RELEASES = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/releases.json'), 'utf8'));
+const DIRECT = `https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v${RELEASES.version}/${RELEASES.mac.builds.arm64.file}`;
+const dev = await startDevServer({ port: PORT, quiet: true, mode: MODE, releases: MODE === 'automated' ? { ...RELEASES, mac: { ...RELEASES.mac, directUrl: DIRECT } } : RELEASES });
 const O = dev.origin;
 const prof = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-chrome-'));
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${CDP}`, `--user-data-dir=${prof}`, '--no-first-run', '--no-default-browser-check', '--disable-extensions', 'about:blank'], { stdio: 'ignore' });
@@ -38,10 +42,12 @@ const send = (method, params = {}, sessionId) => new Promise(r => { const i = ++
 async function tab({ noJs = false, context } = {}) {
   const { result: { targetId } } = await send('Target.createTarget', { url: 'about:blank', browserContextId: context });
   const { result: { sessionId: sid } } = await send('Target.attachToTarget', { targetId, flatten: true });
-  const t = { sid, reqs: [], errors: [], navs: [], api: [] };
+  const t = { sid, reqs: [], errors: [], navs: [], api: [], redirects: [], responses: [] };
   listeners.push(m => {
     if (m.sessionId !== sid) return;
     if (m.method === 'Network.requestWillBeSent') t.reqs.push(m.params.request.url);
+    if (m.method === 'Network.requestWillBeSent' && m.params.redirectResponse) t.redirects.push({ url: m.params.redirectResponse.url, status: m.params.redirectResponse.status, headers: m.params.redirectResponse.headers, to: m.params.request.url });
+    if (m.method === 'Network.responseReceived') t.responses.push({ url: m.params.response.url, status: m.params.response.status, headers: m.params.response.headers });
     if (m.method === 'Network.responseReceived' && m.params.response.url.includes('/api/')) t.api.push(`${m.params.response.status} ${new URL(m.params.response.url).pathname}`);
     if (m.method === 'Runtime.exceptionThrown') t.errors.push(m.params.exceptionDetails.text);
     if (m.method === 'Log.entryAdded' && m.params.entry.level === 'error' && !/favicon|files\.example\.test/.test(m.params.entry.url || m.params.entry.text)) t.errors.push(m.params.entry.text);
@@ -149,28 +155,32 @@ try {
   await a.eval(`sessionStorage.setItem('sk_mock_outcome','server_error'); sessionStorage.setItem('sk_session', JSON.stringify({name:'Mock', expiresAt: Date.now()+1e9})); true`);
   await a.go(O + '/Get%20Sidekick.dc.html?previewState=success&showReview=true');
   let txt = await a.text();
-  check('signup page renders in real mode (button "Continue to download")', txt.includes('Continue to download'), '');
+  check('signup page renders in real mode: one button "Get the Mac app", the one-line Android note', txt.includes('Get the Mac app') && txt.includes("Android: join the Google Play test, we'll email you the link."), '');
   check('no Design review bar in production build', !/DESIGN REVIEW/i.test(txt));
   check('Turnstile container rendered (local stand-in)', txt.includes('Human check (local test stand-in)'));
-  check('previewState in the URL is ignored', !txt.includes('Saved. Taking you to your download'));
+  check('previewState in the URL is ignored', !txt.includes('Saved. One more step by email.') && !txt.includes("You're in"));
   // Submit empty → client-side errors.
   await a.eval(click('#f-send')); await sleep(400);
   txt = await a.text();
-  check('empty submit shows the error summary with Handoff strings', txt.includes('Please fix 6 things') && txt.includes('Enter your name.') && txt.includes("Choose your Mac's chip, or Not sure.") && txt.includes('Enter the Google account email your phone uses for Google Play.'));
+  check('empty submit: the error summary asks for 3 things only (name, email, privacy; no chip, Android optional)', txt.includes('Please fix 3 things') && txt.includes('Enter your name.') && !txt.includes("Mac's chip") && !txt.includes('Enter the Google account email'));
   check('focus moves to the error summary', await a.eval(`document.activeElement && document.activeElement.id`) === 'err-summary');
-  // A phone number in "Android phone model" is refused on the page, with the plain message and the hint.
+  // Ticking Android shows its two fields; a phone number in "Android phone model" is refused with the plain message.
+  await a.eval(click('#f-android')); await sleep(300);
+  check('Android box shows the phone model and Google account fields', await a.eval(`!!document.getElementById('f-phone') && !!document.getElementById('f-google')`));
   await a.eval(fill('#f-phone', '07700 900123')); await a.eval(click('#f-send')); await sleep(400);
   txt = await a.text();
   check('phone number in the model field: plain message, model-name hint', txt.includes("Enter the phone's model name, for example Pixel 8, not its number.") && txt.includes('The model name, like Pixel 8 or Galaxy S23 — not your phone number.'));
   // Fill and submit.
   await a.eval(fill('#f-name', 'Alex Rivera')); await a.eval(fill('#f-email', 'alex@example.com')); await a.eval(fill('#f-phone', 'Pixel 8')); await a.eval(fill('#f-google', 'alex.rivera@gmail.com'));
-  await a.eval(click('input[name=macChip][value=apple]')); await a.eval(click('#f-privacy'));
+  await a.eval(click('#f-privacy'));
   await a.eval(click('#f-send'));
+  await sleep(1000);
+  check('pool empty: the page says so honestly ("One more step by email"), no error', (await a.text()).includes("Right now we can't hand out a beta token on this page"));
   await sleep(3500);
   txt = await a.text();
   check('after submit: Download page says check your email', (await a.eval('location.pathname')) === '/Download.dc.html' && txt.includes('Check your email') && txt.includes('Alex'), txt.replace(/\s+/g, ' ').slice(0, 400));
   check('check your email: says emails can take up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?') && !txt.includes('a few minutes'));
-  check('check your email: says what happens after confirming', txt.includes('After you confirm, we add you to the Android test list and email your download links and token, up to a day later.'));
+  check('check your email: says what happens after confirming, and the download is there now', txt.includes('After you confirm, we email your beta token, usually within a day.') && txt.includes('download the Mac app'));
   check('session cookie is HttpOnly (not readable by page script)', !(await a.eval('document.cookie')).includes('sk_session'));
   check('old sessionStorage mock session is ignored', !txt.includes('Mock'));
 
@@ -204,21 +214,17 @@ try {
   const [, pl, sg] = token.split('.');
   check('emailed token verifies with the throwaway public key', crypto.verify(null, Buffer.from(pl), publicKey, Buffer.from(sg, 'base64url')));
   const inviteMail = sent.find(m => m.kind === 'invite');
-  check('invitation sent separately: Play link, no token', !!inviteMail && inviteMail.text.includes('play.google.com/apps/internaltest/') && !inviteMail.text.includes(token));
+  check('invitation sent separately: Play link, /download/mac, no token, no Beta page', !!inviteMail && inviteMail.text.includes('play.google.com/apps/internaltest/') && inviteMail.text.includes(O + '/download/mac') && !inviteMail.text.includes(token) && !inviteMail.text.includes('Beta.dc.html'));
 
   // 4. A different browser (fresh profile context) opens the access link from the token email.
   const { result: { browserContextId } } = await send('Target.createBrowserContext');
   const b = await tab({ context: browserContextId });
   await b.go(O + '/Download.dc.html');
   check('without a session the Download page shows the expired state', (await b.text()).includes('Open the link again'));
-  await b.go(linkIn(inviteMail.text, '/api/access'));
-  await b.eval(click('button[type=submit]')); await sleep(2500);
-  txt = await b.text();
-  check('access link → Download page says the token was emailed', txt.includes('We emailed it to you'));
-  await b.eval(click('section[aria-labelledby=mac-h] button')); await sleep(1500);
-  const dl = b.reqs.find(u => u.startsWith('https://files.example.test/'));
-  check('download button → 302 to a short-lived file link (fake host)', !!dl && dev.storage.check(dl), dl ? new URL(dl).host : 'no request');
-  check('download was logged', dev.repo.debugAll('downloads').length === 1);
+  // The first browser still has its session: the Download page's button is a plain link to /download/mac.
+  await a.go(O + '/Download.dc.html'); await sleep(500);
+  txt = await a.text();
+  check('Download page says the token was emailed; the Mac button is a normal /download/mac link', txt.includes('We emailed it to you') && (await a.eval(`document.querySelector('#dl-mac') && document.querySelector('#dl-mac').getAttribute('href')`)) === '/download/mac');
 
   // 4b. Updates: an announcement to a confirmed subscriber, and its one-use unsubscribe link in a browser.
   await fetch(O + '/api/get-sidekick', { method: 'POST', headers: { 'content-type': 'application/json', origin: O }, body: JSON.stringify({ name: 'Una', email: 'una@example.com', macChip: 'apple', phoneModel: 'Pixel 7', googleEmail: 'una@gmail.com', privacyAccepted: true, marketingOptIn: true, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
@@ -239,22 +245,22 @@ try {
   const c = await tab({ noJs: true, context: (await send('Target.createBrowserContext')).result.browserContextId });
   await c.go(O + '/Get%20Sidekick.dc.html');
   txt = await c.text();
-  check('no-JS: the plain signup form is visible, template text is not', txt.includes('Android phone model') && !txt.includes('{{'));
+  check('no-JS: the plain signup form is visible (Android optional, button "Get the Mac app"), template text is not', txt.includes('Android phone model') && txt.includes('I also want the Android app') && txt.includes('Get the Mac app') && !txt.includes('{{'));
   await c.eval(fill('input[name=name]', 'Sam')); // eval still works with page scripts disabled
-  await send('Runtime.evaluate', { expression: `document.querySelector('.skf input[name=email]').value='sam@example.com';document.querySelector('.skf input[name=phoneModel]').value='Pixel';document.querySelector('.skf input[name=googleEmail]').value='sam@gmail.com';document.querySelector('.skf input[value=apple]').checked=true;document.querySelector('.skf input[name=privacyAccepted]').checked=true;document.querySelector('.skf form').submit();` }, c.sid);
+  await send('Runtime.evaluate', { expression: `document.querySelector('.skf input[name=email]').value='sam@example.com';document.querySelector('.skf input[name=phoneModel]').value='Pixel';document.querySelector('.skf input[name=googleEmail]').value='sam@gmail.com';document.querySelector('.skf input[name=android]').checked=true;document.querySelector('.skf input[name=privacyAccepted]').checked=true;document.querySelector('.skf form').submit();` }, c.sid);
   await sleep(1500);
   txt = await c.text();
   check('no-JS submit: server page explains the human check needs JavaScript, answers kept', txt.includes('needs JavaScript') && (await c.eval(`document.querySelector('input[name=email]').value`)) === 'sam@example.com');
   check('no-JS submit stored nothing', !dev.repo.debugAll('signups').some(s => s.email === 'sam@example.com'));
   await c.go(O + '/check-email.html');
   txt = await c.text();
-  check('no-JS landing page (check-email.html) says up to a day', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?') && txt.includes('After you confirm, we add you to the Android test list and email your download links and token, up to a day later.'));
+  check('no-JS landing page (check-email.html) says up to a day, and what happens next', txt.includes('can take up to a day to arrive') && txt.includes('Nothing after a day?') && txt.includes('After you confirm, we email your beta token, usually within a day.'));
 
   // 5. Only the Continue button sends, and the updates choice is the box as shown (launch log Part 6, 2026-10-17).
   const row = (e) => dev.repo.debugAll('signups').find(s => s.email === e);
   const confirmTo = async (e) => (await outbox()).filter(m => m.kind === 'confirm' && m.to === e).map(m => m.text).join('\n');
   const fillAll = async (t, n, e) => {
-    await typeIn(t, '#f-name', n); await typeIn(t, '#f-email', e); await mouse(t, 'input[name=macChip][value=apple]');
+    await typeIn(t, '#f-name', n); await typeIn(t, '#f-email', e); await mouse(t, '#f-android'); await sleep(200);
     await typeIn(t, '#f-phone', 'Pixel 8'); await typeIn(t, '#f-google', e.replace('example.com', 'gmail.com'));
   };
   const p = await tab();
@@ -268,32 +274,83 @@ try {
   await f.go(O + '/Get%20Sidekick.dc.html');
   await typeIn(f, '#f-name', 'Ena Ter'); await press(f);
   await typeIn(f, '#f-email', 'enter@example.com'); await press(f);
-  await mouse(f, 'input[name=macChip][value=apple]'); await press(f);
+  await mouse(f, '#f-android'); await press(f); await sleep(200);
   await typeIn(f, '#f-phone', 'Pixel 8'); await press(f);
   await typeIn(f, '#f-google', 'enter@gmail.com'); await press(f);
   await mouse(f, '#f-privacy'); await press(f);
   await typeIn(f, '#f-google', ''); await press(f); // every field valid now
   await f.eval(`document.querySelector('main form').requestSubmit(); true`);
   await sleep(5000);
-  check('Enter in each field, on the radio and on the ticked privacy box, requestSubmit(), then 5 s idle: nothing sent', posts(f) === 0 && !row('enter@example.com') && (await f.eval('location.pathname')) === '/Get%20Sidekick.dc.html' && (await f.eval(`document.getElementById('f-updates').checked`)) === false, `posts ${posts(f)} ${await f.eval('location.pathname')}`);
+  check('Enter in each field, on the Android box and on the ticked privacy box, requestSubmit(), then 5 s idle: nothing sent', posts(f) === 0 && !row('enter@example.com') && (await f.eval('location.pathname')) === '/Get%20Sidekick.dc.html' && (await f.eval(`document.getElementById('f-updates').checked`)) === false, `posts ${posts(f)} ${await f.eval('location.pathname')}`);
   await f.eval(`(() => { const u = document.getElementById('f-updates'); u.checked = true; u.setAttribute('checked', ''); return true; })()`);
   await mouse(f, '#f-send'); await sleep(3500);
-  check('a click on Continue sends once; an updates box pre-set without a click (autofill-like) is ignored: no request, no updates link', posts(f) === 1 && !!row('enter@example.com') && row('enter@example.com').marketingRequestedAt === null && (await confirmTo('enter@example.com')).includes('/api/confirm-email#t=') && !(await confirmTo('enter@example.com')).includes('for=updates'), `posts ${posts(f)}`);
+  check('a click on "Get the Mac app" sends once; an updates box pre-set without a click (autofill-like) is ignored: no request, no updates link', posts(f) === 1 && !!row('enter@example.com') && row('enter@example.com').marketingRequestedAt === null && (await confirmTo('enter@example.com')).includes('/api/confirm-email#t=') && !(await confirmTo('enter@example.com')).includes('for=updates'), `posts ${posts(f)}`);
   const g = await tab();
   await g.go(O + '/Get%20Sidekick.dc.html');
   await fillAll(g, 'Tick Ed', 'ticked@example.com'); await mouse(g, '#f-privacy'); await mouse(g, '#f-updates');
   await sleep(300);
   check('ticking boxes sends nothing', posts(g) === 0);
   await g.eval(`document.getElementById('f-send').focus(); true`); await press(g); await sleep(3500);
-  check('updates ticked by a click + Enter on the Continue button: sent once, updates requested, its own link in the confirm email', posts(g) === 1 && !!row('ticked@example.com') && !!row('ticked@example.com').marketingRequestedAt && (await confirmTo('ticked@example.com')).includes('/api/confirm-email?for=updates#t='), `posts ${posts(g)}`);
+  check('updates ticked by a click + Enter on the "Get the Mac app" button: sent once, updates requested, its own link in the confirm email', posts(g) === 1 && !!row('ticked@example.com') && !!row('ticked@example.com').marketingRequestedAt && (await confirmTo('ticked@example.com')).includes('/api/confirm-email?for=updates#t='), `posts ${posts(g)}`);
+
+  // 5b. The one-click flow (launch log Part 7): the signer fills the pool, the form → "You're in" → the download starts by
+  // itself. GitHub is never contacted: the DevTools Fetch domain answers the asset request with a synthetic disk image
+  // (random bytes plus a UDIF "koly" trailer, the DMG format's magic, which sits in the last 512 bytes).
+  await runPool({ cfg: { ...cfg, issuer: path.join(ROOT, 'test/fixtures/fake-issuer-trial.mjs'), poolLow: 3, poolMax: 3 }, post: makeClient({ base: O, keyId: 'signer', secret: dev.secrets.ADMIN_AUTH_SIGNER_SECRET }), log: () => {} });
+  const fake = Buffer.concat([crypto.randomBytes(65536 - 512), Buffer.from('koly'), Buffer.alloc(508)]);
+  const dlDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-dl-'));
+  const downloads = [];
+  listeners.push(m => { if (!m.sessionId && m.method === 'Browser.downloadProgress' && m.params.state === 'completed') downloads.push(m.params.guid); });
+  await send('Browser.setDownloadBehavior', { behavior: 'allowAndName', downloadPath: dlDir, eventsEnabled: true });
+  const i = await tab();
+  listeners.push(m => {
+    if (m.sessionId !== i.sid || m.method !== 'Fetch.requestPaused') return;
+    send('Fetch.fulfillRequest', { requestId: m.params.requestId, responseCode: 200, responseHeaders: [
+      { name: 'content-type', value: 'application/octet-stream' }, { name: 'content-length', value: String(fake.length) },
+      { name: 'content-disposition', value: `attachment; filename=${RELEASES.mac.builds.arm64.file}` }], body: fake.toString('base64') }, i.sid);
+  });
+  await send('Fetch.enable', { patterns: [{ urlPattern: 'https://github.com/*' }] }, i.sid);
+  await send('Browser.grantPermissions', { origin: O, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] });
+  await i.go(O + '/Get%20Sidekick.dc.html');
+  await typeIn(i, '#f-name', 'Ina Stant'); await typeIn(i, '#f-email', 'ina@example.com'); await mouse(i, '#f-privacy');
+  await mouse(i, '#f-send'); await sleep(1200);
+  txt = await i.text();
+  const shown = dev.repo.debugAll('signups').find(s => s.email === 'ina@example.com');
+  check('one click → "You\'re in, Ina" on the same page, with the token, three steps and More details', txt.includes("You're in, Ina.") && /SIDEKICK-TRIAL-1\./.test(txt) && (await i.eval(`document.querySelectorAll('#result li.step').length`)) === 3 && txt.includes('More details') && txt.includes('Download again'), `api ${i.api.join(',')} errors ${i.errors.join(' | ').slice(0, 300)} page ${txt.slice(txt.indexOf('Get Sidekick', 30), txt.indexOf('Get Sidekick', 30) + 500)}`);
+  check('no confirmation email for the instant sign-up; the row has its pool token', !(await outbox()).some(m => m.to === 'ina@example.com') && !!shown && shown.tokenSource === 'pool');
+  await sleep(2500);
+  const r302 = i.redirects.find(x => new URL(x.url).pathname === '/download/mac');
+  const h302 = r302 ? Object.fromEntries(Object.entries(r302.headers).map(([k, v]) => [k.toLowerCase(), v])) : {};
+  check('the download started by itself: GET /download/mac → 302 to the GitHub asset, no-store, noindex, no-referrer', !!r302 && r302.status === 302 && r302.to === DIRECT && h302['cache-control'] === 'no-store' && h302['x-robots-tag'] === 'noindex' && h302['referrer-policy'] === 'no-referrer', JSON.stringify(r302 && { status: r302.status, to: r302.to }));
+  const asset = i.responses.find(x => x.url === DIRECT);
+  const ah = asset ? Object.fromEntries(Object.entries(asset.headers).map(([k, v]) => [k.toLowerCase(), v])) : {};
+  check('the asset response is a file download (attachment, octet-stream)', !!asset && /^attachment; filename=Sidekick-2\.0\.1-arm64\.dmg$/.test(ah['content-disposition'] || '') && ah['content-type'] === 'application/octet-stream');
+  for (let k = 0; k < 30 && !downloads.length; k++) await sleep(200);
+  const got = downloads.length ? fs.readFileSync(path.join(dlDir, downloads[0])) : Buffer.alloc(0);
+  check('Chrome saved the file: same bytes, DMG "koly" magic in the trailer; the result page stayed', got.length === fake.length && got.subarray(got.length - 512, got.length - 508).toString() === 'koly' && got.equals(fake) && (await i.eval('location.pathname')) === '/Get%20Sidekick.dc.html' && (await i.text()).includes("You're in, Ina."), `${got.length} bytes`);
+  fs.rmSync(dlDir, { recursive: true, force: true });
+  check('the downloaded copy is deleted', !fs.existsSync(dlDir));
+  check('the download was counted with no personal data', JSON.stringify(await dev.repo.downloadCounts()).includes('"target":"direct"') && !JSON.stringify(await dev.repo.downloadCounts()).includes('@'));
+  await mouse(i, '#copy-token'); await sleep(300);
+  const pasted = await i.eval('navigator.clipboard.readText()');
+  check('Copy puts exactly the token on the clipboard', /^SIDEKICK-TRIAL-1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}$/.test(pasted || '') && (await i.text()).includes(pasted));
+  await mouse(i, '#email-copy'); await sleep(800);
+  check('"Email me a copy" queues one copy email to that address', (await outbox()).filter(m => m.to === 'ina@example.com' && m.kind === 'copy').length === 1 && (await i.text()).includes('Copy on its way'));
+  const j = await tab({ context: (await send('Target.createBrowserContext')).result.browserContextId });
+  await j.go(O + '/Get%20Sidekick.dc.html');
+  await typeIn(j, '#f-name', 'Someone Else'); await typeIn(j, '#f-email', 'ina@example.com'); await mouse(j, '#f-privacy');
+  await mouse(j, '#f-send'); await sleep(1500);
+  txt = await j.text();
+  check('the same address again (another browser): "You already signed up", NO token on the page', txt.includes('You already signed up.') && !/SIDEKICK-TRIAL-1/.test(txt) && !(await j.eval('document.querySelector("main").innerHTML')).includes('SIDEKICK-TRIAL-1.'), `api ${j.api.join(',')} ${txt.slice(txt.indexOf('Get Sidekick', 30), txt.indexOf('Get Sidekick', 30) + 300)}`);
+  await send('Fetch.disable', {}, i.sid);
 
   // 6. Hygiene across all tabs.
-  const all = [a, b, c, p, f, g].flatMap(t => t.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));
-  const foreign = [...new Set(all.filter(u => !u.startsWith(O) && !u.startsWith('https://files.example.test/')).map(u => new URL(u).origin))];
-  check('only same-origin requests (plus the fake file host)', foreign.length === 0, foreign.join(', '));
+  const all = [a, b, c, p, f, g, i, j].flatMap(t => t.reqs).filter(u => !u.startsWith('data:') && !u.startsWith('about:'));
+  const foreign = [...new Set(all.filter(u => !u.startsWith(O) && u !== DIRECT).map(u => new URL(u).origin))];
+  check('only same-origin requests (plus the intercepted GitHub asset, answered locally)', foreign.length === 0, foreign.join(', '));
   // Expected: 401 from /api/session with no session, 403 from the no-JS submit (fails closed). Known and pre-existing
   // (unchanged since 7e7042c): Home's SVG attributes hold {{ seg… }} until the template renders.
-  const raw = [a, b, c, p, f, g].flatMap(t => t.errors);
+  const raw = [a, b, c, p, f, g, i, j].flatMap(t => t.errors);
   const preexisting = raw.filter(e => /\{\{ seg(W|H|Box|Path) \}\}/.test(e));
   const errs = raw.filter(e => !preexisting.includes(e) && !/status of (401|403|410)/.test(e));
   check('known pre-existing warnings only: Home SVG template attributes', true, `${preexisting.length} warning(s) — not caused by this branch`);

@@ -90,53 +90,59 @@ both check).
   Automation" (created by `vercel curl`). To remove it later: Vercel › side › Settings › Deployment Protection ›
   Protection Bypass for Automation › delete it.
 
-## 5. Inviting a real tester (runbook)
+## 5. Testers: the one-click flow and the 60-second Android routine
 
-Run the commands from `~/Desktop/Side-Kick-V1` with the Production admin key from its file:
+Since launch log Part 7 (2026-10-18) a visitor fills in Get Sidekick (name, email, the privacy tick; Android is an
+optional box) and lands on **"You're in"**: the Mac download, their beta token with a Copy button and three install
+steps. Nothing waits for you on the Mac side, as long as the signer keeps the token pool filled (it does on every
+run; `signer --status` shows `token pool …: N ready` and an ATTENTION line below 40). When the pool is empty, the
+daily cap (SIGNUP_DAILY_CAP, default 60) is reached or the beta is full, the page says so and the old email flow
+takes over (confirm email → the signer makes that person a token → invitation + token emails).
+
+Android still needs you, because Play Console's email lists can only be edited in Play Console. Run the commands
+from `~/Desktop/Side-Kick-V1` with the Production admin key from its file:
 ```sh
 export SK_API_BASE=https://side-henna.vercel.app \
   SK_ADMIN_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SECRET
 ```
 
-1. **The tester signs up and confirms.** They fill in Get Sidekick on the site (name, email, Mac chip, phone model
-   name, the Google account their Play Store uses) and press the link in "Confirm your email for the Sidekick beta".
-   Until they press it, they are `pending_email` in `node tools/admin/admin.mjs export`.
-2. **`play-pending` lists them.** `node tools/admin/admin.mjs play-pending` prints the Google accounts to add
-   (confirmed and approved, not yet on the Play list).
-3. **Add their Google email in Play Console.** Account chetanpujari.sitit@gmail.com › **Sidekick** › Test and
-   release › Testing › **Internal testing** › **Testers** › the arrow next to **Sidekick beta testers** › type the
-   address in **Add email addresses**, press Enter › **Save changes**. Back on Testers, check that **Sidekick beta
-   testers** is ticked; if you ticked it now, press **Save** (bottom right). Use only this list: it is the one
-   enabled for Sidekick's internal track together with "Sidekick - owner". The internal track allows 100 testers.
-   Don't use **Upload CSV file** on a list that already has people: it replaces the list.
-4. **Mark them added.** `node tools/admin/admin.mjs play-mark-added their.google@gmail.com` (that address only).
-   This is what lets the signer send their invitation, so do it only after step 3 is saved.
-5. **The signer sends within about 5 minutes.** Its next run makes their token with your issuer, then sends two
-   emails through Mail: "Your Sidekick beta invitation" (Beta page, Drive folder, checksum, six install steps,
-   Google Play test link) and "Your Sidekick beta token". Check with
-   `SK_API_BASE=https://side-henna.vercel.app node tools/signer/signer.mjs --status`: `0 tokens to issue` and
-   `0 emails waiting to send`, and a log line with `"mailed":2`. Your Mac must be awake and online.
-6. **If the tester says "no download" or "Play says not available"**, check in this order:
-   1. Confirmation done: `admin export` shows them as `approved`, `play_added` or `delivered`, not
-      `pending_email`. If not, ask them to press the link in the confirmation email (or sign up again).
-   2. Google email correct: the `google_email` column is the account their **phone's Play Store** uses.
-   3. On the list: that address is in **Sidekick beta testers**, and the list is ticked for Internal testing.
-   4. Track release live: Internal testing › **Releases** shows a release "Available to internal testers".
-   5. Right account on the phone: they opened the Google Play test link on the phone while signed in to that
-      Google account (Play Store › profile picture › switch account), accepted the invitation, then followed its
-      link to Google Play and tapped **Install**. It can take a few minutes after you add them. While in testing, Play may show
-      the app as "com.chetan.connectsuite (unreviewed)".
-   6. Drive link: the folder in the invitation opens in a private window (not logged in) and lists
-      `Sidekick-2.0.1-arm64.dmg`.
-   7. Checksum: `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg` prints exactly the SHA-256 in the invitation
-      and on the Beta page. If not, download it again.
-   No email at all: ask them to check spam; run `signer --status` (failed runs, emails waiting) and see
-   `docs/OWNER-SETUP.md` §7 "Signer status".
-7. **Remove a tester and delete their data.** `node tools/admin/admin.mjs delete their@email` deletes the sign-up,
-   its links and emails, and the signer's local token copy; then remove their line from
-   `~/.sidekick-trial-key/issued-tokens.tsv` by hand (the command reminds you). In Play Console open **Sidekick beta
-   testers**, press the bin next to their Google email, **Save changes**. A token already sent keeps working until it
-   expires (45 days from the day it was made): the Mac app checks it offline.
+### The daily routine (about 60 seconds; skip it on days `signer --status` says `Android: 0 Google accounts waiting`)
+
+1. `node tools/admin/admin.mjs play-batch` — prints how many Google accounts wait and ONE comma-separated line. It
+   keeps that exact batch on this Mac (mode 600).
+2. Play Console (chetanpujari.sitit@gmail.com) › **Sidekick** › Test and release › Testing › **Internal testing** ›
+   **Testers** › the arrow next to **Sidekick beta testers** › paste the line into **Add email addresses**, press
+   Enter › **Save changes**. (Don't use Upload CSV on this list: it replaces it.)
+3. `node tools/admin/admin.mjs play-mark-added --all-pending` prints the count; once step 2 is saved, run it again
+   with `--yes`. Only that batch is marked; anyone who signed up after step 1 waits for tomorrow's batch.
+4. Done. The signer's next run (within ~5 minutes, Mac awake and online) emails each of them "Sidekick for Android:
+   your Google Play link".
+
+The internal track allows 100 testers in all. If that becomes too few, see `docs/ANDROID-GROUP-SETUP.md` (a Google
+Group on a closed track; needs a domain and has NOT been tested against real Google).
+
+### When a tester writes "no download" or "Play says not available"
+
+1. **Mac download:** `https://side-henna.vercel.app/download/mac` must answer with the file (GitHub Release) or, until
+   that is published, the Drive folder. A private window shows which. Checksum:
+   `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg` must print the SHA-256 shown under "More details".
+2. **Token lost:** they can sign up again with the same email: the page never shows the token again (anyone could
+   type their address), but the copy email goes to that address with the token.
+3. **Android:** `admin export` shows their `google_email` (the account their **phone's Play Store** uses) and
+   `play_added_at`; that address is in **Sidekick beta testers**, ticked for Internal testing; a release is
+   "Available to internal testers"; they opened the Play link on the phone signed in to that account. It can take a
+   few minutes after you add them; Play may show "com.chetan.connectsuite (unreviewed)".
+4. **No email at all:** spam folder; then `signer --status` (failed runs, emails waiting) and `docs/OWNER-SETUP.md`
+   §7 "Signer status".
+
+### Remove a tester and delete their data
+
+`node tools/admin/admin.mjs delete their@email` deletes the sign-up, its links and queued emails, the record of the
+token they were given (pool tokens), and the signer's local token copy (email-flow tokens; then remove their line from
+`~/.sidekick-trial-key/issued-tokens.tsv` by hand, the command reminds you — pool tokens are listed there under the
+label "Sidekick beta", with no name). In Play Console open **Sidekick beta testers**, press the bin next to their
+Google email, **Save changes**. A token already given keeps working until it expires (45 days from the day it was
+made): the Mac app checks it offline.
 
 ## 6. Pre-launch checklist
 
@@ -151,3 +157,27 @@ export SK_API_BASE=https://side-henna.vercel.app \
       `caffeinate -i` in a Terminal window.
 - [ ] **Play:** only "Sidekick - owner" and "Sidekick beta testers" are ticked for Internal testing.
 - [ ] **Legal review** of Support › Privacy and of the updates emails (the DRAFT banner stays until then).
+
+## 7. Publish the Mac app as a GitHub Release (the direct download)
+
+`/download/mac` sends visitors to the Drive folder until the DMG is on a GitHub Release of this (public) repo. That
+upload needs a file picker, so it is yours:
+
+1. github.com/chetanpujari5105/Side-Kick-V1 › **Releases** › **Draft a new release**.
+2. **Choose a tag** › type `v2.0.1` › **Create new tag: v2.0.1 on publish**. Title: `Sidekick 2.0.1`.
+3. Drag `Sidekick-2.0.1-arm64.dmg` (the Drive-synced copy or your local file, 121668061 bytes) onto **Attach binaries**
+   and wait until the upload finishes.
+4. **Publish release**.
+5. Then, in this repo on a branch: `node scripts/data-sync.mjs --verify-direct-url` downloads it anonymously into a
+   scratch folder, checks 121668061 bytes and SHA-256 `a03b3390…f71284` against data/releases.json, deletes the copy,
+   and only then writes `mac.directUrl`. Open a PR, merge. From then on the download starts by itself on "You're in".
+   To go back to Drive: set `mac.directUrl` to `null` (PR, merge).
+
+## 8. Switching the one-click flow off
+
+- Everything (signups closed, the email-only site): Vercel › Settings › Environment Variables › Production
+  `SITE_MODE` = `manual`, then redeploy. The API refuses sign-ups at once after the redeploy (503 / back to the page).
+- Only instant tokens (keep signups, everyone takes the email flow): `SIGNUP_DAILY_CAP` = `0`, redeploy.
+- Only the pool on your Mac: `SK_POOL=off` in the signer's launchd plist, then `launchctl bootout` / `bootstrap`
+  (OWNER-SETUP §7).
+

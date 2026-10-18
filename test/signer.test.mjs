@@ -233,7 +233,8 @@ test('API queue (signer key): counts only — emails waiting, tokens to issue, p
   await w.h.confirm();
   const r = await w.post('queue');
   assert.equal(r.status, 200);
-  assert.deepEqual(Object.keys(r).sort(), ['awaitingPlayList', 'awaitingToken', 'ok', 'outboxQueued', 'status']);
+  assert.deepEqual(Object.keys(r).sort(), ['androidPending', 'awaitingPlayList', 'awaitingToken', 'ok', 'outboxQueued', 'poolReady', 'status']);
+  assert.equal(r.poolReady, 0); assert.equal(r.androidPending, 1, 'the approved Google account waits for the Play list');
   assert.ok(Number.isInteger(r.outboxQueued) && r.outboxQueued >= 1, 'the confirm email is queued');
   assert.equal(r.awaitingToken + r.awaitingPlayList, 1, 'the approved person is counted once');
   assert.ok(!JSON.stringify(r).includes('@'), 'no addresses');

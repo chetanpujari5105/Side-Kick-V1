@@ -177,17 +177,23 @@ test('download is rate limited per person', async () => {
   assert.equal((await h.call('GET', '/api/download/mac/arm64', { cookie })).status, 429);
 });
 
-test('re-signup with a confirmed address emails a fresh access link to the inbox, not to the requester', async () => {
+test('re-signup with a confirmed address emails the download link to the inbox, not to the requester; old access links still work', async () => {
   const h = setup();
   await h.signup();
   await h.confirm();
   const before = h.repo.debugOutbox().length;
   const r = await h.signup();
   assert.equal(r.status, 200);
-  const s = await h.call('GET', '/api/session', { cookie: cookieOf(r) });
-  assert.equal((await s.json()).session.stage, 'check_email', 'the requester learns nothing');
+  assert.deepEqual(await r.json(), { ok: true, stage: 'already' }, 'the requester learns nothing else, and gets no session');
+  assert.equal(cookieOf(r), null);
   assert.equal(h.repo.debugOutbox().length, before + 1);
-  const t = h.linkFrom('alex@example.com', '/api/access');
+  const mail = h.repo.debugOutbox().at(-1);
+  assert.equal(mail.kind, 'access'); assert.equal(mail.toEmail, 'alex@example.com');
+  assert.ok(mail.text.includes(ORIGIN + '/download/mac') && !mail.text.includes('/api/access'), 'the download link, no "Open your downloads" step');
+  // An access link from an older email still opens the Download page (recovery).
+  const { randomToken, sha256hex } = await import('../server/crypto.mjs');
+  const t = randomToken(32);
+  await h.repo.createLink({ hash: sha256hex(t), purpose: 'access', refId: (await h.repo.getSignupByEmail('alex@example.com')).id, expiresAt: h.clock.now() + 3600000, maxUses: 10 }, h.clock.now());
   const page = await h.call('GET', '/api/access');
   assert.equal(page.status, 200);
   const a = await h.call('POST', '/api/access', { form: { t, 'cf-turnstile-response': CAP }, headers: { origin: ORIGIN, accept: 'text/html' } });
@@ -203,7 +209,7 @@ test('emails per address are capped, silently', async () => {
   assert.equal(h.repo.debugOutbox().filter(m => m.toEmail === 'alex@example.com').length, 2);
 });
 
-test('the whole pipeline: signup → confirm → signer token → token email → access → download', async () => {
+test('the whole pipeline: signup → confirm → signer token → token email → download', async () => {
   const h = setup();
   await h.signup();
   await h.confirm();
@@ -221,18 +227,14 @@ test('the whole pipeline: signup → confirm → signer token → token email �
   const invite = ob.messages.find(m => m.kind === 'invite');
   assert.ok(mail.text.includes(token), 'the token is in the email');
   assert.ok(!mail.text.includes('/api/access'), 'the token email carries no download link');
-  assert.ok(invite.text.includes(ORIGIN + '/api/access#t=') && !invite.text.includes(token), 'the invitation links to the download page, without the token');
+  assert.ok(invite.text.includes(ORIGIN + '/download/mac') && !invite.text.includes(token), 'the invitation links to the download, without the token');
   assert.equal((await h.admin('/api/admin/outbox-ack', { id: mail.id, ok: true }, { key: 'signer' })).status, 200);
   assert.equal((await h.repo.getSignupByEmail('alex@example.com')).state, 'issued', 'delivered only once both emails are sent');
   assert.equal((await h.admin('/api/admin/outbox-ack', { id: invite.id, ok: true }, { key: 'signer' })).status, 200);
   const row = await h.repo.getSignupByEmail('alex@example.com');
   assert.equal(row.state, 'delivered');
   assert.equal(h.repo.debugOutbox().find(m => m.id === mail.id).text, '', 'sent email text is erased');
-  const at = invite.text.match(/access#t=([A-Za-z0-9_-]+)/)[1];
-  const a = await h.call('POST', '/api/access', { json: { t: at, captchaToken: CAP }, headers: { origin: ORIGIN } });
-  assert.equal(a.status, 200);
-  const d = await h.call('GET', '/api/download/mac/arm64', { cookie: cookieOf(a) });
-  assert.equal(d.status, 302);
+  assert.equal((await h.call('GET', '/download/mac')).status, 302, 'the public download route');
 });
 
 test('signer claim expires so a crashed run is retried; bad tokens are refused', async () => {

@@ -1,6 +1,9 @@
 // Mutation checks for four safety rules: updates go only to people who opted in AND confirmed, no token or
 // invitation before play-added, an unsubscribe link works once, and the updates choice is the one in the
-// submission being handled (an unticked box never leaves a request or an updates link). Each mutation breaks one rule in a scratch
+// submission being handled (an unticked box never leaves a request or an updates link), and the one-click rules of
+// launch log Part 7 (a repeat sign-up never sees a token, pool tokens give 35+ days, the daily cap and the kill switch
+// hold, the Drive fallback never auto-starts, a Google account is marked only after Google accepted it, deleting a
+// sign-up deletes its token record, no token in the logs). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -8,14 +11,14 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs'];
+const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs'];
 const MUTANTS = [
   ['opt-in only (MemoryRepo): asked is enough', 'server/repo-memory.mjs', 's.marketingRequestedAt && s.marketingConfirmedAt', 's.marketingRequestedAt'],
   ['opt-in only (PgRepo): asked is enough', 'server/repo-pg.mjs', 'marketing_requested_at is not null and marketing_confirmed_at is not null order by created_at', 'marketing_requested_at is not null order by created_at'],
   ['opt-in only (API): announce to every sign-up', 'server/app.mjs', 'const people = await repo.announceRecipients();', 'const people = (await repo.exportSignups()).map(s => ({ id: s.id, emailNorm: s.email.toLowerCase(), name: s.name }));'],
   ['play gate (API): signer sees approved people', 'server/app.mjs', 'repo.claimPending(now(), 10, CLAIM_TTL, { gate: config.playGate })', 'repo.claimPending(now(), 10, CLAIM_TTL, { gate: false })'],
   ['play gate (API): token accepted before play-added', 'server/app.mjs', 'repo.storeToken(data.signupId, data.token, now(), { gate: config.playGate })', 'repo.storeToken(data.signupId, data.token, now(), { gate: false })'],
-  ['play gate (PgRepo): token stored from approved', 'server/repo-pg.mjs', "[id, token, d(now), gate ? 'play_added' : 'approved']", "[id, token, d(now), 'approved']"],
+  ['play gate (PgRepo): token stored from approved', 'server/repo-pg.mjs', "and ${gate ? READY_GATED : `state = 'approved'`} and token is null returning id", "and state = 'approved' and token is null returning id"],
   ['play gate (config): default off', 'server/config.mjs', "const playGate = env.PLAY_GATE === undefined || env.PLAY_GATE === '' || env.PLAY_GATE === 'on';", "const playGate = env.PLAY_GATE === 'on';"],
   ['unsubscribe one use: ten uses', 'server/app.mjs', 'unsubscribe: { ttl: 365 * 24 * H, uses: 1 }', 'unsubscribe: { ttl: 365 * 24 * H, uses: 10 }'],
   ['unsubscribe: any link purpose accepted', 'server/app.mjs', "if (!peek || peek.purpose !== 'unsubscribe') return gone();", 'if (!peek) return gone();'],
@@ -24,7 +27,17 @@ const MUTANTS = [
   ['this submission (MemoryRepo): unticked keeps the request', 'server/repo-memory.mjs', "s.marketingRequestedAt = wanted === true ? (s.marketingRequestedAt || new Date(now)) : null;", "s.marketingRequestedAt = wanted === true ? (s.marketingRequestedAt || new Date(now)) : s.marketingRequestedAt;"],
   ['this submission (PgRepo): unticked keeps the request', 'server/repo-pg.mjs', 'coalesce(marketing_requested_at, $3) else null end', 'coalesce(marketing_requested_at, $3) else marketing_requested_at end'],
   ['this submission (validate): updates default to yes', 'server/validate.mjs', 'marketingOptIn: truthy(body.marketingOptIn)', 'marketingOptIn: body.marketingOptIn !== false'],
-  ['unsubscribe token opens a session elsewhere', 'server/app.mjs', "if (!peek || peek.purpose === 'unsubscribe' || ", 'if (!peek || ']
+  ['unsubscribe token opens a session elsewhere', 'server/app.mjs', "if (!peek || peek.purpose === 'unsubscribe' || ", 'if (!peek || '],
+  ['one-click (API): a repeat sign-up is shown the token', 'server/app.mjs', "if (outcome === 'already') return asPage ? html(200, alreadyPage({ nonce }), nonce) : json(200, { ok: true, stage: 'already' });", "if (outcome === 'already') return json(200, { ok: true, stage: 'already', token: await repo.poolTokenFor(s.id) });"],
+  ['one-click (MemoryRepo): no 35-day minimum', 'server/repo-memory.mjs', 'p.createdAt.getTime() >= now - maxAgeMs && p.notAfter.getTime() >= now + minLeftMs', 'p.createdAt.getTime() >= now - maxAgeMs'],
+  ['one-click (PgRepo): no 35-day minimum', 'server/repo-pg.mjs', 'and p.created_at >= $3 and p.not_after >= $4', 'and p.created_at >= $3 and $4::timestamptz is not null'],
+  ['one-click (MemoryRepo): no daily cap in the hand-out', 'server/repo-memory.mjs', 'if (this.pool.filter(p => p.issuedAt && p.issuedAt.getTime() >= o.dayStart).length >= o.dailyCap) return null;', ''],
+  ['one-click (PgRepo): no daily cap in the hand-out', 'server/repo-pg.mjs', 'and (select count(*) from token_pool where issued_at >= $5) < $6', 'and $5::timestamptz is not null and $6::int > -1'],
+  ['one-click (API): the kill switch ignored', 'server/app.mjs', 'if (config.signupClosed) {', 'if (false) {'],
+  ['one-click (API): the Drive fallback starts by itself', 'server/app.mjs', 'auto: !!releases.mac.directUrl', 'auto: true'],
+  ['one-click (signer): a refused Google account is marked anyway', 'tools/signer/android-group.mjs', 'if (r.status === 200 || r.status === 409) {', 'if (true) {'],
+  ['one-click (MemoryRepo): deleting keeps the token record', 'server/repo-memory.mjs', 'this.pool = this.pool.filter(p => p.signupId !== id);', ''],
+  ['one-click (API): pool-add takes tokens whose end date cannot be read', 'server/app.mjs', 'if (items.some(x => x.notAfter === null))', 'if (false)']
 ];
 
 const skip = new Set(['.git', 'node_modules', 'dist']);

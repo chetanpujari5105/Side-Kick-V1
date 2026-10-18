@@ -7,7 +7,7 @@ test('valid signup: 200 only after the row exists, form session cookie, confirm 
   const h = setup();
   const res = await h.signup();
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { ok: true });
+  assert.deepEqual(await res.json(), { ok: true, stage: 'check_email' }, 'the pool is empty here: the email flow');
   const sc = res.headers.get('set-cookie');
   assert.match(sc, /^sk_session=/);
   for (const flag of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/', 'Max-Age=86400']) assert.ok(sc.includes(flag), flag);
@@ -116,7 +116,8 @@ test('no-JS form: errors come back as an accessible HTML page with the Handoff s
   assert.equal(r.status, 400);
   assert.match(r.headers.get('content-type'), /text\/html/);
   const page = await r.text();
-  for (const m of [MSG.name, MSG.email, MSG.chip, MSG.privacy]) assert.ok(page.includes(m.replace(/'/g, '&#39;')), m);
+  for (const m of [MSG.name, MSG.email, MSG.privacy]) assert.ok(page.includes(m.replace(/'/g, '&#39;')), m);
+  assert.ok(!page.includes(MSG.chip.replace(/'/g, '&#39;')), 'the chip is no longer asked (launch log Part 7)');
   assert.match(page, /role="alert"/);
   assert.match(page, /aria-invalid="true"/);
   assert.match(page, /aria-describedby="e-email"/);
@@ -185,7 +186,8 @@ test('phone model: the page checks the same rule with the same message, and the 
 
 // The owner sends the emails from his Mac (the signer), so the site says they can take up to a day (2026-10-16).
 // What happens after confirming, in the same words on the page, the no-JS landing page and the confirm email.
-const NEXT = 'After you confirm, we add you to the Android test list and email your download links and token, up to a day later.';
+// The email flow (no token on the page): what happens after confirming (launch log Part 7).
+const NEXT = 'After you confirm, we email your beta token, usually within a day.';
 
 test('timing copy: check-your-email and the invitation flow say emails can take up to a day', async () => {
   const fs = await import('node:fs');
@@ -198,11 +200,11 @@ test('timing copy: check-your-email and the invitation flow say emails can take 
     assert.ok(t.includes(NEXT), `${f}: what happens next`);
     for (const old of ['a few minutes', 'Nothing after an hour']) assert.ok(!t.includes(old), `${f}: still says ${old}`);
   }
-  assert.ok(read('Get Sidekick.dc.html').includes('we email your invitation and, separately, your beta token. We do this ourselves, so it can take up to a day.'), 'Get Sidekick intro');
+  assert.ok(read('Get Sidekick.dc.html').includes("Right now we can't hand out a beta token on this page, so we'll do it by email."), 'Get Sidekick says so when it falls back');
   assert.ok(read('Download.dc.html').includes("We email it to you once it\\'s ready, within a day. Nothing to do on the phone."), 'Download token line');
-  assert.ok(read('Support.dc.html').includes("It arrives by email once you\\'re in, within a day of confirming your email."), 'Support beta token row');
+  assert.ok(read('Support.dc.html').includes('it arrives within a day of confirming your email.'), 'Support beta token row');
   for (const f of ['Download.dc.html', 'Support.dc.html', 'Get Sidekick.dc.html', 'check-email.html']) assert.ok(!/few hours/.test(read(f)), `${f}: few hours`);
   const { emails } = await import('../server/emails.mjs');
-  const c = emails.confirm({ name: 'Alex', confirmUrl: 'https://x/c', updatesUrl: null }).text;
+  const c = emails.confirm({ name: 'Alex', confirmUrl: 'https://x/c', updatesUrl: null, downloadUrl: 'https://x/download/mac' }).text;
   assert.ok(c.includes(NEXT), 'confirm email says what happens next');
 });

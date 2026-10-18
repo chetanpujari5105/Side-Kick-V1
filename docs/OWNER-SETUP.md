@@ -135,7 +135,14 @@ Project › Settings › Environment Variables. Mark every **secret** one as **S
 | `RETENTION_SIGNUP_DAYS` | no | `365` (default) | | |
 | `RATE_LIMIT_SIGNUP_IP` etc. | no | optional, `N/seconds` | | defaults in `server/config.mjs` |
 | `STORAGE_PROVIDER=static` | no | `static` (2026-10-16) | `static` | The download is the Beta page: no GitHub or R2 needed. `BETA_PAGE_URL` is optional (default `APP_ORIGIN/Beta.dc.html`) |
-| `PLAY_GATE` | no | `on` (default) | `on` | No token and no invitation until `admin play-mark-added`. `off` brings back the old flow |
+| `PLAY_GATE` | no | `on` (default) | `on` | No token and no invitation until `admin play-mark-added`. `off` brings back the old flow. (Mac-only sign-ups of the email flow have no Google account to add and are not held back.) |
+| `SIGNUP_DAILY_CAP` | no | `60` (default) | | One-click flow (2026-10-18): tokens handed out on the result page per UTC day. `0` turns instant tokens off (everyone takes the email flow) |
+| `ANDROID_ACCESS` | no | `manual-batch` (default) | | How a Google account reaches the Play test list: `manual-batch` (daily `admin play-batch` paste, OWNER-CLICKS §5) or `google-group` (the signer adds it to a Google Group; docs/ANDROID-GROUP-SETUP.md; NOT tested against real Google) |
+| `RATE_LIMIT_INSTANT_IP`, `RATE_LIMIT_DOWNLOAD_IP` | no | optional, `N/seconds` | | defaults `3/3600` (instant tokens per IP; over it, that sign-up takes the email flow) and `30/3600` (`GET /download/mac` per IP) |
+
+`SITE_MODE=manual` is also the **kill switch** of the one-click flow: after a redeploy the build is the email-only
+site and the API refuses sign-ups (503 `SIGNUP_CLOSED`; a no-JavaScript form goes back to the page). `/download/mac`
+keeps working (it only points at public files).
 
 If anything required is missing, every API call answers `503 MISCONFIGURED` and the function log names the
 missing variables (names only). `GET /api/health` shows `{"ok":true}` when all is set. Total size is far under
@@ -198,8 +205,15 @@ and logged in.** People see "up to a day" on the site.
 SK_API_BASE=https://<project>.vercel.app node tools/signer/signer.mjs --status
 ```
 It prints, with no secret and no address: whether the launchd job is loaded (its runs and last exit code), the last
-run and the last successful run, how many runs in a row have failed, and the queue on the site (emails waiting to
-send, tokens to issue, people waiting for the Play list). It reads `~/Library/Logs/sidekick-signer.log`
+run and the last successful run, how many runs in a row have failed, the queue on the site (emails waiting to
+send, tokens to issue, people waiting for the Play list), the token pool (`N ready (low-water 40)`, with `ATTENTION`
+below the low-water mark) and how many Google accounts wait for the daily Android paste.
+
+The token pool (2026-10-18): after each run the signer discards pool tokens that could no longer give 35 days, and
+when fewer than 40 (`SK_POOL_LOW`) are ready it makes up to 100 (`SK_POOL_MAX`) with your issuer and key, labelled
+"Sidekick beta" (no name), and uploads only the token strings. They wait on this Mac (`~/.sidekick-trial-key/tokens/
+pool`, mode 600) only until the upload succeeds. Its log line is `signer pool: {…}`, plus an `ATTENTION` line while
+the pool is below the low-water mark; a pool failure never fails the run. `SK_POOL=off` stops it. It reads `~/Library/Logs/sidekick-signer.log`
 (`SK_LOG_FILE` to change) and asks the site for counts with the signer key.
 
 Reading the log: one line per run — `signer: {…}` with counts when it worked, or `signer failed: fetch failed

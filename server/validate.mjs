@@ -45,20 +45,27 @@ export function validateSignup(body) {
   const email = normaliseEmail(rawEmail);
   if (!rawEmail) fieldErrors.email = MSG.emailEmpty;
   else if (!email) fieldErrors.email = MSG.email;
-  const macChip = body.macChip;
-  if (macChip !== 'apple' && macChip !== 'unsure') fieldErrors.macChip = MSG.chip;
+  // The Mac's chip is no longer asked (the page says "Apple silicon" instead); an older page may still send it.
+  const macChip = body.macChip === undefined || body.macChip === '' || body.macChip === null ? null : body.macChip;
+  if (macChip !== null && macChip !== 'apple' && macChip !== 'unsure') fieldErrors.macChip = MSG.chip;
+  // Android is optional (launch log Part 7): the phone model and the Google account are asked only when the Android box
+  // is ticked. An older page has no box and always sends them, so a filled-in field there still means Android.
   const rawPhone = typeof body.phoneModel === 'string' ? body.phoneModel : '';
-  const phoneModel = cleanText(rawPhone, 200);
-  if (!phoneModel || phoneModel.length > 120 || CONTROL.test(rawPhone.replace(/[\t ]/g, ''))) fieldErrors.phoneModel = MSG.phone;
-  else if (looksLikePhoneNumber(phoneModel)) fieldErrors.phoneModel = MSG.phoneNumber;
-  // The Google account the owner adds to the Play test list. Same strict address rule as the email field.
   const rawGoogle = typeof body.googleEmail === 'string' ? body.googleEmail.trim() : '';
-  const googleEmail = normaliseEmail(rawGoogle);
-  if (!rawGoogle) fieldErrors.googleEmail = MSG.googleEmpty;
-  else if (!googleEmail || !/^[a-z0-9]/.test(googleEmail)) fieldErrors.googleEmail = MSG.google; // also keeps the Play CSV free of formulas
+  const android = body.android === undefined ? !!(rawGoogle || rawPhone.trim()) : truthy(body.android);
+  let phoneModel = null, googleEmail = null;
+  if (android) {
+    phoneModel = cleanText(rawPhone, 200);
+    if (!phoneModel || phoneModel.length > 120 || CONTROL.test(rawPhone.replace(/[\t ]/g, ''))) fieldErrors.phoneModel = MSG.phone;
+    else if (looksLikePhoneNumber(phoneModel)) fieldErrors.phoneModel = MSG.phoneNumber;
+    // The Google account the owner adds to the Play test list. Same strict address rule as the email field.
+    googleEmail = normaliseEmail(rawGoogle);
+    if (!rawGoogle) fieldErrors.googleEmail = MSG.googleEmpty;
+    else if (!googleEmail || !/^[a-z0-9]/.test(googleEmail)) fieldErrors.googleEmail = MSG.google; // also keeps the Play CSV free of formulas
+  }
   if (!truthy(body.privacyAccepted)) fieldErrors.privacyAccepted = MSG.privacy;
   if (Object.keys(fieldErrors).length) return { ok: false, fieldErrors };
-  return { ok: true, value: { name, email: rawEmail, emailNorm: email, macChip, phoneModel, googleEmail, marketingOptIn: truthy(body.marketingOptIn) } };
+  return { ok: true, value: { name, email: rawEmail, emailNorm: email, macChip, phoneModel, googleEmail, android, marketingOptIn: truthy(body.marketingOptIn) } };
 }
 
 // The page's own field keys differ from the API's for two fields; map server errors back for the page.

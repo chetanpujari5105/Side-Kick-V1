@@ -20,7 +20,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 
 // mode 'automated' (default): the real API on fake adapters. mode 'manual': the SITE_MODE=manual build, and every
 // /api/* request is a 404 that is also recorded in apiHits (a manual site must never make one).
-export async function startDevServer({ port = 8787, build = true, quiet = false, env = {}, mode = 'automated' } = {}) {
+export async function startDevServer({ port = 8787, build = true, quiet = false, env = {}, mode = 'automated', releases: rel = releases } = {}) {
   const manual = mode === 'manual';
   if (build) execFileSync(process.execPath, manual ? [path.join(ROOT, 'scripts/build-site.mjs')] : [path.join(ROOT, 'scripts/build-site.mjs'), '--local'], { stdio: quiet ? 'ignore' : 'inherit', env: manual ? { PATH: process.env.PATH, SITE_MODE: 'manual' } : process.env });
   const DIST = path.join(ROOT, 'dist');
@@ -32,7 +32,7 @@ export async function startDevServer({ port = 8787, build = true, quiet = false,
   const storage = new FakeStorage(systemClock, config.downloadTtl);
   const logs = [];
   const log = createLogger(l => { logs.push(l); if (!quiet) console.log(l); });
-  const app = createApp({ config, repo, botCheck, storage, mailer: null, clock: systemClock, log, releases, roadmapIds: roadmap.ids });
+  const app = createApp({ config, repo, botCheck, storage, mailer: null, clock: systemClock, log, releases: rel, roadmapIds: roadmap.ids });
   const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
   // The same headers Vercel sends: the catch-all page rule, plus any rule for one exact path (e.g. /Beta.dc.html).
   const rule = vercel.headers.find(h => h.source === '/((?!api/).*)');
@@ -43,12 +43,13 @@ export async function startDevServer({ port = 8787, build = true, quiet = false,
 
   const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, origin);
-    if (u.pathname.startsWith('/api/') && manual) {
+    // vercel.json rewrites /download/mac to the API function; do the same here.
+    if ((u.pathname.startsWith('/api/') || u.pathname === '/download/mac') && manual) {
       apiHits.push(req.method + ' ' + u.pathname);
       res.writeHead(404, { 'content-type': 'text/plain' });
       return res.end('No API in a SITE_MODE=manual build.');
     }
-    if (u.pathname.startsWith('/api/')) {
+    if (u.pathname.startsWith('/api/') || u.pathname === '/download/mac') {
       const chunks = [];
       for await (const c of req) chunks.push(c);
       const headers = new Headers();

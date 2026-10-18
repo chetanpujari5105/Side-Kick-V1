@@ -19,9 +19,10 @@ export function openSession(value, secrets, nowMs) {
   if (!good) return null;
   let p;
   try { p = JSON.parse(fromB64url(body).toString('utf8')); } catch { return null; }
-  if (!p || p.v !== 1 || (p.k !== 'form' && p.k !== 'email')) return null;
+  // form: sent the form (first name only). email: opened an email link. in: saw the instant result page (for "Email me a copy").
+  if (!p || p.v !== 1 || (p.k !== 'form' && p.k !== 'email' && p.k !== 'in')) return null;
   if (typeof p.exp !== 'number' || p.exp * 1000 <= nowMs) return null;
-  if (p.k === 'email' && typeof p.sid !== 'string') return null;
+  if ((p.k === 'email' || p.k === 'in') && typeof p.sid !== 'string') return null;
   return p;
 }
 

@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { stripRegions } from '../scripts/site-modes.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
@@ -39,21 +40,27 @@ const beta = read('Beta.dc.html');
 const bm = beta.match(/const BETA = (\(R, C\) => \{[\s\S]*?\n {4}\});/);
 if (!bm) throw new Error('BETA function not found in Beta.dc.html');
 const { _comment, ...R } = JSON.parse(read('data/releases.json'));
-const T = vm.runInNewContext(`(${bm[1]})`, {})(R, C);
+delete R.mac.directUrl; // server-only, as in data/releases.js
+// One block per site mode: the manual one from the function with its AUTOMATED regions removed (as the manual build
+// ships it), the automated one from the whole function with siteMode 'automated'.
+const betaFor = (mode) => vm.runInNewContext(`(${stripRegions(bm[1], mode)})`, {})(R, { ...C, siteMode: mode });
+const T = betaFor('manual'), TA = betaFor('automated');
 const P = (t, extra = '') => `<p style="margin:0 0 14px;font-size:17px;line-height:1.6;${extra}">${t}</p>`;
 const H2 = (t) => `<h2 style="margin:28px 0 12px;font:800 30px/1.1 'Bricolage Grotesque',sans-serif;">${esc(t)}</h2>`;
 const H3 = (t) => `<h3 style="margin:20px 0 8px;font:600 20px/1.3 Inter,sans-serif;">${esc(t)}</h3>`;
 const OL = (items) => `<ol style="margin:0 0 14px;padding-left:22px;font-size:17px;line-height:1.6;">\n${items.map(s => `<li>${esc(s.text)}${s.code ? ` <code>${esc(s.code)}</code>` : ''}</li>`).join('\n')}\n</ol>`;
 const A = (href, label) => href ? P(`<a href="${esc(href)}" rel="noopener noreferrer" style="font-weight:600;">${esc(label)}</a>`) : '';
-const betaHtml = [
+const betaBlock = (T) => [
   `<h1 style="margin:0 0 16px;font:800 52px/1 'Bricolage Grotesque',sans-serif;">Install the beta.</h1>`, P(esc(T.intro)),
   H2(T.macTitle), P(esc(T.macNeed)), A(T.driveUrl, T.driveLabel), P(esc(T.driveText)),
+  T.fallbackUrl ? P(`If the download doesn't start, <a href="${esc(T.fallbackUrl)}" rel="noopener noreferrer" style="font-weight:600;">open our Google Drive folder</a> and download ${esc(T.file)} there.`) : '',
   T.file ? P(`File: <code>${esc(T.file)}</code>${T.size ? ` · Size: ${esc(T.size)}` : ''}`) : '',
   T.sha ? P(`SHA-256: <code style="word-break:break-all;">${esc(T.sha)}</code>`) : '',
   H3(T.checkTitle), OL(T.check), H3(T.installTitle), OL(T.install), P(`<strong>${esc(T.tokenTitle)}</strong> ${esc(T.token)}`),
   H2(T.androidTitle), P(esc(T.androidNeed)), P(`<strong>${esc(T.playAccess)}</strong>`), A(T.playUrl, T.playLabel), P(esc(T.playText)), P(esc(T.noApk), 'font-weight:600;'),
   H2(T.pairTitle), P(`${esc(T.pair)} <a href="Support.dc.html#setup" style="font-weight:600;">Full setup guide</a>`), P(esc(T.help))
 ].filter(Boolean).join('\n');
+const betaHtml = betaBlock(T), betaAutoHtml = betaBlock(TA);
 
 // Manual mode: static HTML (it reads the same without JavaScript) built from data/mailto.js.
 const email = C.supportEmail;
@@ -105,6 +112,7 @@ const blocks = [
   ['Home.dc.html', 'NOSCRIPT:FAQ-MANUAL', `<noscript>\n<div style="border-bottom:1px solid rgba(23,20,46,0.14);">\n${faqManualHtml}\n</div>\n</noscript>`],
   ['Roadmap.dc.html', 'NOSCRIPT:ROADMAP', `<noscript>\n<div style="display:flex;flex-direction:column;gap:28px;">\n${rmHtml}\n</div>\n</noscript>`],
   ['Beta.dc.html', 'NOSCRIPT:BETA', `<noscript>\n<div>\n${betaHtml}\n</div>\n</noscript>`],
+  ['Beta.dc.html', 'NOSCRIPT:BETA-AUTOMATED', `<noscript>\n<div>\n${betaAutoHtml}\n</div>\n</noscript>`],
   ['Roadmap.dc.html', 'MANUAL:SUGGEST', suggestHtml],
   ['manual/Get Sidekick.dc.html', 'MANUAL:REQUEST', requestHtml],
   ['manual/Download.dc.html', 'MANUAL:INVITE', inviteHtml],

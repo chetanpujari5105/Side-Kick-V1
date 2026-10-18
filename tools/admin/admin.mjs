@@ -14,6 +14,12 @@
 //        "Upload CSV file", which REPLACES the list (support.google.com/googleplay/android-developer/answer/9845334).
 //   node tools/admin/admin.mjs play-mark-added <google-email>… | --file play-testers.csv
 //        after adding them in Play Console: their token and invitation go out on the signer's next run.
+//   node tools/admin/admin.mjs play-batch
+//        the daily Android routine (docs/OWNER-CLICKS.md §5): prints how many Google accounts wait and ONE comma-separated
+//        line to paste into Play Console › Testers › "Sidekick beta testers". Keeps that exact batch (mode 600) for:
+//   node tools/admin/admin.mjs play-mark-added --all-pending [--yes]
+//        marks exactly the accounts of the last play-batch as added (prints the count; nothing happens without --yes).
+//        Sign-ups that arrived after the batch was printed are not marked: they are in the next batch.
 //   node tools/admin/admin.mjs announce --subject "…" --body-file update.txt [--dry-run]
 //        an update email to people who asked for updates and confirmed. --dry-run prints counts only.
 // Needs SK_API_BASE and the admin secret (SK_ADMIN_SECRET or Keychain item "sidekick-admin-hmac").
@@ -30,6 +36,9 @@ const list = (v) => v === undefined ? undefined : v.split(',').map(s => s.trim()
 const secret = secretFrom('SK_ADMIN_SECRET', 'sidekick-admin-hmac');
 if (!process.env.SK_API_BASE || !secret) { console.error('Set SK_API_BASE and the admin secret (SK_ADMIN_SECRET or Keychain "sidekick-admin-hmac").'); process.exit(2); }
 const post = makeClient({ base: process.env.SK_API_BASE, keyId: 'admin', secret });
+const stateDir = process.env.SK_ADMIN_STATE_DIR || path.join(os.homedir(), 'Library/Application Support/sidekick-admin');
+const batchFile = path.join(stateDir, 'play-batch.json');
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 const calls = {
   stats: () => post('stats'),
@@ -41,7 +50,18 @@ const calls = {
   promote: () => post('promote'),
   migrate: () => post('migrate'),
   'play-pending': () => post('play-pending'),
+  'play-batch': () => post('play-pending'),
   'play-mark-added': () => {
+    if (rest.includes('--all-pending')) {
+      let batch;
+      try { batch = JSON.parse(fs.readFileSync(batchFile, 'utf8')); } catch { console.error('No batch to mark: run play-batch first, paste its line into Play Console and save.'); process.exit(2); }
+      const list = Array.isArray(batch.googleEmails) ? batch.googleEmails : [];
+      if (!rest.includes('--yes')) {
+        console.log(`${plural(list.length, 'Google account', 'Google accounts')} from your play-batch of ${batch.at}.\nOnly after pasting them into Play Console and pressing Save, run again with --yes:\n  node tools/admin/admin.mjs play-mark-added --all-pending --yes`);
+        process.exit(1);
+      }
+      return post('play-mark-added', { googleEmails: list }).then(r => ({ ...r, batchSize: list.length }));
+    }
     const f = flag('--file');
     const raw = f ? fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, '') : rest.join(',');
     return post('play-mark-added', { googleEmails: raw.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean) });
@@ -56,7 +76,17 @@ const calls = {
 if (!calls[cmd]) { console.error('Commands: ' + Object.keys(calls).join(', ')); process.exit(2); }
 const r = await calls[cmd]();
 if (r.status !== 200) { console.error(`HTTP ${r.status} ${r.error || ''}`); process.exit(1); }
-if (cmd === 'play-pending') {
+if (cmd === 'play-batch') {
+  const list = r.csv.trim() ? r.csv.trim().split('\n') : [];
+  fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 });
+  if (!list.length) { fs.rmSync(batchFile, { force: true }); console.log('0 Google accounts to add. Nothing to paste today.'); process.exit(0); }
+  fs.writeFileSync(batchFile, JSON.stringify({ at: new Date().toISOString(), googleEmails: list }), { mode: 0o600 });
+  fs.chmodSync(batchFile, 0o600);
+  console.log(`${plural(list.length, 'Google account', 'Google accounts')} to add.\n\nPaste this ONE line into Play Console › Sidekick › Test and release › Testing › Internal testing › Testers › "Sidekick beta testers" (the arrow) › Add email addresses, then Save changes:\n\n${list.join(', ')}\n\nThen: node tools/admin/admin.mjs play-mark-added --all-pending --yes`);
+} else if (cmd === 'play-mark-added' && rest.includes('--all-pending')) {
+  fs.rmSync(batchFile, { force: true });
+  console.log(`Marked ${r.marked} of ${r.batchSize} as added to the Play test list${r.unmatched ? ` (${r.unmatched} not waiting any more: already marked or deleted)` : ''}. The signer sends their Android invitations on its next run.`);
+} else if (cmd === 'play-pending') {
   const out = flag('--out');
   if (out) { fs.writeFileSync(out, r.fullCsv, { mode: 0o600 }); fs.chmodSync(out, 0o600); }
   console.log(`${r.count} Google account(s) to add; ${r.total} should be on the Play test list in all.`);
