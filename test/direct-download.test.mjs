@@ -86,14 +86,9 @@ test('(b) the download never navigates away from the page that shows the token',
   }
 });
 
-test('(c) Drive appears on the result pages only as "If the download fails"', async () => {
-  const block = resultBlock();
-  assert.equal((block.match(/href="\{\{ resDrive \}\}"/g) || []).length, 1, 'one Drive link (from releases.js)');
-  assert.match(block, /<p style="margin:0;">If the download fails, <a href="\{\{ resDrive \}\}"/);
-  for (const html of [await noJsResult(withDirect()), await noJsResult(noDirect())]) {
-    assert.equal(html.split(DRIVE).length, 2, 'the Drive folder once');
-    assert.match(html.slice(0, html.indexOf(DRIVE)), /If the download fails, <a href="$/);
-  }
+test('(c) the result pages never show the Drive folder (short content, launch log Part 11); /download/mac falls back by itself', async () => {
+  assert.ok(!/resDrive|Google Drive/.test(resultBlock()), 'no Drive link on the JS result page');
+  for (const html of [await noJsResult(withDirect()), await noJsResult(noDirect())]) assert.ok(!html.includes(DRIVE) && !/Google Drive/.test(html), 'nor on the no-JS one');
 });
 
 test('(d) GET and HEAD /download/mac answer 302 to the verified asset (the Vercel rewrite form too)', async () => {
@@ -120,7 +115,7 @@ test('(e) the Android note appears exactly once on the form and once on the resu
   assert.equal(html.split('Android: ').length - 1, 1, 'the no-JS result page: one Android line');
 });
 
-test('(f) every email that offers the Mac app links /download/mac; Drive only "If the download fails"', () => {
+test('(f) every email that offers the Mac app links /download/mac; none names the Drive folder', () => {
   const downloadUrl = ORIGIN + '/download/mac', release = releasesJson;
   const all = [
     emails.confirm({ name: 'Asha', confirmUrl: ORIGIN + '/c', downloadUrl }),
@@ -131,11 +126,7 @@ test('(f) every email that offers the Mac app links /download/mac; Drive only "I
   ];
   for (const m of all) {
     assert.ok(m.text.includes('\n' + downloadUrl + '\n'), `${m.kind}: /download/mac on its own line`);
-    const at = m.text.indexOf(DRIVE);
-    if (at >= 0) {
-      assert.match(m.text.slice(0, at), /\n\nIf the download fails, download Sidekick-2\.0\.1-arm64\.dmg from our Google Drive folder instead:\n$/, `${m.kind}: Drive only as the fallback`);
-      assert.ok(m.text.indexOf(downloadUrl) < at, `${m.kind}: /download/mac first`);
-    }
+    assert.ok(!m.text.includes(DRIVE) && !/Google Drive/.test(m.text), `${m.kind}: no Drive`);
   }
   for (const k of ['token', 'updates', 'android', 'waitlist', 'notify']) assert.ok(!(emails[k].toString().includes('betaDriveUrl')), `${k}: no Drive`);
 });

@@ -98,7 +98,6 @@ a:hover{color:#3A22B8;}
               <sc-for list="{{ resAllSteps }}" as="st" hint-placeholder-count="6"><li>{{ st }}</li></sc-for>
             </ol>
             <p style="margin:0 0 10px;">SHA-256 of {{ resFile }} (to check the download; not your token):<br><code style="font:13px/1.5 'JetBrains Mono',monospace;word-break:break-all;">{{ resSha }}</code></p>
-            <sc-if value="{{ resDrive }}"><p style="margin:0;">If the download fails, <a href="{{ resDrive }}" rel="noopener noreferrer" style="color:#5B3DF5;font-weight:600;">open our Google Drive folder</a> and download {{ resFile }} there.</p></sc-if>
           </details>
         </section>
         <sc-if value="{{ resAndroid }}"><p id="res-android" style="margin:0;border-radius:16px;background:#E8E2FF;padding:14px 16px;font-size:15.5px;line-height:1.5;">{{ resAndroid }}</p></sc-if>
@@ -231,6 +230,8 @@ class Component extends DCLogic {
   updRef = React.createRef();
   andRef = React.createRef();
   bot = {};
+  // First names start with a capital letter (the server sends them that way too: server/emails.mjs capFirst).
+  static cap = (s) => s ? s.charAt(0).toLocaleUpperCase('en') + s.slice(1) : '';
   // The result page's three install steps and Android lines: the same words as server/emails.mjs SHORT_STEPS and
   // server/pages.mjs ANDROID_TEXT (test/oneclick-pages.test.mjs compares them).
   static STEPS = (file) => [
@@ -389,10 +390,10 @@ class Component extends DCLogic {
       busy: busy ? 'true' : 'false', busyBool: busy, btnDisabled: busy || mocks, cursor: busy ? 'progress' : 'pointer', btnOpacity: busy ? 0.85 : 1,
       btnLabel: mocks ? 'Not open yet' : (busy ? 'Getting it…' : 'Get the Mac app'),
       isSuccess: success, isAlready: already, isIn, showForm: !success && !already && !isIn,
-      resName: res.firstName || '', resToken: res.token || '', resAuto: isIn && !!dl.auto, resManual: isIn && !dl.auto,
+      resName: Component.cap(res.firstName || ''), resToken: res.token || '', resAuto: isIn && !!dl.auto, resManual: isIn && !dl.auto,
       resDlLine: dl.auto ? 'Your download starts in a moment. Then follow the three steps below.' : 'Download the Mac app, then follow the three steps below.',
       resSteps: Component.STEPS(file), resAllSteps: R.mac.installSteps || [], resFile: file, resSha: dl.sha256 || (R.mac.builds.arm64 || {}).sha256 || 'not staged yet',
-      resDrive: R.mac.betaDriveUrl || null, resAndroid: res.android ? Component.ANDROID[res.android] || null : null,
+      resAndroid: res.android ? Component.ANDROID[res.android] || null : null,
       copyToken: () => this.copyToken(), copyLabel: this.state.copied === 'copied' ? 'Copied' : this.state.copied === 'selected' ? 'Selected: press Command-C' : 'Copy', copyIcon: this.state.copied === 'copied' ? 'check' : 'content_copy',
       emailCopy: () => this.emailCopy(), copyMailDisabled: this.state.copyMail === 'sending' || this.state.copyMail === 'sent',
       copyMailLabel: this.state.copyMail === 'sent' ? 'Copy on its way' : this.state.copyMail === 'sending' ? 'Sending…' : 'Email me a copy',

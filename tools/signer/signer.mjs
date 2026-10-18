@@ -1,7 +1,9 @@
 // Sidekick token signer — runs on the OWNER'S MAC only (never deployed: /tools is in .vercelignore).
 //
 // One cycle: ask the site which approved people need a token → run the Mac app's own issuer for each →
-// post back only the finished token → send queued emails from the owner's own mailbox (Mail.app) → report.
+// post back only the finished token → send queued emails from the owner's own mailbox → report. Emails go out as
+// branded HTML + plain text through Gmail SMTP when the app password file is there (launch log Part 11), otherwise as
+// plain text through Mail.app, exactly as before.
 // Then the token pool (launch log Part 7): discard pool tokens too old to give 35 days, and when fewer than the
 // low-water mark are ready, mint up to the max with the same issuer (label "Sidekick beta") and upload only the
 // token strings. With SK_ANDROID_ACCESS=google-group it also adds waiting Google accounts to the Google Group.
@@ -9,8 +11,13 @@
 //
 //   node tools/signer/signer.mjs --once          one cycle (what launchd runs every 5 minutes)
 //   node tools/signer/signer.mjs --check         check the configuration and stop
-//   node tools/signer/signer.mjs --status        last successful run, failed runs in a row, queued counts, launchd job
-//                                                (reads the log below and asks the site for counts; prints no secret)
+//   node tools/signer/signer.mjs --status        last successful run, failed runs in a row, queued counts, launchd job,
+//                                                the active sender (reads the log, asks the site for counts, tries the
+//                                                Gmail login; prints no secret)
+//   node tools/signer/signer.mjs --check-mail    which sender the next run will use: smtp or mail-app (logs in, sends nothing)
+//   node tools/signer/signer.mjs --check-mail --send-test
+//                                                also send a preview of every email (dummy token SIDEKICK-TRIAL-1.PREVIEW-ONLY)
+//                                                to the owner's two addresses only, through SMTP only
 //
 // Network errors are retried once per request after 2 s (each request times out after 20 s). A failed run logs the
 // cause code, the host and the time taken; the 6th failed run in a row adds one ATTENTION line to the log.
@@ -24,7 +31,12 @@
 //   SK_KEY_SERVICE      default sidekick-trial-key                     (keychain mode: the PEM stored as the item's password)
 //   SK_TOKENS_DIR       default ~/.sidekick-trial-key/tokens  — a copy of each token, named <signupId>.sidekick-token
 //   SK_TOKEN_DAYS       default 45
-//   SK_MAILER           mailapp (default) | eml (write .eml files to SK_EML_DIR for sending by hand) | none
+//   SK_MAILER           mailapp (default: Gmail SMTP when the app password file is there, else Mail.app) | eml (write .eml
+//                       files to SK_EML_DIR for sending by hand) | none
+//   SK_SMTP             on (default) | off — off sends with Mail.app even when the app password file is there
+//   SK_SMTP_PASSWORD_FILE  default ~/Documents/Sidekick-private/secrets/gmail-app-password — the Gmail app password of
+//                       chetanpujari.sitit@gmail.com (16 characters, mode 600), read at send time, never logged. Missing,
+//                       unreadable, the wrong length or a refused login: Mail.app plain text, with one log line per run.
 //   SK_MAIL_FROM        optional sender address for Mail.app (must be one of the owner's Mail accounts)
 //   SK_MAIL_PER_HOUR    default 30 — emails sent per rolling hour, all kinds; transactional ones go first
 //   SK_MAIL_PER_DAY     default 400 — per rolling 24 hours, under Gmail's documented consumer limit (docs/OWNER-SETUP.md)
@@ -37,13 +49,18 @@
 //                       tools/signer/android-group.mjs and docs/ANDROID-GROUP-SETUP.md; NOT tested against real Google)
 import fs from 'node:fs';
 import os from 'node:os';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { spawn, execFile, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { makeClient, secretFrom, keychainSecret } from '../lib/client.mjs';
 import { isTokenShaped, normaliseEmail } from '../../server/validate.mjs';
 import { POOL_LABEL, POOL_ADD_MAX } from '../../server/pool.mjs';
+import { CONTACT } from '../../server/emails.mjs';
+import { renderEmail, DUMMY_TOKEN } from '../../server/email-html.mjs';
 import { loadGroupConfig, runAndroidGroup } from './android-group.mjs';
+import { buildMime, sendSmtp, verifySmtp } from './smtp.mjs';
+import { previewSamples } from './previews.mjs';
 
 const HOME = os.homedir();
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -62,6 +79,9 @@ export function loadSignerConfig(env = process.env) {
     mailer: env.SK_MAILER || 'mailapp',
     emlDir: env.SK_EML_DIR || path.join(HOME, 'Sidekick-outbox'),
     mailFrom: env.SK_MAIL_FROM || null,
+    smtp: env.SK_SMTP !== 'off',
+    // null: no SMTP (tests, the demo). main() fills in the real file.
+    smtpPasswordFile: env.SK_SMTP_PASSWORD_FILE || null,
     perHour: Number.isInteger(Number(env.SK_MAIL_PER_HOUR)) && Number(env.SK_MAIL_PER_HOUR) >= 0 && env.SK_MAIL_PER_HOUR !== undefined && env.SK_MAIL_PER_HOUR !== '' ? Number(env.SK_MAIL_PER_HOUR) : 30,
     perDay: Number.isInteger(Number(env.SK_MAIL_PER_DAY)) && Number(env.SK_MAIL_PER_DAY) >= 0 && env.SK_MAIL_PER_DAY !== undefined && env.SK_MAIL_PER_DAY !== '' ? Number(env.SK_MAIL_PER_DAY) : 400,
     // null: the budget is kept for this cycle only (tests, the demo). main() fills in the real folder.
@@ -94,7 +114,41 @@ function readTokenFile(file) {
   return isTokenShaped(t) ? t : null;
 }
 
-export function makeMailer(cfg, { exec = execFile } = {}) {
+// Mail.app: one plain-text email through send-mail.applescript, values as argv only.
+function mailApp(cfg, exec) {
+  const script = path.join(HERE, 'send-mail.applescript');
+  return ({ to, subject, text }) => new Promise((resolve, reject) => {
+    const args = [script, to, subject, text].concat(cfg.mailFrom ? [cfg.mailFrom] : []);
+    exec('/usr/bin/osascript', args, { timeout: 60000 }, (e) => e ? reject(new Error('Mail.app send failed')) : resolve());
+  });
+}
+
+// The Gmail app password, read when needed: { password } or { reason } (the reason never holds the password).
+export function readAppPassword(file) {
+  let st;
+  try { st = fs.statSync(file); } catch { return { reason: `no Gmail app password at ${file}` }; }
+  if (!st.isFile()) return { reason: `${file} is not a file` };
+  if (st.mode & 0o077) return { reason: `the Gmail app password file must be mode 600 (chmod 600 ${file})` };
+  let v;
+  try { v = fs.readFileSync(file, 'utf8').replace(/[\s]/g, ''); } catch { return { reason: `the Gmail app password file could not be read` }; }
+  if (!/^[A-Za-z0-9]{16}$/.test(v)) return { reason: 'the Gmail app password file does not hold 16 letters' };
+  return { password: v };
+}
+
+// The owner's own addresses: the only recipients of `--send-test`, and the only ones the preview token may reach.
+export const OWNER_ADDRESSES = ['cpujari12@gmail.com', 'chetanpujari92@gmail.com'];
+const iso = () => new Date().toISOString();
+const smtpMessage = (m, messageId) => {
+  const { html, text } = renderEmail(m);
+  return buildMime({ from: CONTACT, to: m.to, subject: m.subject, text, html, messageId });
+};
+
+// The mailer of one run. mailapp (the default) uses Gmail SMTP when the app password file is there, and falls back to
+// Mail.app plain text — with one log line — when the file is missing or unusable, or when SMTP fails before the message
+// was handed over (connection, TLS, login, envelope). A failure after that ("committed") is reported as a failed send
+// and retried by the server on a later run, never re-sent through Mail.app: Gmail may already have it, and the stable
+// Message-ID (from the outbox id) lets Gmail recognise a repeat.
+export function makeMailer(cfg, { exec = execFile, smtp = sendSmtp, log = console.log } = {}) {
   if (cfg.mailer === 'none') return null;
   if (cfg.mailer === 'eml') {
     return async ({ id, to, subject, text }) => {
@@ -103,11 +157,55 @@ export function makeMailer(cfg, { exec = execFile } = {}) {
       fs.writeFileSync(path.join(cfg.emlDir, `${id}.eml`), eml, { mode: 0o600, flag: 'wx' });
     };
   }
-  const script = path.join(HERE, 'send-mail.applescript');
-  return ({ to, subject, text }) => new Promise((resolve, reject) => {
-    const args = [script, to, subject, text].concat(cfg.mailFrom ? [cfg.mailFrom] : []);
-    exec('/usr/bin/osascript', args, { timeout: 60000 }, (e) => e ? reject(new Error('Mail.app send failed')) : resolve());
-  });
+  const app = mailApp(cfg, exec);
+  let sender = cfg.smtp && cfg.smtpPasswordFile ? null : 'mail-app', password = null;
+  return async (m) => {
+    if (String(m.text).includes(DUMMY_TOKEN) || String(m.subject).includes(DUMMY_TOKEN)) throw new Error('refused: the preview token is never sent in a real email');
+    if (sender === null) {
+      const pw = readAppPassword(cfg.smtpPasswordFile);
+      if (pw.password) { sender = 'smtp'; password = pw.password; }
+      else { sender = 'mail-app'; log(`${iso()} signer mail: ${pw.reason}; sending with Mail.app (plain text) this run`); }
+    }
+    if (sender === 'mail-app') return app(m);
+    try { await smtp({ user: CONTACT, password, to: m.to, raw: smtpMessage(m, `<outbox-${m.id}@side-henna.vercel.app>`) }); }
+    catch (e) {
+      if (e.committed) throw new Error(`SMTP send not confirmed (${e.code || 'error'}); left for the next run`);
+      sender = 'mail-app'; password = null;
+      log(`${iso()} signer mail: SMTP failed (${e.code || 'error'} at ${e.stage || '?'}); sending with Mail.app (plain text) for the rest of this run`);
+      return app(m);
+    }
+  };
+}
+
+// Which sender the next run uses (signer --check-mail, --status): logs in to Gmail, sends nothing.
+export async function senderStatus(cfg, { verify = verifySmtp } = {}) {
+  if (cfg.mailer !== 'mailapp') return { sender: cfg.mailer, reason: `SK_MAILER=${cfg.mailer}` };
+  if (!cfg.smtp) return { sender: 'mail-app', reason: 'SK_SMTP=off' };
+  if (!cfg.smtpPasswordFile) return { sender: 'mail-app', reason: 'no Gmail app password file configured' };
+  const pw = readAppPassword(cfg.smtpPasswordFile);
+  if (!pw.password) return { sender: 'mail-app', reason: pw.reason };
+  try { await verify({ user: CONTACT, password: pw.password }); }
+  catch (e) { return { sender: 'mail-app', reason: `Gmail SMTP login failed (${e.code || 'error'} at ${e.stage || '?'})` }; }
+  return { sender: 'smtp', reason: `Gmail SMTP as ${CONTACT}, login ok` };
+}
+
+// signer --send-test: one preview of every email, dummy token only, to the owner's own addresses only, SMTP only.
+export async function sendTest({ cfg, smtp = sendSmtp, to = OWNER_ADDRESSES, log = console.log, now = () => Date.now() }) {
+  if (!to.length || to.some(a => !OWNER_ADDRESSES.includes(a))) throw new Error('send-test sends only to the owner\'s addresses');
+  const pw = cfg.smtpPasswordFile ? readAppPassword(cfg.smtpPasswordFile) : { reason: 'no Gmail app password file configured' };
+  if (!pw.password) throw new Error(`send-test needs the SMTP sender: ${pw.reason}`);
+  const samples = previewSamples();
+  for (const [, m] of samples) for (const t of m.text.match(/SIDEKICK-TRIAL-1\.[A-Za-z0-9._-]+/g) || []) if (t !== DUMMY_TOKEN) throw new Error('send-test refused: a sample holds a real-looking token');
+  const times = readTimes(cfg, now());
+  if (mailBudget(cfg, times, now()) < samples.length * to.length) throw new Error(`send-test needs ${samples.length * to.length} emails of the sending budget; not enough left this hour/day`);
+  let sent = 0;
+  for (const [kind, m] of samples) for (const addr of to) {
+    const raw = smtpMessage({ ...m, to: addr, subject: `[Preview] ${m.subject}` }, `<preview-${kind}-${crypto.randomBytes(8).toString('hex')}@side-henna.vercel.app>`);
+    await smtp({ user: CONTACT, password: pw.password, to: addr, raw });
+    times.push(now()); writeTimes(cfg, times); sent++;
+  }
+  log(`${iso()} signer send-test: ${sent} preview emails sent to the owner's ${to.length} addresses`);
+  return { sent };
 }
 
 // The sending budget: the times of emails sent in the last 24 hours, nothing else (no address, no subject).
@@ -251,7 +349,7 @@ export function failureLines(e, { previousFailed, runMs, iso }) {
 }
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-export function formatStatus({ now, host, log, launchd, queue, poolLow = 40 }) {
+export function formatStatus({ now, host, log, launchd, queue, poolLow = 40, sender = null }) {
   const ago = (iso) => `${Math.max(0, Math.round((now - Date.parse(iso)) / 60000))} min ago`;
   return [
     `Sidekick signer status at ${new Date(now).toISOString()}`,
@@ -265,7 +363,7 @@ export function formatStatus({ now, host, log, launchd, queue, poolLow = 40 }) {
     `token pool on ${host}: ${queue.poolReady} ready (low-water ${poolLow})${queue.poolReady < poolLow ? ' — ATTENTION: below the low-water mark' : ''}`
   ] : queue.ok ? [`token pool on ${host}: unavailable (not migrated yet?)`] : []).concat(queue.ok && Number.isInteger(queue.androidPending) ? [
     `Android: ${plural(queue.androidPending, 'Google account', 'Google accounts')} waiting to be added to the Play test list (admin play-batch)`
-  ] : []);
+  ] : []).concat(sender ? [`sender: ${sender.sender} (${sender.reason})`] : []);
 }
 
 const LABEL = 'com.sidekick.signer';
@@ -290,13 +388,21 @@ async function status(cfg) {
       }
     } catch (e) { queue = { ok: false, code: e.code || 'error' }; }
   }
-  console.log(formatStatus({ now: Date.now(), host, log: parseSignerLog(readLog()), launchd: launchdStatus(), queue, poolLow: cfg.poolLow }).join('\n'));
+  console.log(formatStatus({ now: Date.now(), host, log: parseSignerLog(readLog()), launchd: launchdStatus(), queue, poolLow: cfg.poolLow, sender: await senderStatus(cfg) }).join('\n'));
 }
 
 const STARTED = Date.now();
 async function main() {
   const cfg = loadSignerConfig();
   cfg.stateDir = cfg.stateDir || path.join(HOME, 'Library/Application Support/sidekick-signer');
+  cfg.smtpPasswordFile = cfg.smtpPasswordFile || path.join(HOME, 'Documents/Sidekick-private/secrets/gmail-app-password');
+  if (process.argv.includes('--check-mail')) {
+    const st = await senderStatus(cfg);
+    console.log(`sender: ${st.sender} (${st.reason})`);
+    // Its own messages, never a "signer failed" run line (--status counts those).
+    if (process.argv.includes('--send-test')) await sendTest({ cfg }).catch(e => { console.error(e.message); process.exit(1); });
+    return;
+  }
   cfg.secret = cfg.secret || secretFrom('SK_SIGNER_SECRET', 'sidekick-signer-hmac');
   if (process.argv.includes('--status')) return status(cfg);
   const problems = [];

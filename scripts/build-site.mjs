@@ -7,7 +7,8 @@
 //   SITE_MODE=automated — the full backend flow:
 //     - data/site-config.js gets mocksEnabled: false and the PUBLIC Turnstile site key from TURNSTILE_SITE_KEY;
 //     - data/mock-api.js is not copied, and every page loads data/api-client.js instead (real API only);
-//     - the Design review bar is cut out of Get Sidekick, and the no-JS signup form goes in its place.
+//     - the Design review bar is cut out of Get Sidekick, and the no-JS signup form goes in its place;
+//     - email/logo.png (the HTML emails' logo) is served.
 //   Both: the build fails if any mock switch, review bar or sessionStorage use survives. Any other SITE_MODE fails.
 //   node scripts/build-site.mjs           on Vercel (automated needs TURNSTILE_SITE_KEY; manual needs nothing)
 //   node scripts/build-site.mjs --local   for npm run dev: automated, with a local stand-in for the human check,
@@ -54,6 +55,9 @@ if (manual) for (const f of fs.readdirSync(path.join(ROOT, 'manual')).filter(f =
 for (const f of ['support.js', 'favicon.ico', 'fonts', 'icons', 'vendor', 'data/site-config.js', 'data/releases.js', 'data/roadmap-data.js', manual ? 'data/mailto.js' : 'data/api-client.js']) copy(f);
 fs.mkdirSync(path.join(OUT, 'LOGOS'));
 for (const f of fs.readdirSync(path.join(ROOT, 'LOGOS'))) if (f !== 'head_logo1.png') copy('LOGOS/' + f);
+// The email logo (launch log Part 11): the HTML emails load it from https://<site>/email/logo.png. Automated only (the
+// manual site sends no email), so the manual build stays as it was.
+if (!manual) copy('email');
 
 // site-config: real mode, the site mode, and (automated only) the public site key.
 const cfgPath = path.join(OUT, 'data/site-config.js');

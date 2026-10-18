@@ -87,13 +87,17 @@ a:hover{color:#3A22B8;}
       <sc-if value="{{ siteDownloads }}"><a id="dl-mac" href="/download/mac" style="margin-top:auto;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;box-sizing:border-box;transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-2px);box-shadow:0 3px 0 #17142E;"><span style="font-family:'Material Symbols Rounded';font-size:20px;">download</span>Download for Apple silicon (.dmg)</a></sc-if>
       <sc-if value="{{ inviteOnly }}"><p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">During the beta, this site doesn't serve the download. The person who invited you sends you a private link to this file.</p></sc-if>
       <p style="margin:0;font-size:15px;line-height:1.5;color:#17142E;">{{ tokenNeed }}</p>
-      <div role="group" aria-labelledby="sum-h" style="border-radius:16px;background:#F6F3EC;border:1px dashed rgba(23,20,46,0.25);padding:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-start;">
-        <span id="sum-h" style="font-size:15px;font-weight:600;color:#17142E;">Checksum <span style="font-weight:400;color:#55526B;">(optional, to check your download)</span></span>
-        <span style="font-size:14.5px;line-height:1.5;color:#55526B;">This is not your beta token.</span>
-        <sc-if value="{{ noMacSha }}"><span style="font-size:14.5px;line-height:1.5;color:#55526B;">The checksum appears here once the beta build is staged.</span></sc-if>
-        <sc-if value="{{ mac.sha }}"><code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#FFFFFF;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code></sc-if>
-        <sc-if value="{{ mac.sha }}"><button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button></sc-if>
-      </div>
+      <!-- Short content (launch log Part 11): the checksum only under More details. -->
+      <details id="more-details" style="border-radius:16px;background:#F6F3EC;border:1px dashed rgba(23,20,46,0.25);padding:0 16px;font-size:15px;line-height:1.5;color:#17142E;">
+        <summary style="cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center;">More details</summary>
+        <div role="group" aria-labelledby="sum-h" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start;padding:0 0 16px;">
+          <span id="sum-h" style="font-size:15px;font-weight:600;color:#17142E;">Checksum <span style="font-weight:400;color:#55526B;">(optional, to check your download)</span></span>
+          <span style="font-size:14.5px;line-height:1.5;color:#55526B;">This is not your beta token.</span>
+          <sc-if value="{{ noMacSha }}"><span style="font-size:14.5px;line-height:1.5;color:#55526B;">The checksum appears here once the beta build is staged.</span></sc-if>
+          <sc-if value="{{ mac.sha }}"><code style="font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.5;word-break:break-all;background:#FFFFFF;border-radius:10px;padding:8px 10px;">{{ mac.sha }}</code></sc-if>
+          <sc-if value="{{ mac.sha }}"><button type="button" onClick="{{ copyMac }}" style="min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 14px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:17px;">{{ copyMacIcon }}</span>{{ copyMacLabel }}</button></sc-if>
+        </div>
+      </details>
     </section>
 
     <section aria-labelledby="and-h" style="border-radius:28px;background:#E8E2FF;padding:clamp(24px,3vw,40px);display:flex;flex-direction:column;gap:22px;">
@@ -113,7 +117,7 @@ a:hover{color:#3A22B8;}
       <li><strong>Download</strong> <sc-if value="{{ siteDownloads }}">Sidekick for your Mac with the button above.</sc-if><sc-if value="{{ inviteOnly }}">Sidekick for your Mac from the private link the person who invited you sent.</sc-if></li>
       <li><strong>Open it.</strong> Open the .dmg, drag Sidekick into Applications, then open Sidekick from Applications.<sc-if value="{{ notNotarized }}"> macOS says it could not verify the app: choose <strong>Done</strong>. Open <strong>System Settings › Privacy &amp; Security</strong>, scroll to the message about Sidekick and choose <strong>Open Anyway</strong>, enter your Mac password, then choose <strong>Open Anyway</strong> again in the dialog that follows. You do this once, and you never need to turn off Gatekeeper.</sc-if></li>
       <li><strong>Allow the keychain once.</strong> Sidekick shows a short note first: choose <strong>Continue</strong>. macOS may then ask for your Mac password for “Sidekick Safe Storage”. Type it and choose <strong>Always Allow</strong>. After you install a newer test build, macOS asks once more.</li>
-      <li><strong>Enter your beta token.</strong> <sc-if value="{{ siteDownloads }}">{{ tokenWhere }}</sc-if><sc-if value="{{ inviteOnly }}">Copy the token you were sent</sc-if>, then press <strong>Paste token</strong>. It's a long piece of text that starts with SIDEKICK-TRIAL-1, and it's not the checksum above. If you copy the whole email, Sidekick finds the token inside it. The token is checked on your Mac; nothing is sent anywhere.</li>
+      <li><strong>Enter your beta token.</strong> <sc-if value="{{ siteDownloads }}">{{ tokenWhere }}</sc-if><sc-if value="{{ inviteOnly }}">Copy the token you were sent</sc-if>, then press <strong>Paste token</strong>. It's a long piece of text that starts with SIDEKICK-TRIAL-1, and it's not the checksum under More details. If you copy the whole email, Sidekick finds the token inside it. The token is checked on your Mac; nothing is sent anywhere.</li>
       <li><strong>Allow your local network.</strong> When macOS asks whether Sidekick may find devices on your local network, choose <strong>Allow</strong>. Sidekick then shows a code to scan.</li>
       <li><strong>Pair your phone.</strong> On the phone, open Sidekick and tap <strong>Get started</strong>, then on <strong>Connect your Mac</strong> tap <strong>Scan the code</strong> and point it at the code on your Mac.</li>
     </ol>
@@ -205,6 +209,8 @@ a:hover{color:#3A22B8;}
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;previewState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;valid&quot;,&quot;expired&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Design review&quot;}}">
 class Component extends DCLogic {
+  // First names start with a capital letter (the server sends them that way too: server/emails.mjs capFirst).
+  static cap = (s) => s ? s.charAt(0).toLocaleUpperCase('en') + s.slice(1) : '';
   state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440, copied: false, toast: '', busy: '' };
   componentDidMount() {
     this.onResize = () => this.setState({ w: window.innerWidth });
@@ -245,7 +251,7 @@ class Component extends DCLogic {
       expired: !loading && !s, valid: stage === 'approved' || stage === 'token_sent' || stage === 'token_shown', checkEmail: stage === 'check_email', waitlisted: stage === 'waitlisted',
       tokenNeed: mocks ? 'You need a beta token from the person who invited you. Sidekick asks for it the first time you open it.' : 'You need your beta token: Sidekick asks for it the first time you open it. ' + (stage === 'token_shown' ? 'It was on the page you saw after signing up.' : stage === 'token_sent' ? 'We emailed it to you.' : 'We email it to you once it\'s ready.'),
       tokenWho: mocks ? 'The person who invited you sends it to you privately. Nothing to do on the phone.' : (stage === 'token_shown' ? 'It was on the page you saw after signing up (and in our email, if you asked for a copy). Nothing to do on the phone.' : stage === 'token_sent' ? 'We emailed it to you — look for “Your Sidekick beta token”. Nothing to do on the phone.' : 'We email it to you once it\'s ready, within a day. Nothing to do on the phone.'),
-      tokenWhere: stage === 'token_shown' ? 'Copy it from the page you saw after signing up' : 'Copy it from our email “Your Sidekick beta token”', name: s ? (s.name || '').split(' ')[0] : '', email: s && s.email ? s.email : 'the address you gave',
+      tokenWhere: stage === 'token_shown' ? 'Copy it from the page you saw after signing up' : 'Copy it from our email “Your Sidekick beta token”', name: s ? Component.cap((s.name || '').split(' ')[0]) : '', email: s && s.email ? s.email : 'the address you gave',
       splitCols: wide ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,1fr)', stepCols: this.state.w >= 1100 ? 'repeat(3,minmax(0,1fr))' : 'minmax(0,1fr)',
       ver: R.version,
       mac: { file: b.file, size: this.fmt(b.bytes), sha: b.sha256 || null }, noMacSha: !b.sha256,

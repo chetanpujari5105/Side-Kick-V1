@@ -57,10 +57,9 @@ updates emails (the DRAFT banner stays until then), and only while the cap is 50
 > your Mac model and macOS version, your phone model and Android version, the step you were on and the exact message
 > you saw. Never send your token or a screenshot of it. **Lost your token?** On the page, click "Email me a copy", or
 > fill in the form at https://side-henna.vercel.app/get again with the same email. The page won't show the token a
-> second time, but it emails "Your Sidekick beta: download link and token" to that address. **Download failed?** Use
-> "Download again" on the page, or https://side-henna.vercel.app/download/mac. Under "More details" there is a
-> Google Drive fallback. **No Android email after a day?** Check spam, then reply and tell us which Google account your
-> phone uses.
+> second time, but it emails "You're in, <your first name>: your Sidekick beta" to that address. **Download failed?**
+> Use "Download again" on the page, or https://side-henna.vercel.app/download/mac. **No Android email after a day?**
+> Check spam, then reply and tell us which Google account your phone uses.
 
 ## Owner checklist: day one (one page)
 
@@ -123,9 +122,10 @@ button starts it), your beta token is on that page with a Copy button, and "Emai
 page says we're doing it by email instead, you get "Your Sidekick beta invitation" and "Your Sidekick beta token";
 they can take up to a day; check your spam folder. (Updated 2026-10-18 for the one-click flow.)
 
-**The Mac app.** The download is `https://side-henna.vercel.app/download/mac` (if the download fails, the page and the
-emails name a Google Drive folder as the fallback): `Sidekick-2.0.1-arm64.dmg` (121,668,061 bytes). To check the download (optional), open Terminal and run
-`shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg`; it must print exactly:
+**The Mac app.** The download is `https://side-henna.vercel.app/download/mac` (from this project's GitHub release):
+`Sidekick-2.0.1-arm64.dmg` (121,668,061 bytes). Since 2026-10-19 (launch log Part 11) the emails and pages keep to
+that one link and three install steps; the checksum is only on the site, under "More details". To check the download
+(optional), open Terminal and run `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg`; it must print exactly:
 `a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284`
 That line is only for checking the file; it is not your token.
 

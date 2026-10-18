@@ -10,7 +10,8 @@
 //    page script's pattern, open a page whose form posts to a real route, and land on a page that exists.
 // 4. The unlisted Beta page: noindex/nofollow in its <head> and in vercel.json, no link to it from any page,
 //    component, server page, email or script, its only outside links are releases.json's Drive and Play test
-//    links, and no .apk anywhere. The Download page carries neither link.
+//    links (automated site: the Play test link only, and no checksum), and no .apk anywhere. The Download page
+//    carries neither link. The HTML emails' images are files the built site serves (email/logo.png).
 // 5. SITE_MODE=manual (--mode manual): sections 2 and 3 do not apply (no API, no email links). Instead every mailto
 //    must go to the support address with only a subject and body; Get Sidekick, Download, the roadmap suggestion box
 //    and every roadmap item's Notify link must be the right email.
@@ -228,7 +229,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   ok('server', 'no-JS instant result page (200, You\'re in)', inst.status === 200 && /You(&#39;|')re in, Ina/.test(instHtml), `HTTP ${inst.status}`);
   for (const m of instHtml.matchAll(/\s(href|action)="([^"]*)"/g)) {
     const l = m[2];
-    if (EXTERNAL.test(l)) { ok('server', `result page → ${l.slice(0, 60)}`, l === releases.mac.betaDriveUrl, 'only the Drive fallback leaves the site'); continue; }
+    if (EXTERNAL.test(l)) { ok('server', `result page → ${l.slice(0, 60)}`, false, 'nothing leaves the site (no Drive link since launch log Part 11)'); continue; }
     checked++;
     const u = new URL(l, O + '/api/x');
     if (u.pathname === '/download/mac') ok('server', `result page → ${l}`, (await call('GET', l)).status === 302, 'download route');
@@ -239,7 +240,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const cp = await call('POST', '/api/email-copy', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded', cookie: ic }, body: '' });
   ok('email', '"Email me a copy" (no-JS button) → a page', cp.status === 200, `HTTP ${cp.status}`);
   const copyMail = mails().find(m => m.kind === 'copy');
-  ok('email', 'copy email: /download/mac, the Drive folder only as the fallback, the setup guide', copyMail && urlsIn(copyMail.text).includes(O + '/download/mac') && urlsIn(copyMail.text).includes(O + '/Support.dc.html#setup'));
+  ok('email', 'copy email: exactly one link, /download/mac (no Drive folder, no setup guide: launch log Part 11)', copyMail && JSON.stringify(urlsIn(copyMail.text)) === JSON.stringify([O + '/download/mac']), copyMail ? urlsIn(copyMail.text).join(' ') : 'no copy email');
   // An update to people who confirmed updates; its one-use unsubscribe link.
   ok('email', 'announce (admin)', (await adminPost('announce', { subject: 'Links check', body: 'Hello.' })).status === 200);
   const unsubUrl = urlsIn((mails().find(m => m.kind === 'announce') || { text: '' }).text).find(x => x.includes('/api/unsubscribe'));
@@ -249,13 +250,16 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const notifyUrl = urlsIn((mails().find(m => m.kind === 'notify') || { text: '' }).text)[0];
   ok('email', 'notify email has a link', notifyUrl);
   if (notifyUrl) await walk('confirm?for=notify', notifyUrl, '/api/confirm-email');
-  // Every link in our emails is ours, except release facts: the Play test link (invitation, Android invitation) and
-  // the Drive folder as the download fallback (invitation, copy).
-  for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/') || (['invite', 'android'].includes(m.kind) && x === releases.android.playTestUrl) || (['invite', 'copy'].includes(m.kind) && x === releases.mac.betaDriveUrl), x.replace(/#t=.*/, '#t=…'));
-  // The invitation's links are exactly /download/mac, the Drive folder (fallback) and the Play test link.
+  // Every link in our emails is ours, except one release fact: the Play test link (invitation, Android invitation).
+  for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/') || (['invite', 'android'].includes(m.kind) && x === releases.android.playTestUrl), x);
+  // The invitation's links are exactly /download/mac and the Play test link.
   const staticInvite = emails.invite({ name: 'Lin Kay', downloadUrl: O + '/download/mac', release: releases, googleEmail: 'lin.kay@gmail.com' }).text;
   const staticLinks = [...new Set(urlsIn(staticInvite))].sort();
-  ok('email', 'invite: links are /download/mac, the Drive folder (fallback) and the Play test link', JSON.stringify(staticLinks) === JSON.stringify([O + '/download/mac', releases.mac.betaDriveUrl, releases.android.playTestUrl].sort()), staticLinks.join(' '));
+  ok('email', 'invite: links are /download/mac and the Play test link', JSON.stringify(staticLinks) === JSON.stringify([O + '/download/mac', releases.android.playTestUrl].sort()), staticLinks.join(' '));
+  // The HTML version of every email (launch log Part 11): its images are absolute URLs of files this build serves.
+  const { renderEmail, SITE } = await import('../server/email-html.mjs');
+  for (const m of mails()) for (const [, src] of renderEmail(m).html.matchAll(/<img\b[^>]*\ssrc="([^"]+)"/g))
+    ok('email', `${m.kind} (HTML): image ${src.replace(SITE, '')}`, src.startsWith(SITE + '/') && fileExists(src.slice(SITE.length + 1)));
   } // end automated-only sections 2 and 3
 
   // ── 4. the unlisted Beta page ─────────────────────────────────────────────
@@ -276,12 +280,15 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   ok('beta', `${BETA}: no server page names it`, !serverNames.length, serverNames.join(', '));
   ok('beta', `${BETA}: no email names it`, !mails().some(m => mentions(m.text)));
   ok('beta', `${BETA}: no sitemap or robots.txt in dist/`, !distText.some(f => /sitemap|robots\.txt/i.test(path.basename(f))));
-  const want = [releases.mac.betaDriveUrl, releases.android.playTestUrl].filter(Boolean).sort();
+  // The manual site shares the file through the Drive folder; the automated one downloads through /download/mac and
+  // names no Drive folder and no checksum on this page (launch log Part 11).
+  const want = (manual ? [releases.mac.betaDriveUrl, releases.android.playTestUrl] : [releases.android.playTestUrl]).filter(Boolean).sort();
   const outside = [...new Set([...beta.matchAll(/\shref="(https?:[^"]*)"/g)].map(m => m[1].replace(/&amp;/g, '&')))].sort();
-  ok('beta', `${BETA}: its outside links are exactly the Drive and Play test links`, want.length === 2 && JSON.stringify(outside) === JSON.stringify(want), outside.join(' '));
+  ok('beta', `${BETA}: its outside links are exactly ${manual ? 'the Drive and Play test links' : 'the Play test link'}`, want.length === (manual ? 2 : 1) && JSON.stringify(outside) === JSON.stringify(want), outside.join(' '));
   ok('beta', `${BETA}: the page script reads both links from release facts`, /R\.mac\.betaDriveUrl/.test(beta) && /R\.android\.playTestUrl/.test(beta));
   ok('beta', `${BETA}: no .apk anywhere`, !/\.apk\b/i.test(beta));
-  ok('beta', `${BETA}: shows the SHA-256 from releases.json`, !!releases.mac.builds.arm64.sha256 && beta.includes(releases.mac.builds.arm64.sha256));
+  if (manual) ok('beta', `${BETA}: shows the SHA-256 from releases.json`, !!releases.mac.builds.arm64.sha256 && beta.includes(releases.mac.builds.arm64.sha256));
+  else ok('beta', `${BETA}: no SHA-256 and no Drive folder in the automated page`, !beta.includes(releases.mac.builds.arm64.sha256) && !beta.includes(releases.mac.betaDriveUrl + '"'));
   const dl = src['Download.dc.html'] || '';
   ok('beta', 'Download.dc.html carries neither beta link', !want.some(u => dl.includes(u)) && !/betaDriveUrl|playTestUrl/.test(dl));
 

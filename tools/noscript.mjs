@@ -50,17 +50,17 @@ const H2 = (t) => `<h2 style="margin:28px 0 12px;font:800 30px/1.1 'Bricolage Gr
 const H3 = (t) => `<h3 style="margin:20px 0 8px;font:600 20px/1.3 Inter,sans-serif;">${esc(t)}</h3>`;
 const OL = (items) => `<ol style="margin:0 0 14px;padding-left:22px;font-size:17px;line-height:1.6;">\n${items.map(s => `<li>${esc(s.text)}${s.code ? ` <code>${esc(s.code)}</code>` : ''}</li>`).join('\n')}\n</ol>`;
 const A = (href, label) => href ? P(`<a href="${esc(href)}" rel="noopener noreferrer" style="font-weight:600;">${esc(label)}</a>`) : '';
-const betaBlock = (T) => [
+const betaBlock = (T, automated = false) => [
   `<h1 style="margin:0 0 16px;font:800 52px/1 'Bricolage Grotesque',sans-serif;">Install the beta.</h1>`, P(esc(T.intro)),
   H2(T.macTitle), P(esc(T.macNeed)), A(T.driveUrl, T.driveLabel), P(esc(T.driveText)),
   T.fallbackUrl ? P(`If the download doesn't start, <a href="${esc(T.fallbackUrl)}" rel="noopener noreferrer" style="font-weight:600;">open our Google Drive folder</a> and download ${esc(T.file)} there.`) : '',
   T.file ? P(`File: <code>${esc(T.file)}</code>${T.size ? ` · Size: ${esc(T.size)}` : ''}`) : '',
   T.sha ? P(`SHA-256: <code style="word-break:break-all;">${esc(T.sha)}</code>`) : '',
-  H3(T.checkTitle), OL(T.check), H3(T.installTitle), OL(T.install), P(`<strong>${esc(T.tokenTitle)}</strong> ${esc(T.token)}`),
+  T.checkTitle ? H3(T.checkTitle) : '', T.checkTitle ? OL(T.check) : '', H3(T.installTitle), OL(T.install), P(`<strong>${esc(T.tokenTitle)}</strong> ${esc(T.token)}`),
   H2(T.androidTitle), P(esc(T.androidNeed)), P(`<strong>${esc(T.playAccess)}</strong>`), A(T.playUrl, T.playLabel), P(esc(T.playText)), P(esc(T.noApk), 'font-weight:600;'),
-  H2(T.pairTitle), P(`${esc(T.pair)} <a href="Support.dc.html#setup" style="font-weight:600;">Full setup guide</a>`), P(esc(T.help))
+  H2(T.pairTitle), P(automated ? esc(T.pair) : `${esc(T.pair)} <a href="Support.dc.html#setup" style="font-weight:600;">Full setup guide</a>`), P(esc(T.help))
 ].filter(Boolean).join('\n');
-const betaHtml = betaBlock(T), betaAutoHtml = betaBlock(TA);
+const betaHtml = betaBlock(T), betaAutoHtml = betaBlock(TA, true);
 
 // Manual mode: static HTML (it reads the same without JavaScript) built from data/mailto.js.
 const email = C.supportEmail;

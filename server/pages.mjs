@@ -59,12 +59,12 @@ export const ANDROID_TEXT = {
 // The instant result (launch log Part 7) for a browser without JavaScript: the form post answers with this page.
 // The token is shown here once, so nothing here navigates this tab away (launch log Part 8): no meta refresh, and the
 // download is a normal link that opens a new tab, whether /download/mac sends the file itself or the Drive folder.
+// Short content (launch log Part 11): one download link, three steps; the checksum only under More details; no Drive.
 export function resultPage({ nonce, firstName, token, download, release, android }) {
   const b = release.mac.builds.arm64;
   const button = `<p class="m0"><a class="btn" href="${download.url}" target="_blank" rel="noopener">Download the Mac app</a></p>`;
   const steps = SHORT_STEPS(b.file).map(x => `<li class="step">${esc(x)}</li>`).join('');
   const all = (release.mac.installSteps || []).map(x => `<li>${esc(x)}</li>`).join('');
-  const drive = release.mac.betaDriveUrl ? `<p>If the download fails, <a href="${esc(release.mac.betaDriveUrl)}" rel="noopener noreferrer">open our Google Drive folder</a> and download ${esc(b.file)} there.</p>` : '';
   const androidBlock = android === 'manual-batch'
     ? `<section class="card"><p class="m0">${esc(ANDROID_TEXT['manual-batch'])}</p></section>`
     : android === 'google-group' ? `<section class="card"><p class="m0">${esc(ANDROID_TEXT['google-group'])}</p></section>` : '';
@@ -72,7 +72,7 @@ export function resultPage({ nonce, firstName, token, download, release, android
 <section class="card" aria-labelledby="tok-h"><h2 id="tok-h" class="m0">Your beta token</h2><p class="m0">Paste it in Sidekick the first time you open it. It is shown only here, so copy it now (or use Email me a copy below).</p>
 <code class="tok" id="tok">${esc(token)}</code><button type="button" class="sec" id="copy" hidden>Copy</button></section>
 <section class="card" aria-labelledby="inst-h"><h2 id="inst-h" class="m0">Install</h2><ol>${steps}</ol>
-<details><summary>More details</summary><ol>${all}</ol><p>SHA-256 of ${esc(b.file)} (to check the download; not your token):<br><code>${esc(b.sha256 || 'not staged yet')}</code></p>${drive}</details></section>
+<details><summary>More details</summary><ol>${all}</ol><p>SHA-256 of ${esc(b.file)} (to check the download; not your token):<br><code>${esc(b.sha256 || 'not staged yet')}</code></p></details></section>
 ${androidBlock}<form method="post" action="/api/email-copy"><button type="submit" class="sec">Email me a copy</button></form>
 <script nonce="${nonce}">(function(){var b=document.getElementById('copy'),t=document.getElementById('tok');if(!b||!t)return;b.hidden=false;b.addEventListener('click',function(){var v=t.textContent;var ok=function(){b.textContent='Copied';};var sel=function(){var r=document.createRange();r.selectNodeContents(t);var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent='Selected: press Command-C';};if(navigator.clipboard)navigator.clipboard.writeText(v).then(ok,sel);else sel();});})();</script>`;
   return shell({ title: "You're in", nonce, body });
