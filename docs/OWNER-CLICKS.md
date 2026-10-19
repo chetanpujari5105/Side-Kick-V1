@@ -85,7 +85,8 @@ both check).
   100 testers.
 - **Drive folder sharing.** The Beta page and every invitation link to it, and the repo is public. Anyone with
   the link can download the DMG; only the token decides who can use the app.
-- **Legal review** of Support › Privacy (both modes) before going live; the DRAFT banner stays until then.
+- **Legal review** of Support › Privacy (both modes). The live site has shown "Beta privacy notice … Last updated 19 October
+  2026" since launch log Part 16 (the owner's choice); the manual build keeps its DRAFT banner. The review is still open.
 - **Vercel bypass token.** Testing the protected Preview from your Mac needed "Protection Bypass for
   Automation" (created by `vercel curl`). To remove it later: Vercel › side › Settings › Deployment Protection ›
   Protection Bypass for Automation › delete it.
@@ -157,7 +158,7 @@ made): the Mac app checks it offline.
 - [ ] **Mac awake and online** while inviting: on power, "Prevent automatic sleeping when the display is off", or
       `caffeinate -i` in a Terminal window.
 - [ ] **Play:** only "Sidekick - owner" and "Sidekick beta testers" are ticked for Internal testing.
-- [ ] **Legal review** of Support › Privacy and of the updates emails (the DRAFT banner stays until then).
+- [ ] **Legal review** of Support › Privacy and of the updates emails (still open; the live site's banner was replaced in Part 16).
 
 ## 7. Publish the Mac app as a GitHub Release (the direct download)
 

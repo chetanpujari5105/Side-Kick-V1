@@ -21,7 +21,7 @@ button.sec{min-height:44px;padding:0 18px;background:#fff;font-size:15px}ol{marg
 function shell({ title, nonce, body, siteKey }) {
   const ts = siteKey && siteKey !== 'local-dev-fake' ? `<script nonce="${nonce}" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>` : '';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex"><title>${esc(title)} · Sidekick</title><style nonce="${nonce}">${STYLE}</style>${ts}</head>
+<meta name="robots" content="noindex"><link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48"><title>${esc(title)} · Sidekick</title><style nonce="${nonce}">${STYLE}</style>${ts}</head>
 <body><main id="main">${body}<p><a href="/">Sidekick home</a> · <a href="/Support.dc.html#help">Help</a></p></main></body></html>`;
 }
 

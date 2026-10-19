@@ -34,7 +34,7 @@ there either.)
 | 0.4 | `curl -sI P/ \| grep -i -E "content-security\|strict-transport"` and `curl -sI P/Support.dc.html` | Both show the CSP (with `challenges.cloudflare.com`) and HSTS. Proves the `headers` rule (negative lookahead) applies to pages | — | ☐ |
 | 0.5 | `curl -sI P/api/health` | `cache-control: no-store`, HSTS, its own strict CSP | — | ☐ |
 | 0.6 | Open `P/` | The Home page (the `/` rewrite). Footer: "This site runs no analytics." | — | ☐ |
-| 0.7 | Open `P/Support.dc.html#privacy` | The DRAFT banner (effective date is still a placeholder — correct until the legal review) | — | ☐ |
+| 0.7 | Open `P/Support.dc.html#privacy` | "Beta privacy notice. Published by Chetan Pujari, India. Last updated 19 October 2026. Questions: …" and no DRAFT banner (launch log Part 16; the legal review is still open) | — | ☐ |
 | 0.8 | `node tools/signer/signer.mjs --check` | "Signer configuration looks complete (nothing was sent)." If the preview is behind Vercel Authentication, the next steps' signer calls will fail with 401/403 from Vercel: switch preview protection off for this test, or run this whole script on production instead | — | ☐ |
 
 ## 1. Sign up

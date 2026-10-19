@@ -10,7 +10,7 @@ Nothing below has been sent. The owner sends them. They use the short link `http
 opens the Get Sidekick form (launch log Part 10). The short link works while `SITE_MODE=automated`. With the kill
 switch on (`SITE_MODE=manual`) it answers 404, and the email-only page is at
 `https://side-henna.vercel.app/Get%20Sidekick.dc.html`. Send only after the legal review of the privacy text and the
-updates emails (the DRAFT banner stays until then), and only while the cap is 50 (`admin stats` shows `betaCap`).
+updates emails (no DRAFT banner on the live site since Part 16, but the review is still open), and only while the cap is 50 (`admin stats` shows `betaCap`).
 
 ### WhatsApp / DM (3 lines)
 
