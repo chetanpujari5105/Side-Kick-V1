@@ -287,7 +287,9 @@ node tools/admin/admin.mjs promote                                   # move wait
 ```
 (`delete`, `unsubscribe` and `set-state` take an email address or a signup id.) After a `delete`, also remove that
 person's line from `~/.sidekick-trial-key/issued-tokens.tsv` by hand (the command reminds you); the privacy page
-says your Mac keeps that list.
+says your Mac keeps that list. If the person gave a Google account, the command prints it as `playReminder`: remove it
+in Play Console › Testers by hand (the database no longer holds it). The signer keeps that list and its own log at
+mode 600 after every run.
 
 ## 11. Undoing each decision
 

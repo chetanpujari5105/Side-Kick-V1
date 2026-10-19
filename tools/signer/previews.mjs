@@ -21,7 +21,6 @@ export function previewSamples({ release = loadRelease(), token = DUMMY_TOKEN, n
     ['waitlist', emails.waitlist({ name })],
     ['invite', emails.invite({ name, downloadUrl: dl, release, googleEmail })],
     ['token', emails.token({ name, token })],
-    ['notify', emails.notify({ confirmUrl: inert })],
     ['announce', emails.announce({ subject: 'Sidekick 2.0.2 is out', body: 'Sidekick 2.0.2 is out.\n\nThis is a preview of an update email. Nothing changed: there is no new build.', unsubscribeUrl: inert })]
   ];
 }

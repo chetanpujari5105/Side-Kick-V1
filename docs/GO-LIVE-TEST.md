@@ -102,8 +102,7 @@ there either.)
 
 | # | Do | Expect | Logs | ✓ |
 |---|---|---|---|---|
-| 8.1 | `P/Roadmap.dc.html`: open an item, **Notify me when this ships**, enter your email, human check, **Notify me** | "Check your inbox and confirm. We'll send one email when this ships." | `mail.queued` `kind:"notify"` | ☐ |
-| 8.2 | Signer once; open "Confirm: email me when this Sidekick feature ships"; click; press **Confirm** | "Confirmed. We'll email you once when it ships." | `link.used` `roadmap_confirm` | ☐ |
+| 8.1 | `P/Roadmap.dc.html`: open an item | No email field and no **Notify me** (closed in launch log Part 14) | — | ☐ |
 
 ## 9. Unsubscribe and delete me
 

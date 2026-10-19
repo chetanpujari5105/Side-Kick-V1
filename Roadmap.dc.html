@@ -172,7 +172,7 @@ class Component extends DCLogic {
       sent, notSent: !sent, failed: this.state.status === 'failed' || this.state.status === 'bot', real: !mocks, botRef: this.botRef,
       failText: this.state.status === 'bot' ? 'Complete the human check above, then send it again. Nothing was saved.' : 'That didn\'t go through, and nothing was saved. Try again in a moment.',
       sending: this.state.status === 'sending', btnDisabled: mocks || this.state.status === 'sending', btn: mocks ? 'Not connected yet' : (this.state.status === 'sending' ? 'Sending…' : 'Send suggestion'),
-      submit: ev => (/*AUTOMATED{*/ this.submit(ev) ?? /*}AUTOMATED*/ null), again: () => this.setState({ msg: '', email: '', tried: false, status: 'idle' })
+      submit: ev => (/*AUTOMATED{*/ this.submit(ev) ?? /*}AUTOMATED*/ null), again: () => this.setState({ msg: '', email: '', tried: false, status: 'idle' })/*AUTOMATED{*/, intro: 'Open any item to read what it\'s for.'/*}AUTOMATED*/
     };
   }
 }

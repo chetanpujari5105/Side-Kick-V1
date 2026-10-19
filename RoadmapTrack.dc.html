@@ -57,23 +57,7 @@
                       <a href="{{ it.mailto }}" style="align-self:flex-start;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;display:inline-flex;align-items:center;text-decoration:none;box-sizing:border-box;" style-hover="background:#C6FF33;">Email me when this ships</a>
                       <span style="font-size:14px;line-height:1.5;color:#55526B;">Opens your email app with a message to us. We reply once, when it ships.</span>
                     </sc-if><!--}MANUAL-->
-                    <!--AUTOMATED{--><sc-if value="{{ autoNotify }}">
-                      <sc-if value="{{ it.sent }}">
-                        <p role="status" style="margin:0;font-size:14.5px;line-height:1.5;color:#17142E;display:flex;gap:8px;align-items:flex-start;"><span style="width:10px;height:10px;margin-top:5px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;flex:none;"></span>Check your inbox and confirm. We'll send one email when this ships.</p>
-                      </sc-if>
-                      <sc-if value="{{ it.notSent }}">
-                        <form onSubmit="{{ it.submit }}" noValidate="{{ true }}" style="display:flex;flex-direction:column;gap:6px;">
-                          <label for="{{ it.inputId }}" style="font-size:14px;font-weight:600;">Notify me when this ships</label>
-                          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                            <input id="{{ it.inputId }}" type="email" autoComplete="email" placeholder="you@example.com" value="{{ it.email }}" onChange="{{ it.onEmail }}" aria-invalid="{{ it.invalid }}" aria-describedby="{{ it.errId }}" style="flex:1;min-width:160px;height:44px;padding:0 14px;border-radius:12px;border:1.5px solid {{ it.inputBorder }};background:#FFFFFF;font:400 16px Inter,sans-serif;color:#17142E;box-sizing:border-box;" style-focus="outline:2px solid #5B3DF5;outline-offset:2px;">
-                            <button type="submit" disabled="{{ it.btnDisabled }}" style="height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #17142E;background:#FFFFFF;color:#17142E;font:600 15px Inter,sans-serif;cursor:pointer;" style-hover="background:#C6FF33;">{{ it.btn }}</button>
-                          </div>
-                          <sc-if value="{{ it.error }}"><span id="{{ it.errId }}" style="font-size:14px;color:#B3341F;display:flex;gap:6px;align-items:center;"><span style="font-family:'Material Symbols Rounded';font-size:16px;">error</span>{{ it.error }}</span></sc-if>
-                          <sc-if value="{{ real }}"><div role="group" aria-label="Human check" ref="{{ botRef }}" style="min-height:65px;font-size:14px;color:#55526B;"></div></sc-if>
-                          <sc-if value="{{ mocks }}"><span style="font-size:14px;line-height:1.5;color:#55526B;">This isn't connected yet during the beta, so nothing is sent.</span></sc-if>
-                        </form>
-                      </sc-if>
-                    </sc-if><!--}AUTOMATED-->
+                    <!--AUTOMATED{--><!-- roadmap email requests: closed in launch log Part 14 --><!--}AUTOMATED-->
                   </div>
                 </sc-if>
               </li>

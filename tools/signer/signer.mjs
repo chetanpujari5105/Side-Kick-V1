@@ -391,9 +391,28 @@ async function status(cfg) {
   console.log(formatStatus({ now: Date.now(), host, log: parseSignerLog(readLog()), launchd: launchdStatus(), queue, poolLow: cfg.poolLow, sender: await senderStatus(cfg) }).join('\n'));
 }
 
+// Files on the owner's Mac that hold testers' names or run details (launch log Part 14): the app issuer's ledger, which
+// it appends beside the key (that issuer lives in the app's repo), and the launchd job's log. Each run puts them back
+// to mode 600, and everything this process or the issuer creates starts private (umask 077).
+export const privateFiles = (cfg, logPath = logFile()) => [path.join(path.dirname(cfg.keyFile), 'issued-tokens.tsv'), logPath];
+export const privateUmask = () => process.umask(0o077);
+// Returns the files it changed. Missing files and symlinks are left alone (never chmod through a link).
+export function tightenModes(files) {
+  const changed = [];
+  for (const f of files) {
+    try {
+      const st = fs.lstatSync(f);
+      if (st.isFile() && (st.mode & 0o077)) { fs.chmodSync(f, 0o600); changed.push(f); }
+    } catch { /* not there yet */ }
+  }
+  return changed;
+}
+
 const STARTED = Date.now();
 async function main() {
+  privateUmask();
   const cfg = loadSignerConfig();
+  tightenModes(privateFiles(cfg));
   cfg.stateDir = cfg.stateDir || path.join(HOME, 'Library/Application Support/sidekick-signer');
   cfg.smtpPasswordFile = cfg.smtpPasswordFile || path.join(HOME, 'Documents/Sidekick-private/secrets/gmail-app-password');
   if (process.argv.includes('--check-mail')) {
@@ -416,6 +435,7 @@ async function main() {
   if (process.argv.includes('--check')) { console.log('Signer configuration looks complete (nothing was sent).'); return; }
   const post = signerClient(cfg);
   const r = await runCycle({ cfg, post, mail: makeMailer(cfg), pem });
+  tightenModes(privateFiles(cfg)); // the issuer may have just appended to its ledger
   console.log(`${new Date().toISOString()} signer: ${JSON.stringify(r)}`);
   // The pool and the Google Group come after the run line, and their failures never fail the run: invitations and
   // emails above are what people are waiting for.

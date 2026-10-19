@@ -121,12 +121,6 @@ export const emails = {
         'Open Sidekick. The first time, it shows "Enter your beta token": press Paste token. To enter a new token later, use Settings › About › Beta access.'
       ]) + footer()
   }),
-  notify: ({ confirmUrl }) => ({
-    kind: 'notify',
-    subject: 'Confirm: email me when this Sidekick feature ships',
-    text: `One click to confirm.\n\nConfirm that you'd like one email when this roadmap item ships. The link works for 7 days.\n\n${button('Yes, email me when it ships', confirmUrl)}` +
-      `\n\nIf you didn't ask, ignore this email and we'll delete the address after 7 days.\n\n— Sidekick\n\n${why}`
-  }),
   // An update, to people who asked for updates and confirmed by email. Each copy has its own one-use link.
   announce: ({ subject, body, unsubscribeUrl }) => ({
     kind: 'announce',

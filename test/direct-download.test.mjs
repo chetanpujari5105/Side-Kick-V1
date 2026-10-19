@@ -128,7 +128,7 @@ test('(f) every email that offers the Mac app links /download/mac; none names th
     assert.ok(m.text.includes('\n' + downloadUrl + '\n'), `${m.kind}: /download/mac on its own line`);
     assert.ok(!m.text.includes(DRIVE) && !/Google Drive/.test(m.text), `${m.kind}: no Drive`);
   }
-  for (const k of ['token', 'updates', 'android', 'waitlist', 'notify']) assert.ok(!(emails[k].toString().includes('betaDriveUrl')), `${k}: no Drive`);
+  for (const k of ['token', 'updates', 'android', 'waitlist']) assert.ok(!(emails[k].toString().includes('betaDriveUrl')), `${k}: no Drive`);
 });
 
 test('(d) the release tag is v<version> or sidekick-mac-<version> of this version; nothing else', async () => {

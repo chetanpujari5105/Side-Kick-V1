@@ -8,7 +8,8 @@
 // as the fallback in emails), the short links of Part 10 (/get and /beta exist in automated mode only), and the emails of
 // Part 11 (no Drive in an email, capitalised first names, the token card wraps, the Mail.app fallback never re-sends a
 // handed-over email, the password file must be private, the preview token and --send-test stay with the owner, SMTP
-// dot-stuffing, the email logo is automated-only). Each mutation breaks one rule in a scratch
+// dot-stuffing, the email logo is automated-only), and the privacy facts of Part 14 (no per-person download row, roadmap
+// notify closed, delete names the Google account, private files go back to 600). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -16,8 +17,16 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs'];
+const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs'];
 const MUTANTS = [
+  ['privacy (Part 14): the session download logs the person', 'server/app.mjs', 'location = isMac ? (await storage.signedUrl(', "await repo.logDownload({ signupId: s.id, platform, arch: 'arm64' }, now()); location = isMac ? (await storage.signedUrl("],
+  ['privacy (Part 14): roadmap notify reopened', 'server/app.mjs', "return json(410, { ok: false, error: 'NOTIFY_UNAVAILABLE' });", 'return json(202, { ok: true });'],
+  ['privacy (Part 14): delete hides the Google account', 'server/app.mjs', 'googleEmail: s ? s.googleEmail || null : null', 'googleEmail: null'],
+  ['privacy (Part 14): the signer leaves its files readable', 'tools/signer/signer.mjs', 'if (st.isFile() && (st.mode & 0o077))', 'if (false)'],
+  ['privacy (Part 14): the signer chmods through a symlink', 'tools/signer/signer.mjs', 'const st = fs.lstatSync(f);', 'const st = fs.statSync(f);'],
+  ['privacy (Part 14): new signer files readable by others', 'tools/signer/signer.mjs', 'process.umask(0o077)', 'process.umask(0o022)'],
+  ['privacy (Part 14): the Cloudflare sentence drops the IP', 'Support.dc.html', ', and our server passes Cloudflare your IP address when it verifies the check', ''],
+  ['privacy (Part 14): the roadmap intro still promises an email', 'Roadmap.dc.html', "/*AUTOMATED{*/, intro: 'Open any item to read what it\\'s for.'/*}AUTOMATED*/", ''],
   ['opt-in only (MemoryRepo): asked is enough', 'server/repo-memory.mjs', 's.marketingRequestedAt && s.marketingConfirmedAt', 's.marketingRequestedAt'],
   ['opt-in only (PgRepo): asked is enough', 'server/repo-pg.mjs', 'marketing_requested_at is not null and marketing_confirmed_at is not null order by created_at', 'marketing_requested_at is not null order by created_at'],
   ['opt-in only (API): announce to every sign-up', 'server/app.mjs', 'const people = await repo.announceRecipients();', 'const people = (await repo.exportSignups()).map(s => ({ id: s.id, emailNorm: s.email.toLowerCase(), name: s.name }));'],

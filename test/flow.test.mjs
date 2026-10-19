@@ -115,7 +115,7 @@ test('session secret rotation: previous secret still verifies', async () => {
   assert.equal((await h2.call('GET', '/api/session', { cookie })).status, 200);
 });
 
-test('download: needs email session AND approved; 302 to the storage URL; logged; link expires', async () => {
+test('download: needs email session AND approved; 302 to the storage URL; nothing about the person logged; link expires', async () => {
   const h = setup({ env: { BETA_CAP: '0' } });
   await h.signup();
   const { cookie } = await h.confirm();
@@ -131,10 +131,7 @@ test('download: needs email session AND approved; 302 to the storage URL; logged
   assert.equal(loc.origin, 'https://files.example.test', 'Location comes from the storage adapter');
   assert.equal(loc.pathname, '/Sidekick-2.0.1-arm64.dmg');
   assert.equal(r.headers.get('cache-control'), 'no-store');
-  const dl = h.repo.debugAll('downloads');
-  assert.equal(dl.length, 1);
-  assert.equal(dl[0].platform, 'mac'); assert.equal(dl[0].arch, 'arm64');
-  assert.equal(dl[0].signupId, (await h.repo.getSignupByEmail('alex@example.com')).id);
+  assert.equal(h.repo.debugCount('downloads'), 0, 'no per-person download row (launch log Part 14)');
   assert.equal(h.storage.check(loc.href), true);
   h.clock.advance(601 * 1000);
   assert.equal(h.storage.check(loc.href), false, 'the signed link expires after ~10 minutes');
@@ -282,7 +279,7 @@ test('link pages: the token never reaches the server on GET, and the page script
 test('admin delete-my-data by email removes the sign-up, roadmap requests and feedback; unsubscribe stops every list', async () => {
   const h = setup();
   await h.signup({ marketingOptIn: true });
-  await h.call('POST', '/api/roadmap-notify', { json: { email: 'Alex@Example.com', featureId: roadmap.ids[0], captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }, headers: { origin: ORIGIN } });
+  await h.repo.addNotify({ email: 'alex@example.com', featureId: roadmap.ids[0] }, h.clock.now()); // made before notify closed (Part 14)
   await h.call('POST', '/api/feedback', { json: { message: 'please add this', email: 'alex@example.com', captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }, headers: { origin: ORIGIN } });
   assert.equal(h.repo.debugCount('notify'), 1); assert.equal(h.repo.debugCount('feedback'), 1);
 
