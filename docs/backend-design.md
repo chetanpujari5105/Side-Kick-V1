@@ -18,7 +18,7 @@ owner's Mac: tools/signer (launchd, every 5 min) ─ POST /api/admin/pending (HM
                                                ─ POST /api/admin/token (HMAC) ─► token stored, token email queued
                                                ─ POST /api/admin/outbox (HMAC) ─► sends queued emails via Mail.app
 visitor opens the token email ─ access link page ─ POST /api/access ─► "email" session (24 h)
-Download page ─ GET /api/download/mac/arm64 ─► session + approved? ─► download logged ─► 302 to a signed file URL
+Download page ─ GET /api/download/mac/arm64 ─► session + approved? ─► 302 to a signed file URL (nothing logged per person since Part 14)
 ```
 
 Everything runs on free tiers: Vercel Hobby (functions + static), Neon Free (Postgres), Cloudflare Turnstile Free,
@@ -31,7 +31,7 @@ its `*.vercel.app` address.
 |---|---|---|
 | Vercel Hobby | Non-commercial personal use only; advertising the sale of a product counts as commercial [V fair-use-guidelines] | Owner decision before launch: the beta must not advertise a price. Listed in OWNER-SETUP |
 | Vercel Hobby | 1,000,000 invocations, 4 h Active CPU, 360 GB-h memory a month; over the limit → wait 30 days [V plans/hobby] | One function, cheap handlers, no polling from browsers |
-| Vercel Hobby | Function max 300 s; runtime logs kept 1 h [V plans/hobby] | Logs can't be the audit trail: downloads are logged in the database |
+| Vercel Hobby | Function max 300 s; runtime logs kept 1 h [V plans/hobby] | Logs can't be the audit trail. Since launch log Part 14 only the anonymous per-day count of /download/mac is kept |
 | Vercel Hobby cron | Once a day at most, ±59 min; a more frequent schedule fails the deploy [V cron-jobs/usage-and-pricing] | Retention runs daily at 03:xx UTC; nothing time-critical uses cron |
 | Vercel env vars | 64 KB total per deployment [V limits] | ~15 small variables; no keys or certificates in env except short secrets |
 | Neon Free | 100 CU-hours/project/month; 1 GB storage/project; scale to zero after 5 min (fixed); wakes "within a few hundred milliseconds"; over the hours → suspended until next month, data kept [V plans, scale-to-zero] | One retry with backoff on the first query; health check never touches the database |
@@ -56,7 +56,7 @@ Every API response carries `Cache-Control: no-store` and the security headers in
 | `GET  /api/session` | cookie | — | `{firstName, stage}` for the Download page; 401 without a session |
 | `GET  /api/download/:platform(/:arch)` | "email" session + approved | — | Logs, then 302 to a signed file URL |
 | `GET  /api/releases` | none | — | Release facts from `data/releases.json` |
-| `POST /api/roadmap-notify` | none | **yes** | `{email, featureId}` → 202; confirm email queued |
+| `POST /api/roadmap-notify` | none | no | closed (launch log Part 14): 410 `NOTIFY_UNAVAILABLE`, nothing stored |
 | `POST /api/feedback` | none | **yes** | `{message, email?}` → 202 |
 | `POST /api/admin/*` | HMAC (§6) | — | Signer and admin CLI only |
 | `GET  /api/cron/retention` | `Authorization: Bearer $CRON_SECRET` | — | Daily retention job |
@@ -226,7 +226,7 @@ Astro/Next rebuild Handoff §8 already asks for.
 |---|---|
 | Bots | Turnstile on every state-changing public endpoint, verified server-side, fail closed on error/timeout/hostname mismatch |
 | Signup abuse / email bombing | Per-IP and per-email limits in the database; emails per address capped (3 an hour, 6 a day); unconfirmed rows deleted after 7 days |
-| Enumeration | Same status, body and cookie for new and existing emails; per-email 429 applies to every address alike; roadmap-notify and feedback always 202 |
+| Enumeration | Same status, body and cookie for new and existing emails; per-email 429 applies to every address alike; feedback always 202; roadmap-notify always 410 |
 | Session takeover by typing someone's email | A form session never authorises a download (D-B7) |
 | Token theft | Token only in the email and the database; never in logs or responses other than to the signer's own post; erased from the outbox on send and from the signup 46 days after issue. Tokens can't be revoked early (app design) |
 | Replay (admin) | Timestamp window 300 s + single-use nonce + body hash in the signature |

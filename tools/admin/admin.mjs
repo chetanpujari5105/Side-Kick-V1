@@ -106,6 +106,8 @@ if (cmd === 'play-batch') {
     try { fs.unlinkSync(f); r.localTokenCopy = 'removed'; } catch (e) { r.localTokenCopy = e.code === 'ENOENT' ? 'none' : 'NOT removed: ' + e.code; }
     r.reminder = 'Also remove this person\'s line from the issuer\'s list (~/.sidekick-trial-key/issued-tokens.tsv) by hand.';
   }
+  // The database no longer holds the Google account, so this is the owner's only note of which one to take off the list.
+  if (cmd === 'delete' && r.googleEmail) r.playReminder = `Remove ${r.googleEmail} from Play Console › Testing › Internal testing › Testers (its email list) by hand.`;
   const { status, ok, ...data } = r;
   console.log(JSON.stringify(data, null, 2));
 }

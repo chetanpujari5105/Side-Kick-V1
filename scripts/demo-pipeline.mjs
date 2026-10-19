@@ -1,8 +1,9 @@
 // The whole beta pipeline on fake adapters, in one process, with a pass/fail table:
 //   npm run demo
 // signup → bot check → stored → confirm email → approval rule (cap, waitlist) → signer signs with a THROWAWAY
-// Ed25519 key through the issuer interface → token email → download → logged; then the one-click flow (launch log
-// Part 7): the signer fills the token pool, a sign-up gets "You're in" with a token at once, a repeat never sees it.
+// Ed25519 key through the issuer interface → token email → download (nothing about the person logged); then the
+// one-click flow (launch log Part 7): the signer fills the token pool, a sign-up gets "You're in" with a token at once,
+// a repeat never sees it.
 // No network, no accounts, nothing written outside a temp folder that is removed at the end.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -99,7 +100,7 @@ try {
   step('download: 302 to a signed link', r.status === 302 && storage.check(loc), new URL(loc).host + new URL(loc).pathname);
   clock.advance(601000);
   step('…which expires after 10 minutes', !storage.check(loc));
-  step('download logged {signupId, platform, arch, ts}', repo.debugAll('downloads').length === 1 && repo.debugAll('downloads')[0].arch === 'arm64');
+  step('download: nothing about the person is logged (launch log Part 14)', repo.debugCount('downloads') === 0);
   r = await call('GET', '/api/download/mac/x64', { cookie: s });
   step('no Intel build anywhere', r.status === 404);
 

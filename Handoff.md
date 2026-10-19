@@ -133,7 +133,7 @@ GET /api/releases
   {version, mac:{minOS, notarized, builds:{arm64:{file,bytes,sha256}}},
    android:{minOS, build:{file,bytes,sha256,signed}, storeUrl|null}, changelog:[{version,date,items[]}]}
 
-POST /api/roadmap-notify {email, featureId}   → 202; sends a confirm email; one notification per feature
+POST /api/roadmap-notify {email, featureId}   → 410 NOTIFY_UNAVAILABLE (closed in launch log Part 14: nothing stored)
 POST /api/feedback {message(3..2000), email?} → 202
 Admin (auth required, never public): GET /admin/signups(.csv), PATCH /admin/signups/:id {tokenSentAt}
 ```

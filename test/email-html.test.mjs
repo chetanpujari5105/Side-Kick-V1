@@ -26,7 +26,6 @@ const all = (name = 'chetan pujari') => [
   emails.invite({ name, downloadUrl: DL, release, googleEmail: 'chetan@gmail.com' }),
   emails.invite({ name, downloadUrl: DL, release }),
   emails.token({ name, token: TOKEN }),
-  emails.notify({ confirmUrl: SITE + '/n?t=3' }),
   emails.announce({ subject: 'Sidekick 2.0.2', body: 'A new build is out.\n\nIt fixes pairing.', unsubscribeUrl: SITE + '/x?t=4' })
 ];
 

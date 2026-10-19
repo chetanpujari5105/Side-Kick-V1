@@ -172,30 +172,20 @@ test('header injection: CR/LF and display-name tricks in email or name never rea
   assert.ok(!/[\r\n]/.test(msg.subject));
 });
 
-test('roadmap notify and feedback: 202, Turnstile, no enumeration, one notification per feature', async () => {
+test('roadmap notify is closed (Part 14): 410 for everyone, nothing stored; feedback: 202, Turnstile', async () => {
   const h = setup();
-  const n = (o = {}) => h.call('POST', '/api/roadmap-notify', { json: { email: 'n@example.com', featureId: (h.app.roadmapIds || [])[0], captchaToken: CAP, ...o }, headers: { origin: ORIGIN } });
   const ids = (await import('../server/roadmap-ids.json', { with: { type: 'json' } })).default.ids;
   const first = await h.call('POST', '/api/roadmap-notify', { json: { email: 'n@example.com', featureId: ids[0], captchaToken: CAP }, headers: { origin: ORIGIN } });
-  const second = await h.call('POST', '/api/roadmap-notify', { json: { email: 'n@example.com', featureId: ids[0], captchaToken: CAP }, headers: { origin: ORIGIN } });
-  assert.equal(first.status, 202); assert.equal(second.status, 202);
-  assert.deepEqual(await first.json(), await second.json());
-  assert.equal(h.repo.debugCount('notify'), 1);
-  assert.equal((await h.call('POST', '/api/roadmap-notify', { json: { email: 'n@example.com', featureId: 'not-a-feature', captchaToken: CAP }, headers: { origin: ORIGIN } })).status, 400);
+  const other = await h.call('POST', '/api/roadmap-notify', { json: { email: 'm@example.com', featureId: 'not-a-feature', captchaToken: CAP }, headers: { origin: ORIGIN } });
+  assert.equal(first.status, 410); assert.deepEqual(await first.json(), await other.json(), 'no enumeration: the same answer for any input');
+  assert.equal((await h.call('POST', '/api/roadmap-notify', { json: {}, headers: { origin: 'https://evil.example' } })).status, 403);
+  assert.equal(h.repo.debugCount('notify'), 0); assert.equal(h.repo.debugCount('outbox'), 0);
   h.botCheck.mode = 'fail';
-  assert.equal((await h.call('POST', '/api/roadmap-notify', { json: { email: 'm@example.com', featureId: ids[0], captchaToken: CAP }, headers: { origin: ORIGIN } })).status, 403);
   assert.equal((await h.call('POST', '/api/feedback', { json: { message: 'Please add dark mode', captchaToken: CAP }, headers: { origin: ORIGIN } })).status, 403);
   h.botCheck.mode = 'pass';
   assert.equal((await h.call('POST', '/api/feedback', { json: { message: 'Please add dark mode', captchaToken: CAP }, headers: { origin: ORIGIN } })).status, 202);
   assert.equal((await h.call('POST', '/api/feedback', { json: { message: 'x', captchaToken: CAP }, headers: { origin: ORIGIN } })).status, 400);
   assert.equal(h.repo.debugCount('feedback'), 1);
-  // The notify confirmation link confirms the subscription.
-  const t = h.linkFrom('n@example.com');
-  const c = await h.call('POST', '/api/confirm-email', { json: { t, captchaToken: CAP }, headers: { origin: ORIGIN } });
-  assert.equal(c.status, 200);
-  assert.deepEqual(await c.json(), { ok: true, stage: 'subscribed' });
-  assert.equal(c.headers.get('set-cookie'), null, 'a notify confirmation is not a login');
-  void n;
 });
 
 test('cron retention: needs CRON_SECRET; deletes stale unconfirmed rows; clears old tokens', async () => {

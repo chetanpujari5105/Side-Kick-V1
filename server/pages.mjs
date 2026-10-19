@@ -29,12 +29,11 @@ function shell({ title, nonce, body, siteKey }) {
 const widget = (siteKey) => siteKey === 'local-dev-fake' ? '<p class="hint m0">Human check (local test stand-in)</p><input type="hidden" name="cf-turnstile-response" value="XXXX.DUMMY.TOKEN.XXXX">'
   : siteKey ? `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}"></div>` : '';
 
-// purpose: 'confirm' | 'updates' | 'notify' | 'access' | 'unsubscribe'
+// purpose: 'confirm' | 'updates' | 'access' | 'unsubscribe' (roadmap 'notify' is closed: launch log Part 14)
 export function linkPage({ purpose, nonce, siteKey, valid }) {
   const copy = {
     confirm: ['Confirm your email', 'One click to finish signing up for the Sidekick beta.', 'Confirm my email', '/api/confirm-email'],
     updates: ['Confirm Sidekick updates', 'One click and we\'ll email you Sidekick updates. To stop them, write to us at the address on our Privacy page.', 'Yes, email me updates', '/api/confirm-email'],
-    notify: ['Confirm this notification', 'One click and we\'ll email you once when this roadmap item ships.', 'Confirm', '/api/confirm-email'],
     access: ['Open your downloads', 'This takes you to your Sidekick download page in this browser.', 'Open my download page', '/api/access'],
     unsubscribe: ['Stop Sidekick updates', 'One click and we stop sending you Sidekick update emails. Emails about your own beta place, if you have one, still come.', 'Unsubscribe', '/api/unsubscribe']
   }[purpose];

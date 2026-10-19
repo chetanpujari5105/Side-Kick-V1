@@ -14,7 +14,7 @@ Open `Home.dc.html` through any static server (e.g. `npx serve .`) — not via f
 2. `data/mock-api.js` then calls the real endpoints instead of the mocks:
    - `POST /api/get-sidekick` (form page)
    - `GET  /api/download/:platform/:arch` (download buttons — return a 302 to a signed URL, or JSON `{url}`)
-   - `POST /api/roadmap-notify` (roadmap “Notify me”)
+   - `POST /api/roadmap-notify` (closed: answers 410 and stores nothing; launch log Part 14)
    - `POST /api/feedback` (Suggest a feature)
 3. Replace `window.SK_RELEASES` in `data/site-config.js` with the response of `GET /api/releases`.
 4. The Download page checks the session via `SK_API.session()` — swap it for a call that checks your signed HttpOnly cookie.

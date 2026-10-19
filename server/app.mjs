@@ -3,7 +3,7 @@
 import { json, html, redirect, readBody, parseCookies, clientIp, originAllowed, wantsHtml, newNonce, HttpError } from './http.mjs';
 import { hmac, safeEqual, sha256hex, randomToken, signingString } from './crypto.mjs';
 import { openSession, sessionCookie, COOKIE, SESSION_TTL_S } from './session.mjs';
-import { validateSignup, validateFeedback, validateNotify, isTokenShaped, tokenLabel, normaliseEmail } from './validate.mjs';
+import { validateSignup, validateFeedback, isTokenShaped, tokenLabel, normaliseEmail } from './validate.mjs';
 import { publicReleases, releaseProblems } from './releases.mjs';
 import { emails, capFirst } from './emails.mjs';
 import { linkPage, messagePage, signupFormPage, resultPage, alreadyPage, NO_JS_BOT, BOT_FAILED, RATE_TEXT, SERVER_TEXT } from './pages.mjs';
@@ -32,7 +32,6 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
   const secret = config.sessionSecrets[0];
   const keyFor = (purpose) => hmac(secret || 'unset', 'sk-key:' + purpose);
   const bucketKey = (k) => hmac(keyFor('ratelimit'), k).slice(0, 32);
-  const features = new Set(roadmapIds);
   const now = () => clock.now();
 
   // ── helpers ────────────────────────────────────────────────────────────────
@@ -236,7 +235,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
   // into the form. Validity is checked on POST.
   async function linkGet(request, path) {
     const f = new URL(request.url).searchParams.get('for');
-    const purpose = path === 'access' ? 'access' : f === 'updates' ? 'updates' : f === 'notify' ? 'notify' : 'confirm';
+    const purpose = path === 'access' ? 'access' : f === 'updates' ? 'updates' : 'confirm';
     const nonce = newNonce();
     return html(200, linkPage({ purpose, nonce, siteKey: config.turnstileSiteKey, valid: true }), nonce);
   }
@@ -254,15 +253,11 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     if (!await human(form ? data['cf-turnstile-response'] : data.captchaToken, request))
       return asPage ? html(403, messagePage({ nonce, title: 'Human check failed', text: 'We couldn\'t confirm you\'re not a bot. It needs JavaScript: go back, turn it on and try again.' }).body, nonce) : json(403, { ok: false, error: 'BOT_CHECK_FAILED' });
     const peek = await repo.peekLink(sha256hex(t), now());
-    if (!peek || peek.purpose === 'unsubscribe' || ((path === 'access') !== (peek.purpose === 'access'))) return gone();
+    if (!peek || peek.purpose === 'unsubscribe' || peek.purpose === 'roadmap_confirm' || ((path === 'access') !== (peek.purpose === 'access'))) return gone();
     const link = await repo.useLink(sha256hex(t), now());
     if (!link) return gone();
     log.info('link.used', { purpose: link.purpose });
 
-    if (link.purpose === 'roadmap_confirm') {
-      await repo.confirmNotify(link.refId, now());
-      return asPage ? html(200, messagePage({ nonce, title: 'Confirmed', text: 'We\'ll email you once when it ships. That\'s all.' }).body, nonce) : json(200, { ok: true, stage: 'subscribed' });
-    }
     if (link.purpose === 'marketing_confirm') {
       await repo.confirmMarketing(link.refId, now());
       return asPage ? html(200, messagePage({ nonce, title: 'Updates confirmed', text: 'We\'ll email you Sidekick updates. To stop them, write to us at the address on our Privacy page.' }).body, nonce) : json(200, { ok: true, stage: 'subscribed' });
@@ -330,8 +325,9 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     if (ra) return tooMany(ra);
     let location;
     try {
+      // Nothing about the person is recorded here (launch log Part 14): the privacy text promises only the anonymous
+      // per-day count of /download/mac. Older rows in `downloads` are left as they are (retention removes them).
       location = isMac ? (await storage.signedUrl({ file: releases.mac.builds.arm64.file, platform, arch, version: releases.version })).url : releases.android.storeUrl;
-      await repo.logDownload({ signupId: s.id, platform, arch: isMac ? 'arm64' : null }, now());
     } catch {
       log.error('download.failed', { signupId: s.id, platform });
       return json(503, { ok: false, error: 'DOWNLOAD_UNAVAILABLE' });
@@ -340,20 +336,12 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     return redirect(302, location);
   }
 
-  // ── roadmap notify, feedback ───────────────────────────────────────────────
-  async function roadmapNotify(request) {
+  // ── roadmap notify (closed), feedback ──────────────────────────────────────
+  // "Notify me when this ships" is closed (launch log Part 14): nothing ever sent the "it shipped" email, so the
+  // address is no longer taken. Requests made before stay in roadmap_notify until retention, delete or unsubscribe.
+  function roadmapNotify(request) {
     if (!originAllowed(request, config.appOrigin)) return json(403, { ok: false, error: 'BAD_ORIGIN' });
-    const { data } = await readBody(request, { allowForm: false });
-    const v = validateNotify(data, features);
-    if (!v.ok) return json(400, { ok: false, fieldErrors: v.fieldErrors });
-    if (!await human(data.captchaToken, request)) return json(403, { ok: false, error: 'BOT_CHECK_FAILED' });
-    const ra = (await limited('notify_ip', clientIp(request))) || (await limited('notify_email', 'n:' + v.value.email));
-    if (ra) return tooMany(ra);
-    try {
-      const { row } = await repo.addNotify(v.value, now());
-      if (!row.confirmedAt) await queueMail(emails.notify({ confirmUrl: url('/api/confirm-email', await newLink('roadmap_confirm', row.id), 'for=notify') }), { to: v.value.email });
-    } catch { log.error('notify.store_failed'); return json(503, { ok: false, error: 'SERVICE_UNAVAILABLE' }); }
-    return json(202, { ok: true });
+    return json(410, { ok: false, error: 'NOTIFY_UNAVAILABLE' });
   }
 
   async function feedback(request) {
@@ -480,13 +468,14 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
       }
       case 'delete': {
         // By signupId or email; either way everything held under that address goes (sign-up, links, downloads,
-        // queued emails, roadmap requests, feedback). signupId comes back so the CLI can remove the signer's token copy.
+        // queued emails, roadmap requests, feedback). signupId comes back so the CLI can remove the signer's token copy,
+        // and googleEmail so it can tell the owner which account to take off the Play test list (never logged).
         const s = await findPerson(data);
         const e = s ? s.emailNorm : normaliseEmail(data.email || '');
-        if (!e) return typeof data.signupId === 'string' ? json(200, { ok: true, deleted: 0, notify: 0, feedback: 0 }) : json(400, { ok: false, error: 'BAD_EMAIL' });
+        if (!e) return typeof data.signupId === 'string' ? json(200, { ok: true, deleted: 0, notify: 0, feedback: 0, googleEmail: null }) : json(400, { ok: false, error: 'BAD_EMAIL' });
         const r = await repo.deleteByEmail(e);
         log.info('admin.deleted', { count: r.signups, notify: r.notify, feedback: r.feedback });
-        return json(200, { ok: true, deleted: r.signups, notify: r.notify, feedback: r.feedback, signupId: s ? s.id : null });
+        return json(200, { ok: true, deleted: r.signups, notify: r.notify, feedback: r.feedback, signupId: s ? s.id : null, googleEmail: s ? s.googleEmail || null : null });
       }
       case 'unsubscribe': {
         const s = await findPerson(data);

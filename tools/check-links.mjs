@@ -136,7 +136,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
 
   // ── 2. server pages and redirects (automated only: a manual site has no API) ──
   const serverPages = manual ? {} : {
-    ...Object.fromEntries(['confirm', 'updates', 'notify', 'access', 'unsubscribe'].flatMap(pp => [[`linkPage(${pp})`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: true })], [`linkPage(${pp}, expired)`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: false })]])),
+    ...Object.fromEntries(['confirm', 'updates', 'access', 'unsubscribe'].flatMap(pp => [[`linkPage(${pp})`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: true })], [`linkPage(${pp}, expired)`, linkPage({ purpose: pp, nonce: 'n', siteKey: 'k', valid: false })]])),
     messagePage: messagePage({ nonce: 'n', title: 't', text: 'x' }),
     signupFormPage: signupFormPage({ nonce: 'n', siteKey: 'k' }),
     'signupFormPage(phone number)': signupFormPage({ nonce: 'n', siteKey: 'k', values: { phoneModel: '07700 900123' }, errors: { phoneModel: MSG.phoneNumber } })
@@ -246,10 +246,9 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const unsubUrl = urlsIn((mails().find(m => m.kind === 'announce') || { text: '' }).text).find(x => x.includes('/api/unsubscribe'));
   ok('email', 'update email has an unsubscribe link', unsubUrl);
   if (unsubUrl) await walk('unsubscribe', unsubUrl, '/api/unsubscribe');
-  await call('POST', '/api/roadmap-notify', { headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'links@example.com', featureId: roadmap.ids[0], captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
-  const notifyUrl = urlsIn((mails().find(m => m.kind === 'notify') || { text: '' }).text)[0];
-  ok('email', 'notify email has a link', notifyUrl);
-  if (notifyUrl) await walk('confirm?for=notify', notifyUrl, '/api/confirm-email');
+  // Roadmap notify is closed (launch log Part 14): no email, so no link to walk.
+  const nr = await call('POST', '/api/roadmap-notify', { headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'links@example.com', featureId: roadmap.ids[0], captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
+  ok('email', 'roadmap notify is closed (410, no email)', nr.status === 410 && !mails().some(m => m.kind === 'notify'), String(nr.status));
   // Every link in our emails is ours, except one release fact: the Play test link (invitation, Android invitation).
   for (const m of mails()) for (const x of urlsIn(m.text)) ok('email', `${m.kind}: every link is ours`, x.startsWith(O + '/') || (['invite', 'android'].includes(m.kind) && x === releases.android.playTestUrl), x);
   // The invitation's links are exactly /download/mac and the Play test link.
