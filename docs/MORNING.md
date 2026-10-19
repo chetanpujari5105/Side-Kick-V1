@@ -100,8 +100,8 @@ GitHub › Side-Kick-V1 › **Settings** › General › Danger Zone › **Chang
 - **A legal review** of Support › Privacy, both modes, and of `docs/external-privacy-page-draft.md`. Points to raise:
   manual mode keeps request emails "until you ask us to delete them"; deletion includes removing the Google account
   from the Play test list; there's no children's clause and no governing law.
-- **After the review:** set `policyEffectiveDate` in `data/site-config.js` to the go-live day. That removes the DRAFT
-  banner.
+- **After the review:** update `policyEffectiveDate` (the automated region of `data/site-config.js`; it says
+  19 October 2026 since launch log Part 16, set by the owner while the review is still open) to the reviewed text's date.
 - **Keep it true:** if you move to Vercel Pro, runtime logs are kept 1 day, not 1 hour [V
   https://vercel.com/docs/logs/runtime], so change that sentence. If you add analytics, a form or any third-party
   script, the manual privacy text and the build guard both need changing.

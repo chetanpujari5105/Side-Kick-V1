@@ -9,7 +9,8 @@
 // Part 11 (no Drive in an email, capitalised first names, the token card wraps, the Mail.app fallback never re-sends a
 // handed-over email, the password file must be private, the preview token and --send-test stay with the owner, SMTP
 // dot-stuffing, the email logo is automated-only), and the privacy facts of Part 14 (no per-person download row, roadmap
-// notify closed, delete names the Google account, private files go back to 600) and one privacy page (Part 15). Each mutation breaks one rule in a scratch
+// notify closed, delete names the Google account, private files go back to 600) and one privacy page (Part 15), and the site audit of Part 16 (publisher facts filled, the 404 fallback works under
+// the CSP, compact human check in narrow boxes, Android wording, a favicon on server pages). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -17,8 +18,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs', 'test/one-privacy-page.test.mjs'];
+const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs', 'test/one-privacy-page.test.mjs', 'test/site-audit.test.mjs'];
 const MUTANTS = [
+  ['site audit (Part 16): the effective date is a placeholder again', 'data/site-config.js', "policyEffectiveDate: '19 October 2026'", "policyEffectiveDate: '[set on go-live day]'"],
+  ['site audit (Part 16): the 404 fallback uses an inline script the CSP blocks', '404.html', '<meta http-equiv="refresh" content="0; url=/404.dc.html">', "<script>location.replace('/404.dc.html');</script>"],
+  ['site audit (Part 16): the human check keeps its 300 px size in a narrow box', 'data/api-client.js', "...(narrow ? { size: 'compact' } : {})", '...({})'],
+  ['site audit (Part 16): Support says Android is not available', 'Support.dc.html', "/*AUTOMATED{*/(!invite && 'Android: by invitation through Google Play testing.", "/*AUTOMATED{*/(false && 'Android: by invitation through Google Play testing."],
+  ['site audit (Part 16): server pages without a favicon', 'server/pages.mjs', '<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">', ''],
   ['one privacy page (Part 15): the footer links the external page again', 'SiteFooter.dc.html', "(/*AUTOMATED{*/ L('Privacy','Support.dc.html#privacy') ?? /*}AUTOMATED*/ null)", "(/*AUTOMATED{*/ L('Privacy','https://chetan-website-delta.vercel.app/sidekick/privacy') ?? /*}AUTOMATED*/ null)"],
   ['privacy (Part 14): the session download logs the person', 'server/app.mjs', 'location = isMac ? (await storage.signedUrl(', "await repo.logDownload({ signupId: s.id, platform, arch: 'arm64' }, now()); location = isMac ? (await storage.signedUrl("],
   ['privacy (Part 14): roadmap notify reopened', 'server/app.mjs', "return json(410, { ok: false, error: 'NOTIFY_UNAVAILABLE' });", 'return json(202, { ok: true });'],

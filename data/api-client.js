@@ -55,7 +55,9 @@
       if (!C.turnstileSiteKey) return;
       load().then(() => {
         if (holder.el !== el) return;
-        holder.id = window.turnstile.render(el, { ...(opts || {}), sitekey: C.turnstileSiteKey, callback: (t) => { holder.token = t; },
+        // Cloudflare's normal widget is 300 px wide; in a narrower box (the Roadmap card on a phone) it would be cut off.
+        const narrow = !(opts && opts.size) && el.clientWidth > 0 && el.clientWidth < 300;
+        holder.id = window.turnstile.render(el, { ...(opts || {}), ...(narrow ? { size: 'compact' } : {}), sitekey: C.turnstileSiteKey, callback: (t) => { holder.token = t; },
           'expired-callback': () => { holder.token = null; }, 'error-callback': () => { holder.token = null; } });
       }).catch(() => { el.textContent = 'The human check could not load. Check your connection and reload the page.'; });
     },

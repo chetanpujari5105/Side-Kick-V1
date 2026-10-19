@@ -17,7 +17,10 @@ window.SK_CONFIG = {
   publisherAddress: 'India',
   // Placeholder on purpose: the privacy text changed on 15 Oct 2026 and needs legal review. Set the real date on
   // the day the reviewed policy goes live; until then Support › Privacy shows the DRAFT banner.
-  policyEffectiveDate: '[set on go-live day, after legal review]'
+  policyEffectiveDate: '[set on go-live day, after legal review]'/*AUTOMATED{*/,
+  // The live (automated) site's date, set by the owner on 19 Oct 2026 (launch log Part 16). The legal review of the
+  // wording is still open; the manual build keeps the placeholder above.
+  policyEffectiveDate: '19 October 2026'/*}AUTOMATED*/
 };
 
 // Release facts moved to data/releases.json (the one source); pages load the generated data/releases.js.

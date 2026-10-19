@@ -63,6 +63,7 @@ if (!manual) copy('email');
 const cfgPath = path.join(OUT, 'data/site-config.js');
 let cfg = fs.readFileSync(cfgPath, 'utf8');
 const before = cfg;
+try { cfg = stripRegions(cfg, mode); } catch (e) { fail(`data/site-config.js: ${e.message}`); } // e.g. the automated site's effective date
 cfg = cfg.replace(/mocksEnabled: true,.*$/m, `mocksEnabled: false,         // production build: ${manual ? 'no API at all' : 'real API only'}`)
   .replace(/siteMode: '[a-z]+',/, `siteMode: '${mode}',`);
 cfg = manual ? cfg.replace(/^.*turnstileSiteKey: null,.*\n/m, '').replace(/^\/\/ mocksEnabled[^\n]*\n/m, '') : cfg.replace(/turnstileSiteKey: null,/, `turnstileSiteKey: ${JSON.stringify(siteKey || null)},`);

@@ -26,8 +26,8 @@ Read `docs/backend-design.md` for how it works. Facts marked **[V]** were read i
    button; how to remove everything), and the website part describes the real backend (one cookie, Cloudflare
    Turnstile, Neon, GitHub, emails sent from your Mac, where tokens go, retention). Defect 188 in `defects.md` still
    says "open — ML Kit sends usage metrics"; the facts file calls that entry stale. Close it in the Mac repo once the
-   F9 traffic capture is done. `policyEffectiveDate` is a **placeholder** on purpose, so
-   the page shows its DRAFT banner. After the review, set it to the launch day. Your **external** policy page
+   F9 traffic capture is done. `policyEffectiveDate` is a placeholder for the manual build (DRAFT banner); the automated
+   build uses 19 October 2026 (launch log Part 16, the owner's choice, review still open). After the review, update it. Your **external** policy page
    (chetan-website-delta.vercel.app/sidekick/privacy) says "Notifications, messages, call lists, contacts and photos
    … are not written to disk", which the facts file contradicts for call names (it discloses the Activity history
    elsewhere on the same page), and it states "sends nothing" without the "not yet measured" limit: align it with
@@ -260,8 +260,8 @@ failed runs: 0` and `0 emails waiting to send` mean the invitation and token wen
       re-run the command on whichever file you actually upload.)
 - [ ] Same DMG uploaded to the GitHub release (or R2) under exactly that name.
 - [ ] §1 token proof accepted by the Mac app.
-- [ ] Privacy text legally reviewed; then `policyEffectiveDate` set to launch day (it is a placeholder; the DRAFT
-      banner disappears when it and the publisher fields are real). External policy page fixed or unlinked.
+- [ ] Privacy text legally reviewed (still open); `policyEffectiveDate` is 19 October 2026 in automated mode since Part 16
+      (the manual build keeps the placeholder and its DRAFT banner). External policy page fixed or unlinked.
 - [ ] Android: `android.storeUrl` in `data/releases.json` set to the Google Play URL once one exists (until then
       the site says "not available yet"; it never offers an APK), then `node scripts/data-sync.mjs`.
 - [ ] docs/GO-LIVE-TEST.md passed on the preview.

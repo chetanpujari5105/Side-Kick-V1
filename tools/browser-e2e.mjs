@@ -13,6 +13,7 @@ import { spawn } from 'node:child_process';
 import { startDevServer } from '../scripts/dev-server.mjs';
 import { runCycle, runPool, loadSignerConfig } from './signer/signer.mjs';
 import { makeClient } from './lib/client.mjs';
+import { DEV_TEXT, EXTERNAL_OK, ILLUSTRATION } from './lib/site-rules.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -378,6 +379,19 @@ try {
   check('no console errors or CSP violations', errs.length === 0, [...new Set(errs)].join(' | ').slice(0, 1500));
   const leaks = dev.logs.filter(l => /alex@example\.com|SIDEKICK-TRIAL|127\.0\.0\.1/.test(l));
   check('server logs hold no email, token or IP', leaks.length === 0, leaks[0] || '');
+  // Visitor scan (launch log Part 16): every automated page at phone width reads as finished copy, links only to
+  // allow-listed places, fits the screen, and states the facts of the one-click flow.
+  const v = await tab();
+  for (const pg of ['/', '/Get%20Sidekick.dc.html', '/Download.dc.html', '/Beta.dc.html', '/Roadmap.dc.html', '/Support.dc.html#setup', '/Support.dc.html#help', '/Support.dc.html#permissions', '/Support.dc.html#privacy', '/Support.dc.html#changelog', '/404.dc.html', '/check-email.html', '/api/confirm-email', '/api/unsubscribe']) {
+    await v.go(O + pg); await sleep(600);
+    const r = await v.eval(`({ text: document.body.innerText, hrefs: [...document.querySelectorAll('a[href]')].map(a => a.href), wide: document.documentElement.scrollWidth > innerWidth + 1 })`);
+    // The local bot-check stand-in exists only here (the build refuses its key for Vercel; the live crawl checks Production).
+    const dev = (r.text.replace(ILLUSTRATION, '').replaceAll('Human check (local test stand-in)', '').match(DEV_TEXT) || [])[0];
+    const out = r.hrefs.filter(u => !u.startsWith(O) && !EXTERNAL_OK.some(x => x.test(u)));
+    check(`visitor scan ${pg}: no developer text, outside links allow-listed, no sideways scroll`, !dev && !out.length && !r.wide, [dev, ...out, r.wide ? 'scrolls sideways' : ''].filter(Boolean).join(' | '));
+    if (pg === '/Support.dc.html#privacy') check('privacy page: the publisher line, no DRAFT banner', r.text.includes('Beta privacy notice. Published by Chetan Pujari, India. Last updated 19 October 2026. Questions: chetanpujari.sitit@gmail.com.') && !/DRAFT/.test(r.text));
+    if (pg === '/' || pg === '/Support.dc.html#setup') check(`${pg}: Android by Play test invitation, never "not available yet"; no "person who invited you"`, r.text.includes('by invitation through Google Play testing') && !r.text.includes('not available yet') && !r.text.includes('the person who invited you'));
+  }
   console.error('API calls per tab:', JSON.stringify([a, b, c, p, f, g].map(t => t.api)));
   } // end automated
 } catch (e) {
