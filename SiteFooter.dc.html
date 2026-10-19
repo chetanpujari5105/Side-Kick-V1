@@ -55,7 +55,7 @@ class Component extends DCLogic {
       cols: [
         { title: 'Product', links: [L('Features','Home.dc.html#features'), L('How it works','Home.dc.html#how'), L("What's next",'Roadmap.dc.html'), L(manual ? 'Request access' : 'Get Sidekick','Get Sidekick.dc.html')] },
         { title: 'Support', links: [L('Setup','Support.dc.html#setup'), L('Help','Support.dc.html#help'), L('Permissions','Support.dc.html#permissions'), L('Changelog','Support.dc.html#changelog')] },
-        { title: 'About', links: [manual ? L('Privacy','Support.dc.html#privacy') : (/*AUTOMATED{*/ L('Privacy','https://chetan-website-delta.vercel.app/sidekick/privacy') ?? /*}AUTOMATED*/ null), L('Suggest a feature','Roadmap.dc.html#suggest'), L('Contact','Support.dc.html#help')] }
+        { title: 'About', links: [manual ? L('Privacy','Support.dc.html#privacy') : (/*AUTOMATED{*/ L('Privacy','Support.dc.html#privacy') ?? /*}AUTOMATED*/ null), L('Suggest a feature','Roadmap.dc.html#suggest'), L('Contact','Support.dc.html#help')] }
       ]
     };
   }
