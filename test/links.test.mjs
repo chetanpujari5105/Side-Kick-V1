@@ -14,13 +14,14 @@ const BETA_MANUAL = [/exactly the Drive and Play test links/, /SHA-256 from rele
 const BETA_AUTOMATED = [/exactly the Play test link/, /no SHA-256 and no Drive folder/];
 
 test('links (automated): every internal link and every email link form resolves on the built site', async () => {
-  const { rows, failures, checked } = await checkLinks({ mode: 'automated' });
+  const { rows, failures, checked, external } = await checkLinks({ mode: 'automated' });
   assert.ok(checked > 100, `only ${checked} links found: the extractor broke`);
   assert.ok(rows.some(r => r.area === 'email' && /access: page script reads/.test(r.what)), 'email walk ran');
   // The unlisted Beta page: noindex/nofollow, linked from nowhere, only the release-facts links, no APK.
   const beta = rows.filter(r => r.area === 'beta').map(r => r.what);
   for (const want of [...BETA_CHECKS, ...BETA_AUTOMATED, /no email names it/]) assert.ok(beta.some(w => want.test(w)), `beta check missing: ${want}`);
   assert.ok(rows.some(r => r.area === 'email' && /\(HTML\): image \/email\/logo\.png/.test(r.what)), 'the HTML emails\' logo is served');
+  assert.ok(!external.some(u => /chetan-website-delta/.test(u)), 'automated mode does not link the external privacy page (Part 15)');
   assert.deepEqual(failures.map(f => `${f.area} ${f.what} ${f.note}`), []);
 });
 

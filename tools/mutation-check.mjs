@@ -9,7 +9,7 @@
 // Part 11 (no Drive in an email, capitalised first names, the token card wraps, the Mail.app fallback never re-sends a
 // handed-over email, the password file must be private, the preview token and --send-test stay with the owner, SMTP
 // dot-stuffing, the email logo is automated-only), and the privacy facts of Part 14 (no per-person download row, roadmap
-// notify closed, delete names the Google account, private files go back to 600). Each mutation breaks one rule in a scratch
+// notify closed, delete names the Google account, private files go back to 600) and one privacy page (Part 15). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -17,8 +17,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs'];
+const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs', 'test/one-privacy-page.test.mjs'];
 const MUTANTS = [
+  ['one privacy page (Part 15): the footer links the external page again', 'SiteFooter.dc.html', "(/*AUTOMATED{*/ L('Privacy','Support.dc.html#privacy') ?? /*}AUTOMATED*/ null)", "(/*AUTOMATED{*/ L('Privacy','https://chetan-website-delta.vercel.app/sidekick/privacy') ?? /*}AUTOMATED*/ null)"],
   ['privacy (Part 14): the session download logs the person', 'server/app.mjs', 'location = isMac ? (await storage.signedUrl(', "await repo.logDownload({ signupId: s.id, platform, arch: 'arm64' }, now()); location = isMac ? (await storage.signedUrl("],
   ['privacy (Part 14): roadmap notify reopened', 'server/app.mjs', "return json(410, { ok: false, error: 'NOTIFY_UNAVAILABLE' });", 'return json(202, { ok: true });'],
   ['privacy (Part 14): delete hides the Google account', 'server/app.mjs', 'googleEmail: s ? s.googleEmail || null : null', 'googleEmail: null'],

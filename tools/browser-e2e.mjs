@@ -160,6 +160,7 @@ try {
     check(`${p} lands on the Get Sidekick form`, r && r.path === '/Get%20Sidekick.dc.html' && r.form && r.button, JSON.stringify(r));
   }
   await a.go(O + '/');
+  check('footer: Privacy is this site\'s own page (one privacy page, Part 15)', (await a.eval(`(() => { const f = document.querySelector('footer'); return !!f && [...f.querySelectorAll('a')].some(x => x.textContent.trim() === 'Privacy' && x.getAttribute('href') === 'Support.dc.html#privacy') && !f.innerHTML.includes('chetan-website-delta'); })()`)) === true);
   await a.eval(`sessionStorage.setItem('sk_mock_outcome','server_error'); sessionStorage.setItem('sk_session', JSON.stringify({name:'Mock', expiresAt: Date.now()+1e9})); true`);
   await a.go(O + '/Get%20Sidekick.dc.html?previewState=success&showReview=true');
   let txt = await a.text();

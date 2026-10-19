@@ -2,8 +2,9 @@
 
 > ## ⚠ NEEDS LEGAL REVIEW — NOT FOR PUBLICATION AS IS
 >
-> This is a draft for the owner's external page at `chetan-website-delta.vercel.app/sidekick/privacy` (the page the
-> site footer links to, `SiteFooter.dc.html:56`). **Nothing was published, pushed or edited on any site.** Before it
+> This is a draft for the owner's external page at `chetan-website-delta.vercel.app/sidekick/privacy` (the site
+> footer linked to it until launch log Part 15; now every page links Support › Privacy). **Nothing was published,
+> pushed or edited on any site.** Before it
 > goes live it needs a legal review, and the effective date must be set on the day the reviewed text goes live (the
 > same rule as `data/site-config.js:16-18`).
 
