@@ -10,8 +10,8 @@ export function loadRelease() {
   return r;
 }
 
-export function previewSamples({ release = loadRelease(), token = DUMMY_TOKEN, name = 'chetan', googleEmail = 'cpujari12@gmail.com' } = {}) {
-  const dl = SITE + '/download/mac', inert = SITE + '/Get%20Sidekick.dc.html';
+export function previewSamples({ release = loadRelease(), token = DUMMY_TOKEN, name = 'chetan', googleEmail = 'cpujari12@gmail.com', site = SITE } = {}) {
+  const dl = site + '/download/mac', inert = site + '/Get%20Sidekick.dc.html';
   return [
     ['copy', emails.copy({ name, token, downloadUrl: dl, release })],
     ['android', emails.android({ name, release, googleEmail })],

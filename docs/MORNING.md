@@ -55,11 +55,11 @@ GitHub › Side-Kick-V1 › **Pull requests** › "Site: an email-only beta mode
 What happens next:
 
 - Vercel builds `main` for Production with `SITE_MODE=manual` (already set for Production) and, when the build
-  succeeds, serves it at **side-henna.vercel.app** [V: "when you merge to or make commits to your production branch …
+  succeeds, serves it at **sidekickapp.in** [V: "when you merge to or make commits to your production branch …
   Vercel will automatically promote the changes to Production", https://vercel.com/docs/deployments/promoting-a-deployment].
 - If that build fails, the current production site keeps serving. This is **[A]**: Vercel only promotes a finished
   build, and last night's failed preview didn't touch production, but a failed *production* build was not tested.
-- Check **Deployments**: the new Production row should be Ready. Then open side-henna.vercel.app and repeat checks 1–6.
+- Check **Deployments**: the new Production row should be Ready. Then open sidekickapp.in and repeat checks 1–6.
 - In manual mode the `/api/*` function still deploys and answers "misconfigured" (503) to anything; no page calls it.
   The daily cleanup job (`/api/cron/retention`) will get the same answer, which is harmless.
 

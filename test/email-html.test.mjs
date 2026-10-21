@@ -7,7 +7,7 @@ import { emails, SHORT_STEPS, firstName } from '../server/emails.mjs';
 import { renderEmail, DUMMY_TOKEN, LOGO_URL } from '../server/email-html.mjs';
 import releasesJson from '../data/releases.json' with { type: 'json' };
 
-const SITE = 'https://side-henna.vercel.app';
+const SITE = 'https://sidekickapp.in';
 const DL = SITE + '/download/mac';
 const release = JSON.parse(JSON.stringify(releasesJson));
 const TOKEN = 'SIDEKICK-TRIAL-1.' + 'A'.repeat(150) + '.' + 'b'.repeat(111); // 280 characters, token-shaped
@@ -102,10 +102,10 @@ test('"Sidekick for Android": button to the Play test link, the Google-account l
 
 test('confirm-your-email and updates opt-in: their own buttons (double opt-in kept)', () => {
   const c = renderEmail(emails.confirm({ name: 'chetan', confirmUrl: SITE + '/c?t=1', updatesUrl: SITE + '/u?t=2', downloadUrl: DL }));
-  assert.match(c.html, /bgcolor="#C6FF33"[^>]*>\s*<a href="https:\/\/side-henna\.vercel\.app\/c\?t=1"[^>]*>Confirm my email<\/a>/);
-  assert.match(c.html, /<a href="https:\/\/side-henna\.vercel\.app\/u\?t=2"[^>]*>Yes, send me updates<\/a>/);
+  assert.match(c.html, /bgcolor="#C6FF33"[^>]*>\s*<a href="https:\/\/sidekickapp\.in\/c\?t=1"[^>]*>Confirm my email<\/a>/);
+  assert.match(c.html, /<a href="https:\/\/sidekickapp\.in\/u\?t=2"[^>]*>Yes, send me updates<\/a>/);
   const u = renderEmail(emails.updates({ name: 'chetan', updatesUrl: SITE + '/u?t=2' }));
-  assert.match(u.html, /bgcolor="#C6FF33"[^>]*>\s*<a href="https:\/\/side-henna\.vercel\.app\/u\?t=2"[^>]*>Yes, send me updates<\/a>/);
+  assert.match(u.html, /bgcolor="#C6FF33"[^>]*>\s*<a href="https:\/\/sidekickapp\.in\/u\?t=2"[^>]*>Yes, send me updates<\/a>/);
 });
 
 test('template rules: tables with role=presentation, inline styles, preheader, dark mode, logo, footer, size', () => {
@@ -123,7 +123,7 @@ test('template rules: tables with role=presentation, inline styles, preheader, d
     assert.ok(!/<script|<link|<form|<iframe|javascript:/i.test(html), `${m.kind}: no script, stylesheet link, form or frame`);
     for (const img of html.match(/<img\b[^>]*>/g)) {
       assert.match(img, /alt="[^"]+"/); assert.match(img, /width="\d+"/); assert.match(img, /height="\d+"/);
-      assert.match(img, /src="https:\/\/side-henna\.vercel\.app\//);
+      assert.match(img, /src="https:\/\/sidekickapp\.in\//);
     }
     assert.ok(html.includes(`src="${LOGO_URL}"`), `${m.kind}: the logo`);
     for (const href of html.match(/href="[^"]*"/g)) assert.match(href, /^href="(https:\/\/|mailto:chetanpujari\.sitit@gmail\.com")/, `${m.kind}: absolute links only: ${href}`);
@@ -148,7 +148,7 @@ test('the renderer escapes everything it is given (a name cannot inject HTML)', 
   assert.ok(!html.includes('<img src=x'), 'escaped');
   const a = renderEmail(emails.announce({ subject: 'S', body: 'Hi <b>all</b> & "friends"', unsubscribeUrl: SITE + '/x' }));
   assert.ok(a.html.includes('Hi &lt;b&gt;all&lt;/b&gt; &amp; &quot;friends&quot;'));
-  assert.match(a.html, /<a href="https:\/\/side-henna\.vercel\.app\/x"/, 'the unsubscribe link');
+  assert.match(a.html, /<a href="https:\/\/sidekickapp\.in\/x"/, 'the unsubscribe link');
 });
 
 test('the preview token is a dummy: never token-shaped, so it can never pass for a real one', async () => {

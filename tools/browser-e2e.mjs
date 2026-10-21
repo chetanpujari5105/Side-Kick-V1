@@ -126,6 +126,9 @@ async function manualChecks() {
   check('Support › Privacy keeps the DRAFT (legal review) banner', /DRAFT/.test(txt));
   const res = await fetch(O + '/Beta.dc.html');
   check('Beta: noindex in <head> and in X-Robots-Tag', /<head>[\s\S]*<meta name="robots" content="noindex, nofollow">[\s\S]*<\/head>/.test(await res.text()) && res.headers.get('x-robots-tag') === 'noindex, nofollow');
+  // Launch log Part 19: the manual site has no robots.txt, no sitemap and no canonical link.
+  const crawl = await Promise.all(['/robots.txt', '/sitemap.xml'].map(async p => (await fetch(O + p)).status));
+  check('no robots.txt, no sitemap.xml, no canonical link (manual)', crawl.every(s => s === 404) && !(await (await fetch(O + '/')).text()).includes('rel="canonical"'), crawl.join(' '));
 
   // No JavaScript: the emails are plain links.
   const c = await tab({ noJs: true, context: (await send('Target.createBrowserContext')).result.browserContextId });
@@ -152,6 +155,23 @@ async function manualChecks() {
 
 try {
   if (MODE === 'manual') await manualChecks(); else {
+  // 0. What crawlers read (launch log Part 19): robots.txt names the sitemap; the sitemap lists the public pages, each
+  //    served here with its canonical link and absolute share image; the noindex pages stay noindex.
+  {
+    const robots = await fetch(O + '/robots.txt'), sm = await fetch(O + '/sitemap.xml');
+    const rt = await robots.text(), st = await sm.text();
+    check('robots.txt: 200, crawlers allowed, download route closed, names the sitemap', robots.status === 200 && /^Allow: \/$/m.test(rt) && /^Disallow: \/download\/$/m.test(rt) && /^Sitemap: https:\/\/sidekickapp\.in\/sitemap\.xml$/m.test(rt), rt.slice(0, 300));
+    const locs = [...st.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
+    const bad = [];
+    for (const l of locs) {
+      const p = l.replace('https://sidekickapp.in', ''), r = await fetch(O + p), h = await r.text();
+      if (r.status !== 200 || !h.includes(`<link rel="canonical" href="${l}">`) || !h.includes('<meta property="og:image" content="https://sidekickapp.in/icons/og-image.png">') || /<meta name="robots" content="noindex/.test(h)) bad.push(`${p} ${r.status}`);
+    }
+    check('sitemap.xml: 200, the 4 public pages, each served with its canonical link and absolute share image', sm.status === 200 && locs.length === 4 && !bad.length, bad.join(' | ') || locs.join(' '));
+    const ni = [];
+    for (const p of ['/Download.dc.html', '/Beta.dc.html', '/check-email.html', '/404.dc.html']) { const h = await (await fetch(O + p)).text(); if (!/<meta name="robots" content="noindex/.test(h) || h.includes('rel="canonical"') || st.includes(p)) ni.push(p); }
+    check('Download, Beta, check-email and 404 stay noindex, without a canonical, out of the sitemap', !ni.length, ni.join(' '));
+  }
   // 1. Signup page in real mode; design-review switches have no effect.
   const a = await tab();
   // The short links (launch log Part 10) land on the form at its real path.
