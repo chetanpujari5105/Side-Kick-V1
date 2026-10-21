@@ -17,7 +17,7 @@ after(() => { for (const d of dirs) fs.rmSync(d, { recursive: true, force: true 
 const tmp = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-mail-test-')); dirs.push(d); return d; };
 const PW = 'abcdefghijklmnop'; // a stand-in, not a real app password
 const pwFile = (mode = 0o600, value = PW) => { const f = path.join(tmp(), 'gmail-app-password'); fs.writeFileSync(f, value, { mode }); fs.chmodSync(f, mode); return f; };
-const MSG = { id: '11111111-1111-4111-8111-111111111111', kind: 'copy', to: 'a@example.com', subject: "You're in, Chetan: your Sidekick beta", text: "You're in, Chetan.\n\nHere it is.\n\nDownload for Mac:\nhttps://side-henna.vercel.app/download/mac\n\n— Sidekick\n\nYou got this email because this address was entered on the Sidekick website." };
+const MSG = { id: '11111111-1111-4111-8111-111111111111', kind: 'copy', to: 'a@example.com', subject: "You're in, Chetan: your Sidekick beta", text: "You're in, Chetan.\n\nHere it is.\n\nDownload for Mac:\nhttps://sidekickapp.in/download/mac\n\n— Sidekick\n\nYou got this email because this address was entered on the Sidekick website." };
 
 // A scripted SMTP server on localhost (plain TCP; the client's TLS socket is swapped for net in these tests).
 function fakeSmtp({ auth = true, dropAfterDot = false } = {}) {
@@ -52,12 +52,12 @@ function fakeSmtp({ auth = true, dropAfterDot = false } = {}) {
 const plainConnect = (port) => () => net.connect(port, '127.0.0.1');
 
 test('MIME: multipart/alternative with plain text and HTML, From/Reply-To Sidekick, a Message-ID from the outbox id', () => {
-  const raw = buildMime({ from: 'chetanpujari.sitit@gmail.com', to: 'a@example.com', subject: "You're in, Élodie: your Sidekick beta", text: 'héllo\nworld', html: '<p>héllo</p>', messageId: '<outbox-1@side-henna.vercel.app>', date: new Date('2026-10-19T10:00:00Z') });
+  const raw = buildMime({ from: 'chetanpujari.sitit@gmail.com', to: 'a@example.com', subject: "You're in, Élodie: your Sidekick beta", text: 'héllo\nworld', html: '<p>héllo</p>', messageId: '<outbox-1@sidekickapp.in>', date: new Date('2026-10-19T10:00:00Z') });
   const [head, ...rest] = raw.split('\r\n\r\n');
   assert.match(head, /^From: Sidekick <chetanpujari\.sitit@gmail\.com>\r\n/m);
   assert.match(head, /\r\nReply-To: Sidekick <chetanpujari\.sitit@gmail\.com>\r\n/);
   assert.match(head, /\r\nTo: a@example\.com\r\n/);
-  assert.match(head, /\r\nMessage-ID: <outbox-1@side-henna\.vercel\.app>\r\n/);
+  assert.match(head, /\r\nMessage-ID: <outbox-1@sidekickapp\.in>\r\n/);
   assert.match(head, /\r\nSubject: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?=/);
   const subj = head.match(/Subject: ((?:.|\r\n )+)/)[1].split('\r\n ').map(w => Buffer.from(w.match(/=\?UTF-8\?B\?(.*)\?=/)[1], 'base64').toString('utf8')).join('');
   assert.equal(subj, "You're in, Élodie: your Sidekick beta");
@@ -126,7 +126,7 @@ test('sender selection: with the password file, SMTP sends HTML + plain text fro
   await m(MSG);
   assert.equal(a.calls.length, 0); assert.equal(sent.length, 1);
   assert.equal(sent[0].user, 'chetanpujari.sitit@gmail.com'); assert.equal(sent[0].password, PW); assert.equal(sent[0].to, 'a@example.com');
-  assert.match(sent[0].raw, /\r\nMessage-ID: <outbox-11111111-1111-4111-8111-111111111111@side-henna\.vercel\.app>\r\n/);
+  assert.match(sent[0].raw, /\r\nMessage-ID: <outbox-11111111-1111-4111-8111-111111111111@sidekickapp\.in>\r\n/);
   assert.match(sent[0].raw, /multipart\/alternative/);
   assert.match(sent[0].raw, /Content-Type: text\/html; charset=utf-8/);
 });

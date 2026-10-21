@@ -8,7 +8,9 @@
 //     - data/site-config.js gets mocksEnabled: false and the PUBLIC Turnstile site key from TURNSTILE_SITE_KEY;
 //     - data/mock-api.js is not copied, and every page loads data/api-client.js instead (real API only);
 //     - the Design review bar is cut out of Get Sidekick, and the no-JS signup form goes in its place;
-//     - email/logo.png (the HTML emails' logo) is served.
+//     - email/logo.png (the HTML emails' logo) is served;
+//     - the public pages get a canonical link and an absolute share image on APP_ORIGIN, and robots.txt + sitemap.xml
+//       are written (scripts/seo.mjs, launch log Part 19).
 //   Both: the build fails if any mock switch, review bar or sessionStorage use survives. Any other SITE_MODE fails.
 //   node scripts/build-site.mjs           on Vercel (automated needs TURNSTILE_SITE_KEY; manual needs nothing)
 //   node scripts/build-site.mjs --local   for npm run dev: automated, with a local stand-in for the human check,
@@ -18,6 +20,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { signupFormHtml, FORM_STYLE } from '../server/pages.mjs';
 import { resolveMode, stripRegions, manualLeaks } from './site-modes.mjs';
+import { PUBLIC_PAGES, DEFAULT_ORIGIN, siteOrigin, robotsTxt, sitemapXml, seoHead } from './seo.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const OUT = path.join(ROOT, 'dist');
@@ -41,6 +44,8 @@ const siteKey = manual ? null : (local ? 'local-dev-fake' : process.env.TURNSTIL
 if (!manual && !local && process.env.VERCEL && !siteKey) fail('TURNSTILE_SITE_KEY is not set for this environment (SITE_MODE=automated).');
 if (!manual && !local && siteKey && (siteKey === 'local-dev-fake' || !/^[0-9A-Za-z_-]{10,64}$/.test(siteKey))) fail('TURNSTILE_SITE_KEY does not look like a Turnstile site key.');
 if (!manual && !local && siteKey && process.env.VERCEL_ENV === 'production' && /^[123]x0{20,}[A-Z]{2}$/.test(siteKey)) fail('TURNSTILE_SITE_KEY is a Cloudflare test key; Production needs the real widget key.');
+let origin = null; // the automated site's address (canonical links, share image, sitemap)
+if (!manual) { try { origin = local ? DEFAULT_ORIGIN : siteOrigin(process.env); } catch (e) { fail(e.message); } }
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT);
@@ -81,7 +86,14 @@ for (const f of pages) {
   html = html.split('<script src="data/mock-api.js"></script>').join(manual ? '' : '<script src="data/api-client.js"></script>');
   html = html.replace(/<!-- DESIGN-REVIEW[\s\S]*?<!-- \/DESIGN-REVIEW -->\n?/, '');
   html = html.replace(/<!-- NOJS-FORM[\s\S]*?<!-- \/NOJS-FORM -->/, manual ? '' : `<noscript><style>${scoped}</style><div class="skf"><h2 style="margin:0 0 8px;font:800 34px/1 'Bricolage Grotesque',sans-serif;">Get Sidekick</h2><p>This form works without JavaScript, but the human check that protects it doesn't: sending it will ask you to turn JavaScript on.</p>${signupFormHtml()}</div></noscript>`);
+  const pub = PUBLIC_PAGES.find(([, file]) => file === f);
+  if (!manual && pub) { try { html = seoHead(html, origin, pub[0]); } catch (e) { fail(`${f}: ${e.message}`); } }
   fs.writeFileSync(p, html);
+}
+// Automated only: what crawlers read first. The manual site has neither file (its bytes stay as they were).
+if (!manual) {
+  fs.writeFileSync(path.join(OUT, 'robots.txt'), robotsTxt(origin));
+  fs.writeFileSync(path.join(OUT, 'sitemap.xml'), sitemapXml(origin));
 }
 
 // Proof that nothing from design review — or, in manual mode, nothing that needs a backend — reaches the deployment.

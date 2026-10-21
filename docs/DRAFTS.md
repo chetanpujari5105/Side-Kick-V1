@@ -6,16 +6,16 @@ Written 2026-10-17, final messages added 2026-10-18, refreshed 2026-10-19 for th
 
 ## Final messages (ready to send, 2026-10-19)
 
-Nothing below has been sent. The owner sends them. They use the short link `https://side-henna.vercel.app/get`, which
+Nothing below has been sent. The owner sends them. They use the short link `https://sidekickapp.in/get`, which
 opens the Get Sidekick form (launch log Part 10). The short link works while `SITE_MODE=automated`. With the kill
 switch on (`SITE_MODE=manual`) it answers 404, and the email-only page is at
-`https://side-henna.vercel.app/Get%20Sidekick.dc.html`. Send only after the legal review of the privacy text and the
+`https://sidekickapp.in/Get%20Sidekick.dc.html`. Send only after the legal review of the privacy text and the
 updates emails (no DRAFT banner on the live site since Part 16, but the review is still open), and only while the cap is 50 (`admin stats` shows `betaCap`).
 
 ### WhatsApp / DM (3 lines)
 
 > I'm opening a small beta of Sidekick: your Android phone on your Mac (screen, notifications, files, clipboard) over your own Wi-Fi, no cloud, no account.
-> Mac with Apple silicon (M1 or later), macOS 11 or later: one click at https://side-henna.vercel.app/get downloads the app and shows your beta token on the page, and "Email me a copy" sends you a designed email with the token.
+> Mac with Apple silicon (M1 or later), macOS 11 or later: one click at https://sidekickapp.in/get downloads the app and shows your beta token on the page, and "Email me a copy" sends you a designed email with the token.
 > Android (10 or later) comes by Google Play test invitation: tick Android, type the Google email your phone uses, and the invitation email arrives within a day. It's a small invited beta, limited to 50 people.
 
 ### Email
@@ -31,7 +31,7 @@ updates emails (no DRAFT banner on the live site since Part 16, but the review i
 > **What you need:** a Mac with Apple silicon (M1 or later) running macOS 11 or later. For the phone side, an Android
 > phone with Android 10 or later.
 >
-> **How to join:** open https://side-henna.vercel.app/get, type your name and email, tick the privacy box and click
+> **How to join:** open https://sidekickapp.in/get, type your name and email, tick the privacy box and click
 > **Get the Mac app**. That one click starts the download, and your beta token is shown on the same page with a Copy
 > button. The page lists three install steps, and "Email me a copy" sends you an email from "Sidekick" with the
 > download button, your token and the same three steps. macOS asks you once to allow the app, because this beta isn't
@@ -49,7 +49,7 @@ updates emails (no DRAFT banner on the live site since Part 16, but the review i
 ### Short post
 
 > Sidekick beta is open to 50 people: your Android phone on your Mac, over your own Wi-Fi, with no cloud and no account.
-> Mac with Apple silicon, macOS 11+. One click at https://side-henna.vercel.app/get downloads it and shows your beta
+> Mac with Apple silicon, macOS 11+. One click at https://sidekickapp.in/get downloads it and shows your beta
 > token on the page (with a designed copy by email if you want one). Android comes by Google Play test invitation: type
 > the Google email your phone uses, and the invitation email arrives within a day. Small invited beta, 50 places.
 
@@ -58,15 +58,15 @@ updates emails (no DRAFT banner on the live site since Part 16, but the review i
 > If something doesn't work, reply to the email you got from Sidekick (or write to chetanpujari.sitit@gmail.com) with
 > your Mac model and macOS version, your phone model and Android version, the step you were on and the exact message
 > you saw. Never send your token or a screenshot of it. **Lost your token?** On the page, click "Email me a copy", or
-> fill in the form at https://side-henna.vercel.app/get again with the same email. The page won't show the token a
+> fill in the form at https://sidekickapp.in/get again with the same email. The page won't show the token a
 > second time, but it emails "You're in, <your first name>: your Sidekick beta" to that address (at most a few
 > emails per address per day; check Spam too). **Download failed?**
-> Use "Download again" on the page, or https://side-henna.vercel.app/download/mac. **No Android email after a day?**
+> Use "Download again" on the page, or https://sidekickapp.in/download/mac. **No Android email after a day?**
 > Check spam, then reply and tell us which Google account your phone uses.
 
 ## First 10 minutes after announcing
 
-1. **Signer:** `cd ~/Desktop/Side-Kick-V1 && SK_API_BASE=https://side-henna.vercel.app SK_SIGNER_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SIGNER_SECRET node tools/signer/signer.mjs --status`
+1. **Signer:** `cd ~/Desktop/Side-Kick-V1 && SK_API_BASE=https://sidekickapp.in SK_SIGNER_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SIGNER_SECRET node tools/signer/signer.mjs --status`
    — every few minutes at first. Good: `last run … (ok)`, `consecutive failed runs: 0`, `sender: smtp (… login ok)`,
    the queue going back to `0 emails waiting`, `token pool … N ready` with N of 40 or more. `sender: mail-app` means
    the emails go out as plain text through Mail.app (still delivered); see OWNER-CLICKS §7.
@@ -81,11 +81,11 @@ updates emails (no DRAFT banner on the live site since Part 16, but the review i
 
 Run the commands from any folder with the helper `~/Documents/Sidekick-private/sk-admin.sh <command>` (Production; it
 reads the admin secret from its file). The equivalent long form is `cd ~/Desktop/Side-Kick-V1 &&
-SK_API_BASE=https://side-henna.vercel.app SK_ADMIN_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SECRET
+SK_API_BASE=https://sidekickapp.in SK_ADMIN_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SECRET
 node tools/admin/admin.mjs <command>`.
 
 1. **Morning and evening: is the signer healthy?**
-   `cd ~/Desktop/Side-Kick-V1 && SK_API_BASE=https://side-henna.vercel.app SK_SIGNER_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SIGNER_SECRET node tools/signer/signer.mjs --status`
+   `cd ~/Desktop/Side-Kick-V1 && SK_API_BASE=https://sidekickapp.in SK_SIGNER_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SIGNER_SECRET node tools/signer/signer.mjs --status`
    Good: `last run … (ok)` a few minutes ago, `consecutive failed runs: 0`, a queue of `0 emails waiting`, `token pool … N ready`
    with N of 40 or more. A few `ENOTFOUND` lines in `~/Library/Logs/sidekick-signer.log` are normal when the Mac's network
    blips, as long as the next run is ok. An `ATTENTION` line means the Mac was asleep or offline. Keep the Mac awake and
@@ -117,7 +117,7 @@ node tools/admin/admin.mjs <command>`.
 
 > Sidekick is in a small beta. Mirror your Android phone's screen on your Mac, answer notifications, move files and
 > share your clipboard — over your own Wi-Fi. No cloud. No account. You need a Mac with Apple silicon (M1 or later, macOS 11 or later)
-> and an Android phone (Android 10 or later). To join, fill in the short form at https://side-henna.vercel.app and
+> and an Android phone (Android 10 or later). To join, fill in the short form at https://sidekickapp.in and
 > confirm your email. We add you to the Google Play test and email your download links and your beta token, up to
 > a day later. Places are limited.
 
@@ -125,7 +125,7 @@ node tools/admin/admin.mjs <command>`.
 
 > I've been building Sidekick: mirror your Android phone on your Mac, answer notifications, move files and share
 > your clipboard, all over your own Wi-Fi (no cloud, no account). It's ready for a few testers. Got an Apple-silicon Mac (M1 or newer) and an Android phone (Android 10+)? Sign up at
-> https://side-henna.vercel.app, confirm your email, and within a day you'll get the Mac download, the Android test
+> https://sidekickapp.in, confirm your email, and within a day you'll get the Mac download, the Android test
 > link and your beta token. I'd love your feedback — the rough edges especially.
 
 (Before sending either: the Privacy text and the updates emails need their legal review, and only invite as many
@@ -138,7 +138,7 @@ button starts it), your beta token is on that page with a Copy button, and "Emai
 page says we're doing it by email instead, you get "Your Sidekick beta invitation" and "Your Sidekick beta token";
 they can take up to a day; check your spam folder. (Updated 2026-10-18 for the one-click flow.)
 
-**The Mac app.** The download is `https://side-henna.vercel.app/download/mac` (from this project's GitHub release):
+**The Mac app.** The download is `https://sidekickapp.in/download/mac` (from this project's GitHub release):
 `Sidekick-2.0.1-arm64.dmg` (121,668,061 bytes). Since 2026-10-19 (launch log Part 11) the emails and pages keep to
 that one link and three install steps; the checksum is only on the site, under "More details". To check the download
 (optional), open Terminal and run `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg`; it must print exactly:

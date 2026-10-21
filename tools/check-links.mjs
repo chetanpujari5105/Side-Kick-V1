@@ -11,7 +11,8 @@
 // 4. The unlisted Beta page: noindex/nofollow in its <head> and in vercel.json, no link to it from any page,
 //    component, server page, email or script, its only outside links are releases.json's Drive and Play test
 //    links (automated site: the Play test link only, and no checksum), and no .apk anywhere. The Download page
-//    carries neither link. The HTML emails' images are files the built site serves (email/logo.png).
+//    carries neither link. The HTML emails' images are files the built site serves (email/logo.png). robots.txt and
+//    sitemap.xml: none in the manual site; in the automated site exactly the public pages, each with its canonical link.
 // 5. SITE_MODE=manual (--mode manual): sections 2 and 3 do not apply (no API, no email links). Instead every mailto
 //    must go to the support address with only a subject and body; Get Sidekick, Download, the roadmap suggestion box
 //    and every roadmap item's Notify link must be the right email.
@@ -32,6 +33,7 @@ import { emails } from '../server/emails.mjs';
 import { createLogger } from '../server/log.mjs';
 import { linkPage, messagePage, signupFormPage } from '../server/pages.mjs';
 import { signRequest } from '../server/crypto.mjs';
+import { PUBLIC_PAGES, DEFAULT_ORIGIN } from '../scripts/seo.mjs';
 import releases from '../data/releases.json' with { type: 'json' };
 import roadmap from '../server/roadmap-ids.json' with { type: 'json' };
 
@@ -278,7 +280,25 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   const serverNames = Object.entries(serverPages).filter(([, h]) => mentions(typeof h === 'string' ? h : h.body)).map(([n]) => n);
   ok('beta', `${BETA}: no server page names it`, !serverNames.length, serverNames.join(', '));
   ok('beta', `${BETA}: no email names it`, !mails().some(m => mentions(m.text)));
-  ok('beta', `${BETA}: no sitemap or robots.txt in dist/`, !distText.some(f => /sitemap|robots\.txt/i.test(path.basename(f))));
+  // robots.txt and sitemap.xml (launch log Part 19): the manual site has neither; the automated site has exactly these
+  // two, the sitemap lists exactly the public pages (each a file this build serves, with its canonical link) and
+  // robots.txt names the sitemap. Neither names the Beta page (the check above covers every .txt/.xml in dist/).
+  const crawl = distText.filter(f => /sitemap|robots/i.test(path.basename(f))).map(f => path.relative(DIST, f)).sort();
+  if (manual) ok('beta', `${BETA}: no sitemap or robots.txt in dist/`, !crawl.length, crawl.join(', '));
+  else {
+    ok('seo', 'robots.txt and sitemap.xml are in dist/, and nothing else of the kind', JSON.stringify(crawl) === JSON.stringify(['robots.txt', 'sitemap.xml']), crawl.join(', '));
+    const robots = fileExists('robots.txt') ? fs.readFileSync(path.join(DIST, 'robots.txt'), 'utf8') : '';
+    const sitemap = fileExists('sitemap.xml') ? fs.readFileSync(path.join(DIST, 'sitemap.xml'), 'utf8') : '';
+    ok('seo', 'robots.txt lets crawlers in and names the sitemap', /^User-agent: \*$/m.test(robots) && /^Allow: \/$/m.test(robots) && !/^Disallow: \/\s*$/m.test(robots) && new RegExp(`^Sitemap: ${DEFAULT_ORIGIN.replace(/\./g, '\\.')}/sitemap\\.xml$`, 'm').test(robots));
+    const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
+    ok('seo', 'sitemap.xml lists exactly the public pages', JSON.stringify(locs) === JSON.stringify(PUBLIC_PAGES.map(([p]) => DEFAULT_ORIGIN + p)), locs.join(' '));
+    for (const [p, f] of PUBLIC_PAGES) {
+      ok('seo', `sitemap ${p} → ${f} is served`, fileExists(f));
+      ok('seo', `${f}: canonical ${DEFAULT_ORIGIN}${p}, absolute share image`, (src[f] || '').includes(`<link rel="canonical" href="${DEFAULT_ORIGIN}${p}">`) && (src[f] || '').includes(`<meta property="og:image" content="${DEFAULT_ORIGIN}/icons/og-image.png">`));
+    }
+    const listedNoindex = pages.filter(f => /<meta name="robots" content="noindex/.test(src[f] || '') && locs.some(l => decodeURIComponent(l).endsWith('/' + f)));
+    ok('seo', 'no noindex page is in the sitemap', !listedNoindex.length, listedNoindex.join(', '));
+  }
   // The manual site shares the file through the Drive folder; the automated one downloads through /download/mac and
   // names no Drive folder and no checksum on this page (launch log Part 11).
   const want = (manual ? [releases.mac.betaDriveUrl, releases.android.playTestUrl] : [releases.android.playTestUrl]).filter(Boolean).sort();

@@ -1,8 +1,15 @@
 # Owner clicks and runbook
 
-**Status 2026-10-17.** Production (`side-henna.vercel.app`) is `SITE_MODE=automated`. Sections 2 (Mail) and 3
+**Status 2026-10-17.** Production (`sidekickapp.in`) is `SITE_MODE=automated`. Sections 2 (Mail) and 3
 (Cloudflare Turnstile) below are done. Section 1 (token proof) is still open: until the packaged Mac app accepts a
 token, don't invite real testers. Sections 5 and 6 are the runbook for real testers and the pre-launch checklist.
+
+**The site's address (launch log Part 19).** `https://sidekickapp.in` (GoDaddy DNS: `A @ 216.198.79.1`,
+`CNAME www f6be5ca8e97a64da.vercel-dns-017.com.`; www and the old `side-henna.vercel.app` answer 308 to it). One
+address, set in four places that must agree: Vercel `APP_ORIGIN` (the API's links, its same-site check, the Turnstile
+hostname check, and — at build time — the canonical links, share image, robots.txt and sitemap.xml; change it, then
+redeploy), the Turnstile widget's hostnames, the signer's `SK_API_BASE` (launchd plist; the emails' logo, footer and
+Message-ID follow it) and `sk-admin.sh`. Old email links keep working through the 308 redirect.
 Sections 1–4 are kept as written on 2026-10-16 (end of launch part 1).
 
 ---
@@ -62,8 +69,9 @@ both check).
 1. Go to **dash.cloudflare.com** and log in or sign up. Use your own email, password and verification; I can't
    do that part.
 2. Left menu › **Turnstile** › **Add widget**.
-3. Widget name: `Sidekick`. **Hostnames › Add**: `side-henna.vercel.app` and
-   `side-git-site-automated-2026-10-15-chetanpujari5105s-projects.vercel.app`.
+3. Widget name: `Sidekick`. **Hostnames › Add**: `sidekickapp.in`, `www.sidekickapp.in` and
+   `side-git-site-automated-2026-10-15-chetanpujari5105s-projects.vercel.app` (the widget "Sidekick beta" also keeps
+   the old `side-henna.vercel.app` until the move to sidekickapp.in is verified, launch log Part 19).
 4. Widget mode: **Managed**. Pre-clearance: **No**. Press **Create**.
 5. Copy the **Site key** (public) and the **Secret key** (secret) straight into two files. Don't paste them into
    a chat:
@@ -103,7 +111,7 @@ takes over (confirm email → the signer makes that person a token → invitatio
 Android still needs you, because Play Console's email lists can only be edited in Play Console. Run the commands
 from `~/Desktop/Side-Kick-V1` with the Production admin key from its file:
 ```sh
-export SK_API_BASE=https://side-henna.vercel.app \
+export SK_API_BASE=https://sidekickapp.in \
   SK_ADMIN_SECRET_FILE=~/Documents/Sidekick-private/secrets/production.ADMIN_AUTH_SECRET
 ```
 
@@ -124,7 +132,7 @@ Group on a closed track; needs a domain and has NOT been tested against real Goo
 
 ### When a tester writes "no download" or "Play says not available"
 
-1. **Mac download:** `https://side-henna.vercel.app/download/mac` must answer with the file (GitHub Release); only
+1. **Mac download:** `https://sidekickapp.in/download/mac` must answer with the file (GitHub Release); only
    if `mac.directUrl` is ever set back to `null` does it send people to the Drive folder by itself (no page or email
    names Drive any more). A private window shows which. Checksum:
    `shasum -a 256 ~/Downloads/Sidekick-2.0.1-arm64.dmg` must print the SHA-256 shown under "More details".

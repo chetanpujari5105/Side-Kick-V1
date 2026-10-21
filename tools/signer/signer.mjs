@@ -57,7 +57,7 @@ import { makeClient, secretFrom, keychainSecret } from '../lib/client.mjs';
 import { isTokenShaped, normaliseEmail } from '../../server/validate.mjs';
 import { POOL_LABEL, POOL_ADD_MAX } from '../../server/pool.mjs';
 import { CONTACT } from '../../server/emails.mjs';
-import { renderEmail, DUMMY_TOKEN } from '../../server/email-html.mjs';
+import { renderEmail, DUMMY_TOKEN, SITE } from '../../server/email-html.mjs';
 import { loadGroupConfig, runAndroidGroup } from './android-group.mjs';
 import { buildMime, sendSmtp, verifySmtp } from './smtp.mjs';
 import { previewSamples } from './previews.mjs';
@@ -138,9 +138,12 @@ export function readAppPassword(file) {
 // The owner's own addresses: the only recipients of `--send-test`, and the only ones the preview token may reach.
 export const OWNER_ADDRESSES = ['cpujari12@gmail.com', 'chetanpujari92@gmail.com'];
 const iso = () => new Date().toISOString();
-const smtpMessage = (m, messageId) => {
-  const { html, text } = renderEmail(m);
-  return buildMime({ from: CONTACT, to: m.to, subject: m.subject, text, html, messageId });
+// The site the emails link to (logo, footer) and the Message-ID domain: the address this signer talks to, so they follow
+// the site through a change of address (launch log Part 19). Not https (tests, local runs): the default address.
+const siteOf = (cfg) => /^https:\/\/[A-Za-z0-9.-]+$/.test(cfg.base || '') ? cfg.base : SITE;
+const smtpMessage = (m, id, site) => {
+  const { html, text } = renderEmail(m, { site });
+  return buildMime({ from: CONTACT, to: m.to, subject: m.subject, text, html, messageId: `<${id}@${new URL(site).hostname}>` });
 };
 
 // The mailer of one run. mailapp (the default) uses Gmail SMTP when the app password file is there, and falls back to
@@ -167,7 +170,7 @@ export function makeMailer(cfg, { exec = execFile, smtp = sendSmtp, log = consol
       else { sender = 'mail-app'; log(`${iso()} signer mail: ${pw.reason}; sending with Mail.app (plain text) this run`); }
     }
     if (sender === 'mail-app') return app(m);
-    try { await smtp({ user: CONTACT, password, to: m.to, raw: smtpMessage(m, `<outbox-${m.id}@side-henna.vercel.app>`) }); }
+    try { await smtp({ user: CONTACT, password, to: m.to, raw: smtpMessage(m, `outbox-${m.id}`, siteOf(cfg)) }); }
     catch (e) {
       if (e.committed) throw new Error(`SMTP send not confirmed (${e.code || 'error'}); left for the next run`);
       sender = 'mail-app'; password = null;
@@ -194,13 +197,13 @@ export async function sendTest({ cfg, smtp = sendSmtp, to = OWNER_ADDRESSES, log
   if (!to.length || to.some(a => !OWNER_ADDRESSES.includes(a))) throw new Error('send-test sends only to the owner\'s addresses');
   const pw = cfg.smtpPasswordFile ? readAppPassword(cfg.smtpPasswordFile) : { reason: 'no Gmail app password file configured' };
   if (!pw.password) throw new Error(`send-test needs the SMTP sender: ${pw.reason}`);
-  const samples = previewSamples();
+  const samples = previewSamples({ site: siteOf(cfg) });
   for (const [, m] of samples) for (const t of m.text.match(/SIDEKICK-TRIAL-1\.[A-Za-z0-9._-]+/g) || []) if (t !== DUMMY_TOKEN) throw new Error('send-test refused: a sample holds a real-looking token');
   const times = readTimes(cfg, now());
   if (mailBudget(cfg, times, now()) < samples.length * to.length) throw new Error(`send-test needs ${samples.length * to.length} emails of the sending budget; not enough left this hour/day`);
   let sent = 0;
   for (const [kind, m] of samples) for (const addr of to) {
-    const raw = smtpMessage({ ...m, to: addr, subject: `[Preview] ${m.subject}` }, `<preview-${kind}-${crypto.randomBytes(8).toString('hex')}@side-henna.vercel.app>`);
+    const raw = smtpMessage({ ...m, to: addr, subject: `[Preview] ${m.subject}` }, `preview-${kind}-${crypto.randomBytes(8).toString('hex')}`, siteOf(cfg));
     await smtp({ user: CONTACT, password: pw.password, to: addr, raw });
     times.push(now()); writeTimes(cfg, times); sent++;
   }

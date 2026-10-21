@@ -10,7 +10,9 @@
 // handed-over email, the password file must be private, the preview token and --send-test stay with the owner, SMTP
 // dot-stuffing, the email logo is automated-only), and the privacy facts of Part 14 (no per-person download row, roadmap
 // notify closed, delete names the Google account, private files go back to 600) and one privacy page (Part 15), and the site audit of Part 16 (publisher facts filled, the 404 fallback works under
-// the CSP, compact human check in narrow boxes, Android wording, a favicon on server pages). Each mutation breaks one rule in a scratch
+// the CSP, compact human check in narrow boxes, Android wording, a favicon on server pages), and the domain of Part 19
+// (robots.txt/sitemap.xml automated-only and public pages only, absolute canonical and share image from APP_ORIGIN,
+// emails follow SK_API_BASE). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -20,6 +22,15 @@ import { spawnSync } from 'node:child_process';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs', 'test/one-privacy-page.test.mjs', 'test/site-audit.test.mjs'];
 const MUTANTS = [
+  ['domain (Part 19): the sitemap lists the Download page', 'scripts/seo.mjs', '  [\'/Support.dc.html\', \'Support.dc.html\']\n];', '  [\'/Support.dc.html\', \'Support.dc.html\'],\n  [\'/Download.dc.html\', \'Download.dc.html\']\n];', ['test/domain.test.mjs']],
+  ['domain (Part 19): robots.txt closes the whole site', 'scripts/seo.mjs', 'Allow: /\nDisallow: /download/\n', 'Disallow: /\n', ['test/domain.test.mjs']],
+  ['domain (Part 19): crawlers may fetch the download (counts a download)', 'scripts/seo.mjs', 'Disallow: /download/\n', '', ['test/domain.test.mjs']],
+  ['domain (Part 19): robots.txt and sitemap.xml in the manual build', 'scripts/build-site.mjs', 'if (!manual) {\n  fs.writeFileSync(path.join(OUT, \'robots.txt\')', 'if (true) {\n  fs.writeFileSync(path.join(OUT, \'robots.txt\')', ['test/domain.test.mjs']],
+  ['domain (Part 19): the canonical link is relative', 'scripts/seo.mjs', '`<link rel="canonical" href="${origin}${urlPath}">`', '`<link rel="canonical" href="${urlPath}">`', ['test/domain.test.mjs']],
+  ['domain (Part 19): the share image stays relative', 'scripts/seo.mjs', '.replace(OG, `<meta property="og:image" content="${image}">`)', '.replace(OG, OG)', ['test/domain.test.mjs']],
+  ['domain (Part 19): the build ignores APP_ORIGIN', 'scripts/seo.mjs', '  return v;\n}', '  return DEFAULT_ORIGIN;\n}', ['test/domain.test.mjs']],
+  ['domain (Part 19): a Production build without APP_ORIGIN uses the default silently', 'scripts/seo.mjs', '    if (env.VERCEL_ENV === \'production\') throw new Error(', '    if (false) throw new Error(', ['test/domain.test.mjs']],
+  ['domain (Part 19): emails ignore the signer\'s SK_API_BASE', 'tools/signer/signer.mjs', 'const siteOf = (cfg) => /^https:\\/\\/[A-Za-z0-9.-]+$/.test(cfg.base || \'\') ? cfg.base : SITE;', 'const siteOf = (cfg) => SITE;', ['test/domain.test.mjs']],
   ['site audit (Part 16): the effective date is a placeholder again', 'data/site-config.js', "policyEffectiveDate: '19 October 2026'", "policyEffectiveDate: '[set on go-live day]'"],
   ['site audit (Part 16): the 404 fallback uses an inline script the CSP blocks', '404.html', '<meta http-equiv="refresh" content="0; url=/404.dc.html">', "<script>location.replace('/404.dc.html');</script>"],
   ['site audit (Part 16): the human check keeps its 300 px size in a narrow box', 'data/api-client.js', "...(narrow ? { size: 'compact' } : {})", '...({})'],

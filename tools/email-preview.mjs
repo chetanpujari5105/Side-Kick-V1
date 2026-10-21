@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { renderEmail, DUMMY_TOKEN } from '../server/email-html.mjs';
+import { renderEmail, DUMMY_TOKEN, SITE } from '../server/email-html.mjs';
 import { buildMime } from './signer/smtp.mjs';
 import { previewSamples } from './signer/previews.mjs';
 import { CONTACT } from '../server/emails.mjs';
@@ -20,7 +20,7 @@ for (const [name, m] of samples) {
   const { html, text } = renderEmail(m);
   write(`${name}.html`, html);
   write(`${name}.txt`, `Subject: ${m.subject}\n\n${text}\n`);
-  write(`${name}.eml`, buildMime({ from: CONTACT, to: 'preview@example.invalid', subject: m.subject, text, html, messageId: `<preview-${name}@side-henna.vercel.app>` }));
+  write(`${name}.eml`, buildMime({ from: CONTACT, to: 'preview@example.invalid', subject: m.subject, text, html, messageId: `<preview-${name}@${new URL(SITE).hostname}>` }));
   console.log(`${name.padEnd(16)} ${String(Buffer.byteLength(html)).padStart(6)} bytes HTML  "${m.subject}"`);
 }
 console.log(`\n${samples.length} previews in ${dir}`);

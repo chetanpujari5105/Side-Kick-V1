@@ -4,7 +4,9 @@
 // Email-client rules: one column at most 600 px, role="presentation" tables, every style inline plus bgcolor attributes
 // (the <style> block only adds dark-mode and phone overrides), a web-safe font stack, 16 px body text, a hidden
 // preheader, table-cell buttons over 44 px tall, absolute https URLs, and alt/width/height on every image.
-export const SITE = 'https://side-henna.vercel.app';
+// The site's address (launch log Part 19). The signer passes the address it talks to (SK_API_BASE) as `site`, so the
+// logo and the footer follow the site through a change of address; this is the default.
+export const SITE = 'https://sidekickapp.in';
 export const LOGO_URL = SITE + '/email/logo.png';
 // The only token the previews and `signer --send-test` ever show. Not token-shaped (server/validate.mjs isTokenShaped),
 // so the app refuses it and the server never stores it.
@@ -74,7 +76,7 @@ const preheaderOf = (blocks) => {
   return s.length <= 110 ? s : s.slice(0, 109).replace(/\s+\S*$/, '') + '…';
 };
 
-export function renderEmail({ subject, text }) {
+export function renderEmail({ subject, text }, { site = SITE } = {}) {
   const { blocks, signed, footer } = parseEmail(text);
   const out = [];
   let buttons = 0;
@@ -95,7 +97,7 @@ export function renderEmail({ subject, text }) {
   }
   if (signed) out.push(`<p class="sk-text" style="margin:8px 0 0;font-family:${SANS};font-size:16px;line-height:24px;font-weight:600;color:${C.ink};">— Sidekick</p>`);
   const foot = footer.map(lines => `<p class="sk-muted" style="margin:0 0 10px;font-family:${SANS};font-size:13px;line-height:20px;color:${C.muted};">${lines.map(l => linkify(l, C.muted)).join('<br>')}</p>`).join('') +
-    `<p class="sk-muted" style="margin:14px 0 0;font-family:${SANS};font-size:13px;line-height:20px;color:${C.muted};">Sidekick · <a href="${SITE}/" target="_blank" rel="noopener" class="sk-link" style="color:${C.muted};text-decoration:underline;">side-henna.vercel.app</a></p>`;
+    `<p class="sk-muted" style="margin:14px 0 0;font-family:${SANS};font-size:13px;line-height:20px;color:${C.muted};">Sidekick · <a href="${site}/" target="_blank" rel="noopener" class="sk-link" style="color:${C.muted};text-decoration:underline;">${esc(new URL(site).host)}</a></p>`;
   const pre = preheaderOf(blocks);
   const html = `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -136,7 +138,7 @@ export function renderEmail({ subject, text }) {
 ${T(` width="100%" bgcolor="${C.cream}" class="sk-bg" style="background-color:${C.cream};"`)}<tr><td align="center" class="sk-outer" style="padding:28px 12px 32px;">
 <!--[if mso]>${T(' width="600" align="center" style="width:600px;"')}<tr><td style="padding:0;"><![endif]-->
 ${T(' width="100%" style="max-width:600px;width:100%;"')}
-<tr><td style="padding:0 0 18px;">${T(' style="border-collapse:separate;"')}<tr><td bgcolor="${C.cream}" style="background-color:${C.cream};border-radius:12px;padding:6px 10px;"><a href="${SITE}/" target="_blank" rel="noopener" style="display:block;text-decoration:none;"><img src="${LOGO_URL}" width="136" height="36" alt="Sidekick" style="display:block;width:136px;height:36px;border:0;outline:none;text-decoration:none;"></a></td></tr></table></td></tr>
+<tr><td style="padding:0 0 18px;">${T(' style="border-collapse:separate;"')}<tr><td bgcolor="${C.cream}" style="background-color:${C.cream};border-radius:12px;padding:6px 10px;"><a href="${site}/" target="_blank" rel="noopener" style="display:block;text-decoration:none;"><img src="${site}/email/logo.png" width="136" height="36" alt="Sidekick" style="display:block;width:136px;height:36px;border:0;outline:none;text-decoration:none;"></a></td></tr></table></td></tr>
 <tr><td class="sk-card sk-pad" bgcolor="${C.white}" style="background-color:${C.white};border:1px solid ${C.line};border-radius:24px;padding:36px 40px 30px;">
 ${out.join('\n')}
 </td></tr>
