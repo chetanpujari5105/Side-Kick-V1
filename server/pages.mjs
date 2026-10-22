@@ -3,6 +3,7 @@
 import { esc } from './http.mjs';
 import { MSG } from './validate.mjs';
 import { SHORT_STEPS } from './emails.mjs';
+import { tokenEndText } from './pool.mjs';
 
 const STYLE = `body{margin:0;background:#F6F3EC;color:#17142E;font:17px/1.55 -apple-system,BlinkMacSystemFont,Inter,sans-serif}
 main{max-width:620px;margin:0 auto;padding:48px 20px}h1{font-size:40px;line-height:1;letter-spacing:-.03em;margin:0 0 16px}
@@ -29,8 +30,24 @@ function shell({ title, nonce, body, siteKey }) {
 const widget = (siteKey) => siteKey === 'local-dev-fake' ? '<p class="hint m0">Human check (local test stand-in)</p><input type="hidden" name="cf-turnstile-response" value="XXXX.DUMMY.TOKEN.XXXX">'
   : siteKey ? `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}"></div>` : '';
 
+// Why an email link was refused (launch log Part 20): a tester pressed a confirm link twice and read "This link has
+// expired" as their beta token having expired. A used link says so, and every refusal says the key is not affected.
+// The form is offered only for a new link someone still needs, never as the next step for a link that did its job.
+export const LINK_NOTE = 'Your beta key is not affected. This page is only about the link in our email; Sidekick shows how long your key works in Settings › About.';
+const AGAIN = 'If you still need it, fill in the <a href="/Get%20Sidekick.dc.html">Get Sidekick form</a> again with the same email and we\'ll send a new link.';
+const REFUSED = {
+  used: {
+    confirm: ['Link already used', 'This link has already been used.', 'You already confirmed your email with it. There\'s nothing else to do: we email you what comes next.'],
+    updates: ['Link already used', 'This link has already been used.', 'You already confirmed Sidekick updates with it. There\'s nothing else to do.'],
+    access: ['Link already used', 'This link has already been used.', `It opens your download page a few times only, and those are used up. ${AGAIN}`]
+  },
+  expired: ['Link expired', 'This link has expired.', `Links in our emails work for a limited time. If you already did what this link was for, there's nothing else to do. ${AGAIN}`],
+  incomplete: ['Link incomplete', 'This link is incomplete.', 'Part of the link from our email is missing. Open the email again and use its button, or copy the whole link into the address bar.']
+};
+
 // purpose: 'confirm' | 'updates' | 'access' | 'unsubscribe' (roadmap 'notify' is closed: launch log Part 14)
-export function linkPage({ purpose, nonce, siteKey, valid }) {
+// reason (only when !valid): 'used' | 'expired' (also an unknown link) | 'incomplete'
+export function linkPage({ purpose, nonce, siteKey, valid, reason = 'expired' }) {
   const copy = {
     confirm: ['Confirm your email', 'One click to finish signing up for the Sidekick beta.', 'Confirm my email', '/api/confirm-email'],
     updates: ['Confirm Sidekick updates', 'One click and we\'ll email you Sidekick updates. To stop them, write to us at the address on our Privacy page.', 'Yes, email me updates', '/api/confirm-email'],
@@ -40,7 +57,10 @@ export function linkPage({ purpose, nonce, siteKey, valid }) {
   const noscript = purpose === 'unsubscribe'
     ? 'This page needs JavaScript to read the link. Without it, reply to any of our update emails with “unsubscribe” and we\'ll remove you.'
     : 'The human check needs JavaScript. Turn it on and reload this page, or <a href="/Support.dc.html#help">ask us for help</a>.';
-  if (!valid) return shell({ title: 'Link expired', nonce, body: `<h1>This link has expired.</h1><p>Links in our emails work for a limited time and some only once. Fill in the <a href="/Get%20Sidekick.dc.html">Get Sidekick form</a> again with the same email and we'll send a new one.</p>` });
+  if (!valid) {
+    const [title, h, text] = reason === 'used' ? (REFUSED.used[purpose] || REFUSED.expired) : (REFUSED[reason] || REFUSED.expired);
+    return shell({ title, nonce, body: `<h1>${esc(h)}</h1><p>${text}</p><p>${esc(LINK_NOTE)}</p>` });
+  }
   return shell({ title: copy[0], nonce, siteKey, body: `<h1>${esc(copy[0])}</h1><form class="card" method="post" action="${copy[3]}">
 <p class="m0">${esc(copy[1])}</p><input type="hidden" name="t" id="t" value="">${widget(siteKey)}
 <p class="alert m0" id="nolink" hidden>This page needs the whole link from our email. Open the email again and use its link, or copy all of it into the address bar.</p>
@@ -59,8 +79,10 @@ export const ANDROID_TEXT = {
 // The token is shown here once, so nothing here navigates this tab away (launch log Part 8): no meta refresh, and the
 // download is a normal link that opens a new tab, whether /download/mac sends the file itself or the Drive folder.
 // Short content (launch log Part 11): one download link, three steps; the checksum only under More details; no Drive.
+// The token's end date under the token (launch log Part 20); Get Sidekick.dc.html says the same (resUntil).
+export const untilLine = (until) => `It works until ${until}. If Sidekick later says your beta access has ended, write to us for a new token.`;
 export function resultPage({ nonce, firstName, token, download, release, android }) {
-  const b = release.mac.builds.arm64;
+  const b = release.mac.builds.arm64, until = tokenEndText(token);
   const button = `<p class="m0"><a class="btn" href="${download.url}" target="_blank" rel="noopener">Download the Mac app</a></p>`;
   const steps = SHORT_STEPS(b.file).map(x => `<li class="step">${esc(x)}</li>`).join('');
   const all = (release.mac.installSteps || []).map(x => `<li>${esc(x)}</li>`).join('');
@@ -69,7 +91,7 @@ export function resultPage({ nonce, firstName, token, download, release, android
     : android === 'google-group' ? `<section class="card"><p class="m0">${esc(ANDROID_TEXT['google-group'])}</p></section>` : '';
   const body = `<h1>You're in, ${esc(firstName)}.</h1>${button}
 <section class="card" aria-labelledby="tok-h"><h2 id="tok-h" class="m0">Your beta token</h2><p class="m0">Paste it in Sidekick the first time you open it. It is shown only here, so copy it now (or use Email me a copy below).</p>
-<code class="tok" id="tok">${esc(token)}</code><button type="button" class="sec" id="copy" hidden>Copy</button></section>
+<code class="tok" id="tok">${esc(token)}</code><button type="button" class="sec" id="copy" hidden>Copy</button>${until ? `<p class="m0">${esc(untilLine(until))}</p>` : ''}</section>
 <section class="card" aria-labelledby="inst-h"><h2 id="inst-h" class="m0">Install</h2><ol>${steps}</ol>
 <details><summary>More details</summary><ol>${all}</ol><p>SHA-256 of ${esc(b.file)} (to check the download; not your token):<br><code>${esc(b.sha256 || 'not staged yet')}</code></p></details></section>
 ${androidBlock}<form method="post" action="/api/email-copy"><button type="submit" class="sec">Email me a copy</button></form>

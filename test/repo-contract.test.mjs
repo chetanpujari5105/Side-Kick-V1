@@ -77,6 +77,19 @@ for (const [name, make] of [['MemoryRepo', async () => new MemoryRepo()], ['PgRe
     assert.equal(await r.useLink('nope', T), null);
   });
 
+  test(`${name}: linkState says why a link can't be used (launch log Part 20)`, async () => {
+    const r = await make();
+    const { signup } = await r.upsertSignup(person('w@example.com'), T);
+    await r.createLink({ hash: 'w1', purpose: 'marketing_confirm', refId: signup.id, expiresAt: T + H, maxUses: 1 }, T);
+    assert.deepEqual(await r.linkState('w1', T), { purpose: 'marketing_confirm', state: 'ok' });
+    await r.useLink('w1', T);
+    assert.deepEqual(await r.linkState('w1', T), { purpose: 'marketing_confirm', state: 'used' });
+    assert.deepEqual(await r.linkState('w1', T + H), { purpose: 'marketing_confirm', state: 'used' }, 'used wins over expired');
+    await r.createLink({ hash: 'w2', purpose: 'signup_confirm', refId: signup.id, expiresAt: T + H, maxUses: 1 }, T);
+    assert.deepEqual(await r.linkState('w2', T + H), { purpose: 'signup_confirm', state: 'expired' });
+    assert.equal(await r.linkState('nope', T), null);
+  });
+
   test(`${name}: approval cap, allow/deny, promote`, async () => {
     const r = await make();
     await r.setSettings({ betaCap: 1, allow: ['@vip.example'], deny: ['bad@example.com'] });

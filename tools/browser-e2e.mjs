@@ -224,6 +224,10 @@ try {
   check('Android card: by invitation through Google Play testing (no "not available")', txt.includes('By invitation through Google Play testing.') && !/Not available yet|isn.t available yet/.test(txt));
   const sha = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/releases.json'), 'utf8')).mac.builds.arm64.sha256;
   check('checksum is exactly releases.json\'s, only under a closed "More details" (launch log Part 11)', await a.eval(`(() => { const d = document.getElementById('more-details'); return !!d && !d.open && d.querySelector('summary').textContent.trim() === 'More details' && d.textContent.includes(${JSON.stringify(sha || 'The checksum appears here once the beta build is staged.')}); })()`) && (!sha || !txt.includes(sha)), sha ? sha.slice(0, 12) + '…' : 'null');
+  // Part 20: the same confirm link a second time says it was used, never "expired", and that the token is not affected.
+  await a.go('about:blank'); await a.go(confirmUrl); await a.eval(click('button[type=submit]')); await sleep(1500);
+  txt = await a.text();
+  check('the same confirm link again: "already confirmed your email", not "expired", token not affected (Part 20)', txt.includes('This link has already been used.') && txt.includes('You already confirmed your email') && !/expired/i.test(txt) && txt.includes('Your beta key is not affected'), txt.replace(/\s+/g, ' ').slice(0, 200));
 
   // 3. Signer on "the owner's Mac": throwaway key, fake issuer, posts token, sends the outbox.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-signer-'));
@@ -260,6 +264,9 @@ try {
   await fetch(O + '/api/get-sidekick', { method: 'POST', headers: { 'content-type': 'application/json', origin: O }, body: JSON.stringify({ name: 'Una', email: 'una@example.com', macChip: 'apple', phoneModel: 'Pixel 7', googleEmail: 'una@gmail.com', privacyAccepted: true, marketingOptIn: true, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
   const updT = ((await outbox()).filter(m => m.kind === 'confirm').map(m => m.text).join('\n').match(/confirm-email\?for=updates#t=([A-Za-z0-9_-]{43})/) || [])[1];
   await fetch(O + '/api/confirm-email', { method: 'POST', headers: { 'content-type': 'application/json', origin: O }, body: JSON.stringify({ t: updT, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
+  await b.go(`${O}/api/confirm-email?for=updates#t=${updT}`); await b.eval(click('button[type=submit]')); await sleep(1500);
+  txt = await b.text();
+  check('the updates link pressed again after confirming: "already confirmed Sidekick updates", not "expired" (Part 20)', txt.includes('This link has already been used.') && txt.includes('You already confirmed Sidekick updates') && !/expired/i.test(txt) && txt.includes('Your beta key is not affected'), txt.replace(/\s+/g, ' ').slice(0, 200));
   check('announce --dry-run counts one subscriber', (await adminC('announce', { subject: 'Sidekick update', body: 'Hello.', dryRun: true })).recipients === 1);
   await adminC('announce', { subject: 'Sidekick update', body: 'Hello.' });
   const unsubUrl = linkIn((await outbox()).find(m => m.kind === 'announce').text, '/api/unsubscribe');
@@ -269,7 +276,7 @@ try {
   await b.eval(click('button[type=submit]')); await sleep(1500);
   check('after the button: unsubscribed', (await b.text()).includes('Unsubscribed') && !dev.repo.debugAll('signups').find(s => s.email === 'una@example.com').marketingConfirmedAt);
   await b.go('about:blank'); await b.go(unsubUrl); await b.eval(click('button[type=submit]')); await sleep(1500); // (same URL + #t: leave first, or it is only a fragment change)
-  check('the same link again: already used (410)', (await b.text()).includes('Link already used'));
+  check('the same link again: already used (410), beta key not affected', (txt = await b.text()).includes('Link already used') && txt.includes('Your beta key is not affected'));
 
   // 5. No JavaScript: the plain form is there and fails closed on the human check.
   const c = await tab({ noJs: true, context: (await send('Target.createBrowserContext')).result.browserContextId });
@@ -354,6 +361,7 @@ try {
   txt = await i.text();
   const shown = dev.repo.debugAll('signups').find(s => s.email === 'ina@example.com');
   check('one click → "You\'re in, Ina" on the same page, with the token, three steps and More details', txt.includes("You're in, Ina.") && /SIDEKICK-TRIAL-1\./.test(txt) && (await i.eval(`document.querySelectorAll('#result li.step').length`)) === 3 && txt.includes('More details') && txt.includes('Download again'), `api ${i.api.join(',')} errors ${i.errors.join(' | ').slice(0, 300)} page ${txt.slice(txt.indexOf('Get Sidekick', 30), txt.indexOf('Get Sidekick', 30) + 500)}`);
+  check('the result page says when the token ends and what to do then (Part 20)', /It works until \d{1,2} [A-Z][a-z]{2} \d{4}, \d{2}:\d{2} UTC\. If Sidekick later says your beta access has ended, write to us for a new token\./.test(txt));
   check('the result shows the Android line exactly once, and not the form note', txt.split("Android: we're adding your Google account").length === 2 && !txt.includes('Android: join the Google Play test'), `${txt.split('Android:').length - 1} Android lines`);
   check('"Download again" is visible and opens a new tab (never this one)', await i.eval(`(() => { const a = document.getElementById('dl-again'); return !!a && a.offsetParent !== null && a.textContent.trim() === 'Download again' && a.target === '_blank' && a.getAttribute('href') === '/download/mac'; })()`));
   check('no Drive link on the result page (short content, launch log Part 11)', await i.eval(`document.querySelectorAll('#result a[href*="drive.google.com"]').length === 0 && !/Google Drive/.test(document.getElementById('result').textContent)`));

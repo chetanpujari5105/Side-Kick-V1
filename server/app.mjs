@@ -6,8 +6,8 @@ import { openSession, sessionCookie, COOKIE, SESSION_TTL_S } from './session.mjs
 import { validateSignup, validateFeedback, isTokenShaped, tokenLabel, normaliseEmail } from './validate.mjs';
 import { publicReleases, releaseProblems } from './releases.mjs';
 import { emails, capFirst } from './emails.mjs';
-import { linkPage, messagePage, signupFormPage, resultPage, alreadyPage, NO_JS_BOT, BOT_FAILED, RATE_TEXT, SERVER_TEXT } from './pages.mjs';
-import { poolRules, poolTokenEnd, POOL_ADD_MAX } from './pool.mjs';
+import { linkPage, messagePage, signupFormPage, resultPage, alreadyPage, LINK_NOTE, NO_JS_BOT, BOT_FAILED, RATE_TEXT, SERVER_TEXT } from './pages.mjs';
+import { poolRules, poolTokenEnd, tokenEndText, POOL_ADD_MAX } from './pool.mjs';
 
 const H = 3600 * 1000;
 const LINK = {
@@ -178,7 +178,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
       const cookie = setSession({ k: 'in', sid: s.id });
       const android = s.googleEmail ? config.androidAccess : null;
       if (asPage) return html(200, resultPage({ nonce, firstName: firstName(s.name), token, download: downloadInfo(), release: releases, android }), nonce, { 'set-cookie': cookie });
-      return json(200, { ok: true, stage: 'in', firstName: firstName(s.name), token, download: downloadInfo(), android }, { 'set-cookie': cookie });
+      return json(200, { ok: true, stage: 'in', firstName: firstName(s.name), token, tokenUntil: tokenEndText(token), download: downloadInfo(), android }, { 'set-cookie': cookie });
     }
     if (outcome === 'already') return asPage ? html(200, alreadyPage({ nonce }), nonce) : json(200, { ok: true, stage: 'already' });
     const cookie = setSession({ k: 'form', n: firstName(v.value.name) });
@@ -245,17 +245,26 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     const { data, form } = await readBody(request);
     const asPage = form || wantsHtml(request);
     const nonce = newNonce();
-    const gone = () => asPage ? html(410, linkPage({ purpose: 'confirm', t: '', nonce, valid: false }), nonce) : json(410, { ok: false, error: 'LINK_EXPIRED' });
+    // Still 410 for all three, but the page says which (launch log Part 20): a link used once already, one past its time
+    // (or unknown), or one cut short. A used link names what it confirmed; nothing else about the person is shown.
+    const PAGE = { signup_confirm: 'confirm', marketing_confirm: 'updates', access: 'access' };
+    const ERROR = { used: 'LINK_USED', incomplete: 'LINK_INCOMPLETE' };
+    const gone = (reason = 'expired', purpose = 'confirm') => asPage ? html(410, linkPage({ purpose, nonce, valid: false, reason }), nonce) : json(410, { ok: false, error: ERROR[reason] || 'LINK_EXPIRED' });
+    const refused = async (hash) => {
+      const st = await repo.linkState(hash, now());
+      return st && st.state === 'used' && PAGE[st.purpose] && (path === 'access') === (st.purpose === 'access') ? gone('used', PAGE[st.purpose]) : gone();
+    };
     const ra = await limited('link_ip', clientIp(request));
     if (ra) return asPage ? html(429, messagePage({ nonce, title: 'Too many tries', text: RATE_TEXT }).body, nonce) : tooMany(ra);
     const t = typeof data.t === 'string' ? data.t : '';
-    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return gone();
+    if (!/^[A-Za-z0-9_-]{43}$/.test(t)) return gone('incomplete');
     if (!await human(form ? data['cf-turnstile-response'] : data.captchaToken, request))
       return asPage ? html(403, messagePage({ nonce, title: 'Human check failed', text: 'We couldn\'t confirm you\'re not a bot. It needs JavaScript: go back, turn it on and try again.' }).body, nonce) : json(403, { ok: false, error: 'BOT_CHECK_FAILED' });
     const peek = await repo.peekLink(sha256hex(t), now());
-    if (!peek || peek.purpose === 'unsubscribe' || peek.purpose === 'roadmap_confirm' || ((path === 'access') !== (peek.purpose === 'access'))) return gone();
+    if (!peek) return refused(sha256hex(t));
+    if (peek.purpose === 'unsubscribe' || peek.purpose === 'roadmap_confirm' || ((path === 'access') !== (peek.purpose === 'access'))) return gone();
     const link = await repo.useLink(sha256hex(t), now());
-    if (!link) return gone();
+    if (!link) return refused(sha256hex(t));
     log.info('link.used', { purpose: link.purpose });
 
     if (link.purpose === 'marketing_confirm') {
@@ -283,7 +292,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     const { data, form } = await readBody(request);
     const asPage = form || wantsHtml(request);
     const nonce = newNonce();
-    const gone = () => asPage ? html(410, messagePage({ nonce, title: 'Link already used', text: 'This unsubscribe link has been used or has expired. If you still get update emails, reply to one with "unsubscribe" and we\'ll remove you.' }).body, nonce) : json(410, { ok: false, error: 'LINK_EXPIRED' });
+    const gone = () => asPage ? html(410, messagePage({ nonce, title: 'Link already used', text: `This unsubscribe link has been used or has expired. If you still get update emails, reply to one with "unsubscribe" and we'll remove you. ${LINK_NOTE}` }).body, nonce) : json(410, { ok: false, error: 'LINK_EXPIRED' });
     const ra = await limited('link_ip', clientIp(request));
     if (ra) return asPage ? html(429, messagePage({ nonce, title: 'Too many tries', text: RATE_TEXT }).body, nonce) : tooMany(ra);
     const t = typeof data.t === 'string' ? data.t : '';
@@ -476,6 +485,21 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         const r = await repo.deleteByEmail(e);
         log.info('admin.deleted', { count: r.signups, notify: r.notify, feedback: r.feedback });
         return json(200, { ok: true, deleted: r.signups, notify: r.notify, feedback: r.feedback, signupId: s ? s.id : null, googleEmail: s ? s.googleEmail || null : null });
+      }
+      case 'resend-token': {
+        // A person's own token again, as the "Email me a copy" email, to the address on their sign-up only (launch log
+        // Part 20). Without yes: true it only shows that email with the token blanked out; nothing is queued. The token
+        // never comes back to the CLI and is never logged.
+        const s = await findPerson(data);
+        if (!s) return json(404, { ok: false, error: 'NOT_FOUND' });
+        const token = s.state === 'delivered' ? (await repo.poolTokenFor(s.id)) || s.token || null : null;
+        if (!token) return json(409, { ok: false, error: 'NO_TOKEN' });
+        const m = emails.copy({ name: s.name, token, downloadUrl, release: releases });
+        const tokenUntil = tokenEndText(token);
+        if (data.yes !== true) return json(200, { ok: true, queued: 0, to: s.emailNorm, subject: m.subject, text: m.text.split(token).join('[token]'), tokenUntil });
+        await queueMail(m, { to: s.emailNorm, signupId: s.id, capped: false });
+        log.info('admin.token_resent', { signupId: s.id });
+        return json(200, { ok: true, queued: 1, to: s.emailNorm, tokenUntil });
       }
       case 'unsubscribe': {
         const s = await findPerson(data);

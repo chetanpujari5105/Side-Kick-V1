@@ -12,7 +12,9 @@
 // notify closed, delete names the Google account, private files go back to 600) and one privacy page (Part 15), and the site audit of Part 16 (publisher facts filled, the 404 fallback works under
 // the CSP, compact human check in narrow boxes, Android wording, a favicon on server pages), and the domain of Part 19
 // (robots.txt/sitemap.xml automated-only and public pages only, absolute canonical and share image from APP_ORIGIN,
-// emails follow SK_API_BASE). Each mutation breaks one rule in a scratch
+// emails follow SK_API_BASE), and the "expired" report of Part 20 (a used link says used, never expired; every refusal
+// says the token is not affected; the emails and the result page give the token's own end date; resend-token shows
+// before it sends, never returns the token, and goes to the sign-up's own address). Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -22,6 +24,20 @@ import { spawnSync } from 'node:child_process';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs', 'test/one-privacy-page.test.mjs', 'test/site-audit.test.mjs'];
 const MUTANTS = [
+  ['expired report (Part 20): a used link says "expired" again', 'server/app.mjs', "? gone('used', PAGE[st.purpose]) : gone();", ": gone();", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): an expired link sends everyone back to the form', 'server/pages.mjs', "const AGAIN = 'If you still need it, fill in", "const AGAIN = 'Fill in", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): the unsubscribe refusal drops "your beta key is not affected"', 'server/app.mjs', " ${LINK_NOTE}` }).body", "` }).body", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): a cut-off link says "expired"', 'server/app.mjs', "return gone('incomplete');", "return gone();", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): refusal pages drop "your beta token is not affected"', 'server/pages.mjs', "<p>${esc(LINK_NOTE)}</p>", "", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): emails say "45 days from the day it was made" for a token with a known end', 'server/emails.mjs', "const until = tokenEndText(token);", "const until = null;", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): emails no longer say what to do when the token ends', 'server/emails.mjs', "' If Sidekick says your beta access has ended, reply to this email for a new token.'", "''", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): the instant answer has no end date', 'server/app.mjs', "tokenUntil: tokenEndText(token), download", "download", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): the no-JS result page has no end date', 'server/pages.mjs', "until = tokenEndText(token);", "until = null;", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): resend-token queues without --yes', 'server/app.mjs', "if (data.yes !== true) return json(200, { ok: true, queued: 0,", "if (false) return json(200, { ok: true, queued: 0,", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): resend-token preview shows the token', 'server/app.mjs', "text: m.text.split(token).join('[token]')", "text: m.text", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): resend-token answers with the token', 'server/app.mjs', "return json(200, { ok: true, queued: 1, to: s.emailNorm, tokenUntil });", "return json(200, { ok: true, queued: 1, to: s.emailNorm, tokenUntil, token });", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): linkState (Postgres) lets expired win over used', 'server/repo-pg.mjs', "case when uses >= max_uses then 'used' when expires_at <= $2 then 'expired'", "case when expires_at <= $2 then 'expired' when uses >= max_uses then 'used'", ['test/used-link.test.mjs', 'test/repo-contract.test.mjs']],
+  ['expired report (Part 20): linkState (MemoryRepo) lets expired win over used', 'server/repo-memory.mjs', "l.uses >= l.maxUses ? 'used' : l.expiresAt.getTime() <= now ? 'expired' : 'ok'", "l.expiresAt.getTime() <= now ? 'expired' : l.uses >= l.maxUses ? 'used' : 'ok'", ['test/used-link.test.mjs', 'test/repo-contract.test.mjs']],
   ['domain (Part 19): the sitemap lists the Download page', 'scripts/seo.mjs', '  [\'/Support.dc.html\', \'Support.dc.html\']\n];', '  [\'/Support.dc.html\', \'Support.dc.html\'],\n  [\'/Download.dc.html\', \'Download.dc.html\']\n];', ['test/domain.test.mjs']],
   ['domain (Part 19): robots.txt closes the whole site', 'scripts/seo.mjs', 'Allow: /\nDisallow: /download/\n', 'Disallow: /\n', ['test/domain.test.mjs']],
   ['domain (Part 19): crawlers may fetch the download (counts a download)', 'scripts/seo.mjs', 'Disallow: /download/\n', '', ['test/domain.test.mjs']],
@@ -59,7 +75,7 @@ const MUTANTS = [
   ['this submission (MemoryRepo): unticked keeps the request', 'server/repo-memory.mjs', "s.marketingRequestedAt = wanted === true ? (s.marketingRequestedAt || new Date(now)) : null;", "s.marketingRequestedAt = wanted === true ? (s.marketingRequestedAt || new Date(now)) : s.marketingRequestedAt;"],
   ['this submission (PgRepo): unticked keeps the request', 'server/repo-pg.mjs', 'coalesce(marketing_requested_at, $3) else null end', 'coalesce(marketing_requested_at, $3) else marketing_requested_at end'],
   ['this submission (validate): updates default to yes', 'server/validate.mjs', 'marketingOptIn: truthy(body.marketingOptIn)', 'marketingOptIn: body.marketingOptIn !== false'],
-  ['unsubscribe token opens a session elsewhere', 'server/app.mjs', "if (!peek || peek.purpose === 'unsubscribe' || ", 'if (!peek || '],
+  ['unsubscribe token opens a session elsewhere', 'server/app.mjs', "if (peek.purpose === 'unsubscribe' || ", 'if ('],
   ['one-click (API): a repeat sign-up is shown the token', 'server/app.mjs', "if (outcome === 'already') return asPage ? html(200, alreadyPage({ nonce }), nonce) : json(200, { ok: true, stage: 'already' });", "if (outcome === 'already') return json(200, { ok: true, stage: 'already', token: await repo.poolTokenFor(s.id) });"],
   ['one-click (MemoryRepo): no 35-day minimum', 'server/repo-memory.mjs', 'p.createdAt.getTime() >= now - maxAgeMs && p.notAfter.getTime() >= now + minLeftMs', 'p.createdAt.getTime() >= now - maxAgeMs'],
   ['one-click (PgRepo): no 35-day minimum', 'server/repo-pg.mjs', 'and p.created_at >= $3 and p.not_after >= $4', 'and p.created_at >= $3 and $4::timestamptz is not null'],

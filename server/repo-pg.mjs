@@ -75,6 +75,12 @@ export class PgRepo {
   async useLink(hash, now) {
     return one(await this.q('update email_links set uses = uses + 1, used_at = $2 where hash = $1 and expires_at > $2 and uses < max_uses returning *', [hash, d(now)]));
   }
+  // Why a link can't be used, for the page that says so (launch log Part 20): used wins over expired.
+  async linkState(hash, now) {
+    const r = (await this.q(`select purpose, case when uses >= max_uses then 'used' when expires_at <= $2 then 'expired' else 'ok' end as state
+      from email_links where hash = $1`, [hash, d(now)]))[0];
+    return r ? { purpose: r.purpose, state: r.state } : null;
+  }
 
   async confirmSignup(id, now, defaultCap) {
     const t = d(now);
