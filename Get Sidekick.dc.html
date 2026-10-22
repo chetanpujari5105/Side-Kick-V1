@@ -86,6 +86,7 @@ a:hover{color:#3A22B8;}
           <code id="res-token" style="font:13.5px/1.5 'JetBrains Mono',monospace;word-break:break-all;background:#0A0A0A;border-radius:12px;padding:12px 14px;user-select:all;">{{ resToken }}</code>
           <button type="button" id="copy-token" onClick="{{ copyToken }}" style="align-self:flex-start;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #C6FF33;background:transparent;color:#C6FF33;font:600 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:18px;">{{ copyIcon }}</span>{{ copyLabel }}</button>
           <span style="font-size:15px;line-height:1.5;color:#C9C6DA;">Paste it in Sidekick the first time you open it. It is shown only here, so copy it now.</span>
+          <sc-if value="{{ resUntil }}"><span id="res-until" style="font-size:15px;line-height:1.5;color:#C9C6DA;">{{ resUntil }}</span></sc-if>
         </section>
         <section aria-labelledby="inst-h" style="display:flex;flex-direction:column;gap:10px;">
           <h3 id="inst-h" style="margin:0;font-size:19px;">Install</h3>
@@ -390,7 +391,9 @@ class Component extends DCLogic {
       busy: busy ? 'true' : 'false', busyBool: busy, btnDisabled: busy || mocks, cursor: busy ? 'progress' : 'pointer', btnOpacity: busy ? 0.85 : 1,
       btnLabel: mocks ? 'Not open yet' : (busy ? 'Getting it…' : 'Get the Mac app'),
       isSuccess: success, isAlready: already, isIn, showForm: !success && !already && !isIn,
-      resName: Component.cap(res.firstName || ''), resToken: res.token || '', resAuto: isIn && !!dl.auto, resManual: isIn && !dl.auto,
+      resName: Component.cap(res.firstName || ''), resToken: res.token || '',
+      // the token's end date, as the server page says it (server/pages.mjs untilLine; launch log Part 20)
+      resUntil: res.tokenUntil ? `It works until ${res.tokenUntil}. If Sidekick later says your beta access has ended, write to us for a new token.` : '', resAuto: isIn && !!dl.auto, resManual: isIn && !dl.auto,
       resDlLine: dl.auto ? 'Your download starts in a moment. Then follow the three steps below.' : 'Download the Mac app, then follow the three steps below.',
       resSteps: Component.STEPS(file), resAllSteps: R.mac.installSteps || [], resFile: file, resSha: dl.sha256 || (R.mac.builds.arm64 || {}).sha256 || 'not staged yet',
       resAndroid: res.android ? Component.ANDROID[res.android] || null : null,

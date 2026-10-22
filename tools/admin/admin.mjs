@@ -6,6 +6,9 @@
 //                                                                  requests and feedback from that address, and the signer's
 //                                                                  local token copy in SK_TOKENS_DIR; see OWNER-SETUP §10)
 //   node tools/admin/admin.mjs unsubscribe <email|signupId>       (stops updates and roadmap emails for that address)
+//   node tools/admin/admin.mjs resend-token <email|signupId> [--yes]
+//        a person's own token again ("You're in" email: download link, token, its end date), to the address on that
+//        sign-up only (launch log Part 20). Without --yes it prints that email with the token blanked and queues nothing.
 //   node tools/admin/admin.mjs settings [--cap 25] [--allow a@x.com,@friends.org] [--deny b@y.com]
 //   node tools/admin/admin.mjs promote | retention | migrate      (migrate: schema v1 + v2, run inside Vercel)
 //   node tools/admin/admin.mjs play-pending [--out play-testers.csv]
@@ -46,6 +49,7 @@ const calls = {
   'set-state': () => post('set-state', { ...who(rest[0]), state: rest[1] }),
   delete: () => post('delete', who(rest[0])),
   unsubscribe: () => post('unsubscribe', who(rest[0])),
+  'resend-token': () => post('resend-token', { ...who(rest[0]), yes: rest.includes('--yes') }),
   settings: () => post('settings', { ...(flag('--cap') !== undefined ? { betaCap: Number(flag('--cap')) } : {}), allow: list(flag('--allow')), deny: list(flag('--deny')) }),
   promote: () => post('promote'),
   migrate: () => post('migrate'),
@@ -93,6 +97,9 @@ if (cmd === 'play-batch') {
   if (r.count) console.log(`\nTo ADD them (keeps everyone already on the list), paste this into Play Console › Testing › Internal testing › Testers › your list › "Add email addresses":\n${r.csv.trim().split('\n').join(', ')}`);
   if (out) console.log(`\nWrote the full list (${r.total}) to ${out} (mode 600). "Upload CSV file" REPLACES the list: use it only if the list holds nobody else.`);
   console.log('\nThen: node tools/admin/admin.mjs play-mark-added <the same addresses>   (or --file <file>)');
+} else if (cmd === 'resend-token') {
+  if (r.queued) console.log(`Queued 1 email to ${r.to} (token works until ${r.tokenUntil || 'the date inside it'}). The signer sends it on its next run.`);
+  else console.log(`To: ${r.to}\nSubject: ${r.subject}\n\n${r.text}\n\nNothing was queued. To send it: node tools/admin/admin.mjs resend-token ${rest[0]} --yes`);
 } else if (cmd === 'announce') {
   console.log(r.queued ? `Queued ${r.queued} update email(s) for ${r.recipients} subscriber(s). The signer sends them within its hourly budget.` : `Dry run: ${r.recipients} subscriber(s) would get it. Nothing was queued.`);
 } else if (cmd === 'export') {

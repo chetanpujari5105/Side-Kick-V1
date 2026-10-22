@@ -49,6 +49,12 @@ export class MemoryRepo {
     l.uses++; l.usedAt = new Date(now);
     return clone(l);
   }
+  // Why a link can't be used, for the page that says so (launch log Part 20): used wins over expired.
+  async linkState(hash, now) {
+    const l = this.links.get(hash);
+    if (!l) return null;
+    return { purpose: l.purpose, state: l.uses >= l.maxUses ? 'used' : l.expiresAt.getTime() <= now ? 'expired' : 'ok' };
+  }
 
   _match(list, email) { const dom = '@' + email.split('@')[1]; return list.some(p => p === email || p === dom); }
   async _cap(defaultCap) { return this.settings.betaCap ?? defaultCap; }

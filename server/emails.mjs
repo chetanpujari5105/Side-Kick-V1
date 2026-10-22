@@ -6,6 +6,7 @@
 // announcement's, which only the owner sets (admin announce, checked for line breaks).
 // Short content: one download link (/download/mac) and three install steps; no Drive folder, no SHA-256, no "full steps".
 import { cleanText } from './validate.mjs';
+import { tokenEndText } from './pool.mjs';
 
 export const CONTACT = 'chetanpujari.sitit@gmail.com';
 // The token's length, as the Mac app's docs state it: "signed, time-boxed tokens, 45 days"
@@ -33,7 +34,13 @@ export const SHORT_STEPS = (file) => [
 ];
 const APPLE_SILICON = 'For Macs with Apple silicon (M1 or later).';
 const COPY_HINT = 'Select and copy the whole line, from SIDEKICK-TRIAL-1 to its last character.';
-const tokenFacts = `It works for ${TOKEN_DAYS} days from the day it was made. It is yours: please don't share it. Sidekick checks it on your Mac and sends it nowhere.`;
+// How long the token works: its own end date when it can be read (a pool token can be minted days before it is handed
+// out, so "45 days from the day it was made" read as 45 days from today; launch log Part 20), and what to do then.
+const tokenFacts = (token) => {
+  const until = tokenEndText(token);
+  return `${until ? `It works until ${until}.` : `It works for ${TOKEN_DAYS} days from the day it was made.`} It is yours: please don't share it. Sidekick checks it on your Mac and sends it nowhere.` +
+    ' If Sidekick says your beta access has ended, reply to this email for a new token.';
+};
 
 // Android: the Play test link as a button, the one line about the Google account, three steps to install and pair.
 const android = (release, googleEmail) => {
@@ -70,7 +77,7 @@ export const emails = {
   // showed, sent only to the address on the sign-up. token is null when it has already been erased (after 46 days).
   copy: ({ name, token, downloadUrl, release }) => {
     const n = firstName(name), b = release.mac.builds.arm64;
-    const tok = token ? `YOUR BETA TOKEN\n\n${token}\n\n${COPY_HINT} ${tokenFacts}`
+    const tok = token ? `YOUR BETA TOKEN\n\n${token}\n\n${COPY_HINT} ${tokenFacts(token)}`
       : 'YOUR BETA TOKEN\n\nIt was on the page you saw when you signed up, or in our earlier email. If you can\'t find it, reply to this email.';
     return {
       kind: 'copy',
@@ -114,7 +121,7 @@ export const emails = {
   token: ({ name, token }) => ({
     kind: 'token',
     subject: 'Your Sidekick beta token',
-    text: hi(name, n => withName(n, 'Here is your beta token')) + `\n\nYOUR BETA TOKEN\n\n${token}\n\n${COPY_HINT} ${tokenFacts}\n\nHOW TO ENTER IT\n\n` +
+    text: hi(name, n => withName(n, 'Here is your beta token')) + `\n\nYOUR BETA TOKEN\n\n${token}\n\n${COPY_HINT} ${tokenFacts(token)}\n\nHOW TO ENTER IT\n\n` +
       numbered([
         'Install Sidekick on your Mac first (the steps are in our other email, "Your Sidekick beta invitation").',
         'Copy the whole token line above.',

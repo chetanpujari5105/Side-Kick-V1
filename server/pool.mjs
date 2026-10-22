@@ -22,3 +22,13 @@ export function poolTokenEnd(token) {
   const from = Date.parse(p.notBefore), to = Date.parse(p.notAfter);
   return Number.isFinite(from) && Number.isFinite(to) && to > from ? to : null;
 }
+
+// The end date as people read it (launch log Part 20): "29 Nov 2026, 00:00 UTC", the exact instant inside the token, so
+// the page and the emails say the same as the token whatever day it was minted. null when it can't be read.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export function tokenEndText(token) {
+  const end = poolTokenEnd(token);
+  if (end === null) return null;
+  const d = new Date(end), two = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${two(d.getUTCHours())}:${two(d.getUTCMinutes())} UTC`;
+}
