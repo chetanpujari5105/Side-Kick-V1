@@ -227,7 +227,7 @@ try {
   // Part 20: the same confirm link a second time says it was used, never "expired", and that the token is not affected.
   await a.go('about:blank'); await a.go(confirmUrl); await a.eval(click('button[type=submit]')); await sleep(1500);
   txt = await a.text();
-  check('the same confirm link again: "already confirmed your email", not "expired", token not affected (Part 20)', txt.includes('You already confirmed your email.') && !/expired/i.test(txt) && txt.includes('Your beta token is not affected'), txt.replace(/\s+/g, ' ').slice(0, 200));
+  check('the same confirm link again: "already confirmed your email", not "expired", token not affected (Part 20)', txt.includes('This link has already been used.') && txt.includes('You already confirmed your email') && !/expired/i.test(txt) && txt.includes('Your beta key is not affected'), txt.replace(/\s+/g, ' ').slice(0, 200));
 
   // 3. Signer on "the owner's Mac": throwaway key, fake issuer, posts token, sends the outbox.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sk-e2e-signer-'));
@@ -266,7 +266,7 @@ try {
   await fetch(O + '/api/confirm-email', { method: 'POST', headers: { 'content-type': 'application/json', origin: O }, body: JSON.stringify({ t: updT, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });
   await b.go(`${O}/api/confirm-email?for=updates#t=${updT}`); await b.eval(click('button[type=submit]')); await sleep(1500);
   txt = await b.text();
-  check('the updates link pressed again after confirming: "already confirmed Sidekick updates", not "expired" (Part 20)', txt.includes('You already confirmed Sidekick updates.') && !/expired/i.test(txt) && txt.includes('Your beta token is not affected'), txt.replace(/\s+/g, ' ').slice(0, 200));
+  check('the updates link pressed again after confirming: "already confirmed Sidekick updates", not "expired" (Part 20)', txt.includes('This link has already been used.') && txt.includes('You already confirmed Sidekick updates') && !/expired/i.test(txt) && txt.includes('Your beta key is not affected'), txt.replace(/\s+/g, ' ').slice(0, 200));
   check('announce --dry-run counts one subscriber', (await adminC('announce', { subject: 'Sidekick update', body: 'Hello.', dryRun: true })).recipients === 1);
   await adminC('announce', { subject: 'Sidekick update', body: 'Hello.' });
   const unsubUrl = linkIn((await outbox()).find(m => m.kind === 'announce').text, '/api/unsubscribe');
@@ -276,7 +276,7 @@ try {
   await b.eval(click('button[type=submit]')); await sleep(1500);
   check('after the button: unsubscribed', (await b.text()).includes('Unsubscribed') && !dev.repo.debugAll('signups').find(s => s.email === 'una@example.com').marketingConfirmedAt);
   await b.go('about:blank'); await b.go(unsubUrl); await b.eval(click('button[type=submit]')); await sleep(1500); // (same URL + #t: leave first, or it is only a fragment change)
-  check('the same link again: already used (410)', (await b.text()).includes('Link already used'));
+  check('the same link again: already used (410), beta key not affected', (txt = await b.text()).includes('Link already used') && txt.includes('Your beta key is not affected'));
 
   // 5. No JavaScript: the plain form is there and fails closed on the human check.
   const c = await tab({ noJs: true, context: (await send('Target.createBrowserContext')).result.browserContextId });

@@ -25,6 +25,8 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const TESTS = ['test/automated.test.mjs', 'test/repo-contract.test.mjs', 'test/flow.test.mjs', 'test/consent.test.mjs', 'test/oneclick.test.mjs', 'test/pool-signer.test.mjs', 'test/direct-download.test.mjs', 'test/short-link.test.mjs', 'test/email-html.test.mjs', 'test/signer-mail.test.mjs', 'test/short-content-pages.test.mjs', 'test/privacy-facts.test.mjs', 'test/one-privacy-page.test.mjs', 'test/site-audit.test.mjs'];
 const MUTANTS = [
   ['expired report (Part 20): a used link says "expired" again', 'server/app.mjs', "? gone('used', PAGE[st.purpose]) : gone();", ": gone();", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): an expired link sends everyone back to the form', 'server/pages.mjs', "const AGAIN = 'If you still need it, fill in", "const AGAIN = 'Fill in", ['test/used-link.test.mjs']],
+  ['expired report (Part 20): the unsubscribe refusal drops "your beta key is not affected"', 'server/app.mjs', " ${LINK_NOTE}` }).body", "` }).body", ['test/used-link.test.mjs']],
   ['expired report (Part 20): a cut-off link says "expired"', 'server/app.mjs', "return gone('incomplete');", "return gone();", ['test/used-link.test.mjs']],
   ['expired report (Part 20): refusal pages drop "your beta token is not affected"', 'server/pages.mjs', "<p>${esc(LINK_NOTE)}</p>", "", ['test/used-link.test.mjs']],
   ['expired report (Part 20): emails say "45 days from the day it was made" for a token with a known end', 'server/emails.mjs', "const until = tokenEndText(token);", "const until = null;", ['test/used-link.test.mjs']],

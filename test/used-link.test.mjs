@@ -10,7 +10,7 @@ import { linkPage, resultPage } from '../server/pages.mjs';
 import releasesJson from '../data/releases.json' with { type: 'json' };
 
 const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
-const NOTE = 'Your beta token is not affected';
+const NOTE = 'Your beta key is not affected';
 const updatesLink = (h, to) => (h.repo.debugOutbox().filter(m => m.toEmail === to).map(m => m.text).join('\n').match(/confirm-email\?for=updates#t=([A-Za-z0-9_-]{43})/) || [])[1];
 const post = (h, t, asPage = true) => h.call('POST', '/api/confirm-email', asPage
   ? { form: { t, 'cf-turnstile-response': CAP }, headers: { origin: ORIGIN, accept: 'text/html' } }
@@ -27,8 +27,10 @@ test('the updates link pressed twice: the second answer says it was already conf
   const again = await post(h, t);
   assert.equal(again.status, 410, 'still refused: one use');
   const body = await again.text();
+  assert.match(body, /This link has already been used\./);
   assert.match(body, /already confirmed Sidekick updates/);
   assert.doesNotMatch(body, /expired/i, 'a used link is not an expired one');
+  assert.doesNotMatch(body, /Get Sidekick form/, 'a link that did its job never sends people back to the form');
   assert.ok(body.includes(NOTE), 'says the token is not affected');
   const json = await post(h, t, false);
   assert.deepEqual(await json.json(), { ok: false, error: 'LINK_USED' });
@@ -43,8 +45,10 @@ test('the confirm link pressed twice says the email is already confirmed; a sess
   assert.equal(again.status, 410);
   assert.equal(again.headers.get('set-cookie'), null);
   const body = await again.text();
+  assert.match(body, /This link has already been used\./);
   assert.match(body, /already confirmed your email/);
   assert.doesNotMatch(body, /expired/i);
+  assert.doesNotMatch(body, /Get Sidekick form/);
   assert.ok(body.includes(NOTE));
 });
 
@@ -57,6 +61,7 @@ test('a link past its time still says expired (and that the token is not affecte
   assert.equal(late.status, 410);
   const lb = await late.text();
   assert.match(lb, /This link has expired\./);
+  assert.match(lb, /If you already did what this link was for, there's nothing else to do\. If you still need it, fill in the <a [^>]+>Get Sidekick form<\/a> again/, 'the form only for someone who still needs a new link');
   assert.ok(lb.includes(NOTE));
   assert.deepEqual(await (await post(h, t, false)).json(), { ok: false, error: 'LINK_EXPIRED' });
   for (const cut of ['', t.slice(0, 20)]) {
@@ -65,9 +70,17 @@ test('a link past its time still says expired (and that the token is not affecte
     const b = await r.text();
     assert.match(b, /This link is incomplete\./);
     assert.doesNotMatch(b, /expired/i);
+    assert.doesNotMatch(b, /Get Sidekick form/);
     assert.ok(b.includes(NOTE));
   }
   assert.deepEqual(await (await post(h, 'x', false)).json(), { ok: false, error: 'LINK_INCOMPLETE' });
+});
+
+test('a refused unsubscribe link says the beta key is not affected too', async () => {
+  const h = setup();
+  const r = await h.call('POST', '/api/unsubscribe', { form: { t: 'A'.repeat(43) }, headers: { origin: ORIGIN, accept: 'text/html' } });
+  assert.equal(r.status, 410);
+  assert.ok((await r.text()).includes(NOTE));
 });
 
 test('every link page that refuses says the token is not affected', () => {

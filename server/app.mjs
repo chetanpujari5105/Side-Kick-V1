@@ -6,7 +6,7 @@ import { openSession, sessionCookie, COOKIE, SESSION_TTL_S } from './session.mjs
 import { validateSignup, validateFeedback, isTokenShaped, tokenLabel, normaliseEmail } from './validate.mjs';
 import { publicReleases, releaseProblems } from './releases.mjs';
 import { emails, capFirst } from './emails.mjs';
-import { linkPage, messagePage, signupFormPage, resultPage, alreadyPage, NO_JS_BOT, BOT_FAILED, RATE_TEXT, SERVER_TEXT } from './pages.mjs';
+import { linkPage, messagePage, signupFormPage, resultPage, alreadyPage, LINK_NOTE, NO_JS_BOT, BOT_FAILED, RATE_TEXT, SERVER_TEXT } from './pages.mjs';
 import { poolRules, poolTokenEnd, tokenEndText, POOL_ADD_MAX } from './pool.mjs';
 
 const H = 3600 * 1000;
@@ -292,7 +292,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     const { data, form } = await readBody(request);
     const asPage = form || wantsHtml(request);
     const nonce = newNonce();
-    const gone = () => asPage ? html(410, messagePage({ nonce, title: 'Link already used', text: 'This unsubscribe link has been used or has expired. If you still get update emails, reply to one with "unsubscribe" and we\'ll remove you.' }).body, nonce) : json(410, { ok: false, error: 'LINK_EXPIRED' });
+    const gone = () => asPage ? html(410, messagePage({ nonce, title: 'Link already used', text: `This unsubscribe link has been used or has expired. If you still get update emails, reply to one with "unsubscribe" and we'll remove you. ${LINK_NOTE}` }).body, nonce) : json(410, { ok: false, error: 'LINK_EXPIRED' });
     const ra = await limited('link_ip', clientIp(request));
     if (ra) return asPage ? html(429, messagePage({ nonce, title: 'Too many tries', text: RATE_TEXT }).body, nonce) : tooMany(ra);
     const t = typeof data.t === 'string' ? data.t : '';

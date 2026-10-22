@@ -31,16 +31,17 @@ const widget = (siteKey) => siteKey === 'local-dev-fake' ? '<p class="hint m0">H
   : siteKey ? `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}"></div>` : '';
 
 // Why an email link was refused (launch log Part 20): a tester pressed a confirm link twice and read "This link has
-// expired" as their beta token having expired. A used link says so, and every refusal says the token is not affected.
-export const LINK_NOTE = 'This is only about the link in our email. Your beta token is not affected: Sidekick shows how long it works in Settings › About.';
-const AGAIN = 'Fill in the <a href="/Get%20Sidekick.dc.html">Get Sidekick form</a> again with the same email and we\'ll send a new one.';
+// expired" as their beta token having expired. A used link says so, and every refusal says the key is not affected.
+// The form is offered only for a new link someone still needs, never as the next step for a link that did its job.
+export const LINK_NOTE = 'Your beta key is not affected. This page is only about the link in our email; Sidekick shows how long your key works in Settings › About.';
+const AGAIN = 'If you still need it, fill in the <a href="/Get%20Sidekick.dc.html">Get Sidekick form</a> again with the same email and we\'ll send a new link.';
 const REFUSED = {
   used: {
-    confirm: ['Email already confirmed', 'You already confirmed your email.', 'This link works once, and it has been used. There\'s nothing else to do: we email you what comes next.'],
-    updates: ['Updates already confirmed', 'You already confirmed Sidekick updates.', 'This link works once, and it has been used. There\'s nothing else to do.'],
-    access: ['Link used up', 'This link has been used too many times.', `It opens your download page a few times only. ${AGAIN}`]
+    confirm: ['Link already used', 'This link has already been used.', 'You already confirmed your email with it. There\'s nothing else to do: we email you what comes next.'],
+    updates: ['Link already used', 'This link has already been used.', 'You already confirmed Sidekick updates with it. There\'s nothing else to do.'],
+    access: ['Link already used', 'This link has already been used.', `It opens your download page a few times only, and those are used up. ${AGAIN}`]
   },
-  expired: ['Link expired', 'This link has expired.', `Links in our emails work for a limited time and some only once. ${AGAIN}`],
+  expired: ['Link expired', 'This link has expired.', `Links in our emails work for a limited time. If you already did what this link was for, there's nothing else to do. ${AGAIN}`],
   incomplete: ['Link incomplete', 'This link is incomplete.', 'Part of the link from our email is missing. Open the email again and use its button, or copy the whole link into the address bar.']
 };
 
