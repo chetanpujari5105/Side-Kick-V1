@@ -109,6 +109,7 @@ test('release facts: the beta Drive and Play test links are https on exactly the
   const play = (v) => releaseProblems({ ...base, android: { ...base.android, playTestUrl: v } });
   assert.deepEqual(drive(null), []);
   assert.deepEqual(play(null), []);
+  assert.deepEqual(play('https://play.google.com/apps/testing/com.chetan.connectsuite'), [], 'the closed test opt-in page of this app');
   const { betaDriveUrl: _d, ...macNoLink } = base.mac;
   const { playTestUrl: _p, ...androidNoLink } = base.android;
   assert.ok(releaseProblems({ ...base, mac: macNoLink }).some(p => p.startsWith('mac.betaDriveUrl')), 'the key is required');
@@ -131,7 +132,11 @@ test('release facts: the beta Drive and Play test links are https on exactly the
     'https://play.google.com/store/apps/details?id=example.sidekick',
     'https://play.google.com/apps/internaltest/4700743324703460563#x',
     'https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL',
-    'https://play.google.com/apps/internaltest/sidekick.apk', ''
+    'https://play.google.com/apps/internaltest/sidekick.apk', '',
+    'https://play.google.com/apps/testing/com.example.other',
+    'https://play.google.com/apps/testing/com.chetan.connectsuite?hl=en',
+    'https://play.google.com/apps/testing/com.chetan.connectsuite/',
+    'http://play.google.com/apps/testing/com.chetan.connectsuite'
   ]) assert.ok(play(bad).some(p => p.startsWith('android.playTestUrl')), `refused: ${bad}`);
 });
 

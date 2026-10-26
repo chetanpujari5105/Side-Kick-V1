@@ -305,7 +305,7 @@ test('manual-batch: instant rows with a Google account are pending; marking them
   const inv = h.repo.debugOutbox().filter(x => x.kind === 'android');
   assert.equal(inv.length, 1);
   assert.equal(inv[0].toEmail, 'asha@example.com');
-  assert.ok(inv[0].text.includes('play.google.com/apps/internaltest/') && inv[0].text.includes('asha.rao@gmail.com') && !inv[0].text.includes('SIDEKICK-TRIAL-1'));
+  assert.ok(inv[0].text.includes(releasesJson.android.playTestUrl) && inv[0].text.includes('asha.rao@gmail.com') && !inv[0].text.includes('SIDEKICK-TRIAL-1'));
   assert.equal((await (await h.admin('/api/admin/play-mark-added', { googleEmails: ['asha.rao@gmail.com'] })).json()).marked, 0, 'twice marks nothing');
   assert.equal(h.repo.debugOutbox().filter(x => x.kind === 'android').length, 1);
   assert.equal((await (await h.admin('/api/admin/play-pending', {})).json()).count, 0);

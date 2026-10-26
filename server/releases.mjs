@@ -30,7 +30,8 @@ export function releaseProblems(r) {
   const a = r.android || {};
   if (a.build !== undefined) p.push('android.build is not allowed: this site never serves an APK (store URL or nothing)');
   if (a.storeUrl !== null && a.storeUrl !== undefined && !(typeof a.storeUrl === 'string' && /^https:\/\/play\.google\.com\/[A-Za-z0-9/?=&._-]*$/.test(a.storeUrl))) p.push('android.storeUrl must be null or https://play.google.com/…');
-  if (!linkOn(a.playTestUrl, 'play.google.com', /^\/apps\/internaltest\/\d{6,30}$/)) p.push('android.playTestUrl must be null or https://play.google.com/apps/internaltest/…');
+  // The internal test's link (…/apps/internaltest/<id>) or the closed test's opt-in page for THIS app only.
+  if (!linkOn(a.playTestUrl, 'play.google.com', /^\/apps\/(?:internaltest\/\d{6,30}|testing\/com\.chetan\.connectsuite)$/)) p.push('android.playTestUrl must be null, https://play.google.com/apps/internaltest/… or https://play.google.com/apps/testing/com.chetan.connectsuite');
   if (!Array.isArray(r.changelog)) p.push('changelog');
   return p;
 }

@@ -12,7 +12,8 @@
 // notify closed, delete names the Google account, private files go back to 600) and one privacy page (Part 15), and the site audit of Part 16 (publisher facts filled, the 404 fallback works under
 // the CSP, compact human check in narrow boxes, Android wording, a favicon on server pages), and the domain of Part 19
 // (robots.txt/sitemap.xml automated-only and public pages only, absolute canonical and share image from APP_ORIGIN,
-// emails follow SK_API_BASE). Each mutation breaks one rule in a scratch
+// emails follow SK_API_BASE), and the Play test link of Part 21 (the internal link or THIS app's closed-test page only).
+// Each mutation breaks one rule in a scratch
 // copy of the repo; the tests must then FAIL. Run: node tools/mutation-check.mjs
 import fs from 'node:fs';
 import os from 'node:os';
@@ -85,7 +86,9 @@ const MUTANTS = [
   ['sender (Part 11): SMTP without dot-stuffing', 'tools/signer/smtp.mjs', ".replace(/^\\./gm, '..')", ''],
   ['build (Part 11): the email logo in the manual build', 'scripts/build-site.mjs', "if (!manual) copy('email');", "copy('email');", ['test/build.test.mjs']],
   ['short link (API): /get open with the kill switch on', 'server/app.mjs', "if (config.signupClosed) return json(404, { ok: false, error: 'NOT_FOUND' });", ''],
-  ['short link (vercel.json): a static rewrite serves the form in both modes', 'vercel.json', '{ "source": "/get", "destination": "/api/index?__route=get" }', '{ "source": "/get", "destination": "/Get Sidekick.dc.html" }']
+  ['short link (vercel.json): a static rewrite serves the form in both modes', 'vercel.json', '{ "source": "/get", "destination": "/api/index?__route=get" }', '{ "source": "/get", "destination": "/Get Sidekick.dc.html" }'],
+  ['Play link (Part 21): any app\'s closed-test page passes', 'server/releases.mjs', 'testing\\/com\\.chetan\\.connectsuite)$/', 'testing\\/[A-Za-z0-9._]+)$/', ['test/security.test.mjs']],
+  ['Play link (Part 21): the closed-test page is refused', 'server/releases.mjs', '|testing\\/com\\.chetan\\.connectsuite)$/', ')$/', ['test/security.test.mjs']]
 ];
 
 const skip = new Set(['.git', 'node_modules', 'dist']);
