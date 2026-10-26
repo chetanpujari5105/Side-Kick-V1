@@ -54,7 +54,7 @@ test('first names are capitalised everywhere (emails and subjects)', () => {
   assert.equal(firstName('  ana-maria  x'), 'Ana-maria');
   assert.equal(firstName(''), '');
   for (const m of all('chetan')) if (m.kind !== 'notify' && m.kind !== 'announce') {
-    assert.ok(m.text.includes('Chetan') && !/\bchetan\b(?!@| pujari)/.test(m.text.replace(/chetan@gmail\.com/g, '')), `${m.kind}: capitalised in the text`);
+    assert.ok(m.text.includes('Chetan') && !/\bchetan\b(?!@| pujari)/.test(m.text.replace(/chetan@gmail\.com/g, '').split(PLAY).join('')), `${m.kind}: capitalised in the text`);
     assert.ok(renderEmail(m).html.includes('Chetan'), `${m.kind}: capitalised in the HTML`);
   }
   assert.equal(emails.copy({ name: 'chetan', token: TOKEN, downloadUrl: DL, release }).subject, "You're in, Chetan: your Sidekick beta");

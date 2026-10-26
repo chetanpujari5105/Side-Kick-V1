@@ -244,7 +244,7 @@ try {
   const [, pl, sg] = token.split('.');
   check('emailed token verifies with the throwaway public key', crypto.verify(null, Buffer.from(pl), publicKey, Buffer.from(sg, 'base64url')));
   const inviteMail = sent.find(m => m.kind === 'invite');
-  check('invitation sent separately: Play link, /download/mac, no token, no Beta page', !!inviteMail && inviteMail.text.includes('play.google.com/apps/internaltest/') && inviteMail.text.includes(O + '/download/mac') && !inviteMail.text.includes(token) && !inviteMail.text.includes('Beta.dc.html'));
+  check('invitation sent separately: Play link, /download/mac, no token, no Beta page', !!inviteMail && inviteMail.text.includes(RELEASES.android.playTestUrl) && inviteMail.text.includes(O + '/download/mac') && !inviteMail.text.includes(token) && !inviteMail.text.includes('Beta.dc.html'));
 
   // 4. A different browser (fresh profile context) opens the access link from the token email.
   const { result: { browserContextId } } = await send('Target.createBrowserContext');
