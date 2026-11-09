@@ -26,6 +26,13 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 const OUT = path.join(ROOT, 'dist');
 const local = process.argv.includes('--local');
 const fail = (m) => { console.error('build-site: ' + m); process.exit(1); };
+// Vercel Web Analytics (turned on for the Vercel project on 9 Nov 2026; Support › Privacy says what it records). The
+// script is same-origin, so the CSP needs no change, and there is no inline window.va stub: the CSP blocks inline
+// scripts and the stub only queues custom events, which this site doesn't send. Real pages only, never the components
+// they import, and not the unlisted Beta page (it ships exactly as written, test/build.test.mjs). Automated site only (the manual site's privacy text says it runs no analytics), and never --local
+// (the dev server has no /_vercel route).
+const ANALYTICS_TAG = '<script defer src="/_vercel/insights/script.js"></script>';
+const ANALYTICS_PAGES = ['Home.dc.html', 'Get Sidekick.dc.html', 'Roadmap.dc.html', 'Support.dc.html', 'Download.dc.html', 'check-email.html', '404.dc.html'];
 
 let mode;
 try {
@@ -88,6 +95,10 @@ for (const f of pages) {
   html = html.replace(/<!-- NOJS-FORM[\s\S]*?<!-- \/NOJS-FORM -->/, manual ? '' : `<noscript><style>${scoped}</style><div class="skf"><h2 style="margin:0 0 8px;font:800 34px/1 'Bricolage Grotesque',sans-serif;">Get Sidekick</h2><p>This form works without JavaScript, but the human check that protects it doesn't: sending it will ask you to turn JavaScript on.</p>${signupFormHtml()}</div></noscript>`);
   const pub = PUBLIC_PAGES.find(([, file]) => file === f);
   if (!manual && pub) { try { html = seoHead(html, origin, pub[0]); } catch (e) { fail(`${f}: ${e.message}`); } }
+  if (!manual && !local && ANALYTICS_PAGES.includes(f)) {
+    if (html.split('</head>').length !== 2) fail(`${f}: expected exactly one </head> for the analytics script`);
+    html = html.replace('</head>', ANALYTICS_TAG + '\n</head>');
+  }
   fs.writeFileSync(p, html);
 }
 // Automated only: what crawlers read first. The manual site has neither file (its bytes stay as they were).
@@ -103,6 +114,7 @@ walk(OUT);
 const text = all.filter(f => /\.(html|js|css|json|txt|xml)$/.test(f));
 const banned = [['sk_mock_outcome', 'mock outcome switch'], ['DESIGN REVIEW', 'design review bar'], ['mock-api.js', 'mock API'], ['sessionStorage', 'sessionStorage'], ['local-dev-fake', 'local bot-check stand-in']];
 if (!manual) banned.push(['SK_MAILTO', 'manual-mode email links'], ['{MANUAL', 'a manual region'], ['MANUAL}', 'a manual region']);
+else banned.push(['_vercel/insights', 'Vercel Web Analytics (the manual site promises no analytics)']);
 for (const f of text) {
   const t = fs.readFileSync(f, 'utf8');
   for (const [needle, what] of banned) {

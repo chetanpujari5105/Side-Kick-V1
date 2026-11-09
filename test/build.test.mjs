@@ -108,3 +108,26 @@ test('timing copy reaches the built sites: automated says up to a day, manual ke
   assert.match(fs.readFileSync(path.join(DIST, 'Download.dc.html'), 'utf8'), /Wait for our reply\.<\/strong> We read each request ourselves/);
   restoreLocal();
 });
+
+test('Vercel Web Analytics: the automated build loads it once in the head of each real page (same-origin, no inline stub); components, manual and --local never do', () => {
+  const TAG = '<script defer src="/_vercel/insights/script.js"></script>';
+  const PAGES = ['Home.dc.html', 'Get Sidekick.dc.html', 'Roadmap.dc.html', 'Support.dc.html', 'Download.dc.html', 'check-email.html', '404.dc.html'];
+  const noAnalytics = (why) => { for (const [f, t] of distText()) assert.ok(!t.includes('_vercel/insights'), `${why}: analytics in ${f}`); };
+  let r = build({ VERCEL: '1', SITE_MODE: 'automated', TURNSTILE_SITE_KEY: '0x4AAAAAAAtestsitekeyonly' });
+  assert.equal(r.status, 0, r.stderr);
+  for (const p of PAGES) {
+    const t = fs.readFileSync(path.join(DIST, p), 'utf8');
+    assert.equal(t.split(TAG).length, 2, `${p}: exactly one analytics tag`);
+    assert.ok(t.indexOf(TAG) < t.indexOf('</head>'), `${p}: the tag is in the head`);
+  }
+  for (const c of ['Beta.dc.html', 'SiteHeader.dc.html', 'SiteFooter.dc.html', 'MacWindow.dc.html', 'PhoneScreen.dc.html', 'RoadmapTrack.dc.html', '404.html'])
+    assert.ok(!fs.readFileSync(path.join(DIST, c), 'utf8').includes('_vercel/insights'), `${c}: no analytics on the unlisted Beta page, a component or the redirect stub`);
+  for (const [f, t] of distText()) assert.ok(!/window\.vaq?\b/.test(t), `${f}: no inline window.va stub (the CSP blocks inline scripts)`);
+  assert.match(fs.readFileSync(path.join(DIST, 'SiteFooter.dc.html'), 'utf8'), /This site counts visits with Vercel Web Analytics, without cookies\./);
+  r = build({ VERCEL: '1', SITE_MODE: 'manual' });
+  assert.equal(r.status, 0, r.stderr);
+  noAnalytics('manual');
+  assert.match(fs.readFileSync(path.join(DIST, 'SiteFooter.dc.html'), 'utf8'), /This site runs no analytics\./);
+  restoreLocal();
+  noAnalytics('--local');
+});

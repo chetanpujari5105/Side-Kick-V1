@@ -409,7 +409,7 @@ try {
     const dev = (r.text.replace(ILLUSTRATION, '').replaceAll('Human check (local test stand-in)', '').match(DEV_TEXT) || [])[0];
     const out = r.hrefs.filter(u => !u.startsWith(O) && !EXTERNAL_OK.some(x => x.test(u)));
     check(`visitor scan ${pg}: no developer text, outside links allow-listed, no sideways scroll`, !dev && !out.length && !r.wide, [dev, ...out, r.wide ? 'scrolls sideways' : ''].filter(Boolean).join(' | '));
-    if (pg === '/Support.dc.html#privacy') check('privacy page: the publisher line, no DRAFT banner', r.text.includes('Beta privacy notice. Published by Chetan Pujari, India. Last updated 19 October 2026. Questions: chetanpujari.sitit@gmail.com.') && !/DRAFT/.test(r.text));
+    if (pg === '/Support.dc.html#privacy') check('privacy page: the publisher line, no DRAFT banner', r.text.includes('Beta privacy notice. Published by Chetan Pujari, India. Last updated 9 November 2026. Questions: chetanpujari.sitit@gmail.com.') && !/DRAFT/.test(r.text));
     if (pg === '/' || pg === '/Support.dc.html#setup') check(`${pg}: Android by Play test invitation, never "not available yet"; no "person who invited you"`, r.text.includes('by invitation through Google Play testing') && !r.text.includes('not available yet') && !r.text.includes('the person who invited you'));
   }
   console.error('API calls per tab:', JSON.stringify([a, b, c, p, f, g].map(t => t.api)));

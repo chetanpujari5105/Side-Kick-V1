@@ -32,7 +32,7 @@ const MUTANTS = [
   ['domain (Part 19): the build ignores APP_ORIGIN', 'scripts/seo.mjs', '  return v;\n}', '  return DEFAULT_ORIGIN;\n}', ['test/domain.test.mjs']],
   ['domain (Part 19): a Production build without APP_ORIGIN uses the default silently', 'scripts/seo.mjs', '    if (env.VERCEL_ENV === \'production\') throw new Error(', '    if (false) throw new Error(', ['test/domain.test.mjs']],
   ['domain (Part 19): emails ignore the signer\'s SK_API_BASE', 'tools/signer/signer.mjs', 'const siteOf = (cfg) => /^https:\\/\\/[A-Za-z0-9.-]+$/.test(cfg.base || \'\') ? cfg.base : SITE;', 'const siteOf = (cfg) => SITE;', ['test/domain.test.mjs']],
-  ['site audit (Part 16): the effective date is a placeholder again', 'data/site-config.js', "policyEffectiveDate: '19 October 2026'", "policyEffectiveDate: '[set on go-live day]'"],
+  ['site audit (Part 16): the effective date is a placeholder again', 'data/site-config.js', "policyEffectiveDate: '9 November 2026'", "policyEffectiveDate: '[set on go-live day]'"],
   ['site audit (Part 16): the 404 fallback uses an inline script the CSP blocks', '404.html', '<meta http-equiv="refresh" content="0; url=/404.dc.html">', "<script>location.replace('/404.dc.html');</script>"],
   ['site audit (Part 16): the human check keeps its 300 px size in a narrow box', 'data/api-client.js', "...(narrow ? { size: 'compact' } : {})", '...({})'],
   ['site audit (Part 16): Support says Android is not available', 'Support.dc.html', "/*AUTOMATED{*/(!invite && 'Android: by invitation through Google Play testing.", "/*AUTOMATED{*/(false && 'Android: by invitation through Google Play testing."],
