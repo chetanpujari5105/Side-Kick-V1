@@ -24,7 +24,7 @@ test('automated config: the publisher facts are filled in (a placeholder fails);
   for (const k of ['publisher', 'publisherAddress', 'supportEmail', 'policyEffectiveDate']) assert.ok(c[k] && !/^\[/.test(c[k]), `${k} is a placeholder: ${c[k]}`);
   assert.match(c.policyEffectiveDate, /^\d{1,2} [A-Z][a-z]+ 20\d\d$/);
   assert.equal(c.supportEmail, 'chetanpujari.sitit@gmail.com');
-  assert.equal(stripRegions(read('data/site-config.js'), 'manual').includes('19 October 2026'), false, 'the manual build is unchanged');
+  assert.equal(stripRegions(read('data/site-config.js'), 'manual').includes('9 November 2026'), false, 'the manual build is unchanged');
 });
 
 test('automated privacy page: a short publisher line, never a file name; the placeholder banner logic stays', () => {

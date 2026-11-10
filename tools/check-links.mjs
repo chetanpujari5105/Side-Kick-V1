@@ -119,6 +119,8 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
     if (u.pathname === '/') rel = 'Home.dc.html'; // vercel.json rewrite
     if (rel.startsWith('api/')) return ok(area, `${from} → ${link}`, await routeExists(u.pathname + u.search), 'API route');
     if (u.pathname === '/download/mac') return ok(area, `${from} → ${link}`, rewrites.includes('/download/mac') && await routeExists('/download/mac'), 'download route (vercel.json rewrite)');
+    // Vercel serves this route itself once Web Analytics is on for the project (scripts/build-site.mjs); it is never a file.
+    if (u.pathname === '/_vercel/insights/script.js') return ok(area, `${from} → ${link}`, true, 'Vercel Web Analytics (served by Vercel)');
     const exists = fileExists(rel);
     const h = u.hash ? u.hash.slice(1) : '';
     ok(area, `${from} → ${link}`, exists && (!h || !rel.endsWith('.html') || hashOk(rel, h)), !exists ? 'no such file in dist/' : (h && !hashOk(rel, h) ? `#${h} not on ${rel}` : ''));

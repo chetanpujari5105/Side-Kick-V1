@@ -72,7 +72,7 @@ test('Beta page (automated site): the direct download is the main button; no Dri
 test('privacy (automated): the Mac app is downloaded from GitHub; emails go out through our own Gmail', () => {
   const s = stripRegions(read('Support.dc.html'), 'automated');
   const auto = s.slice(s.indexOf("S('This website'"), s.indexOf("S('Who we are'"));
-  const text = auto.slice(auto.indexOf(': [\n          \'This website runs no analytics'));
+  const text = auto.slice(auto.indexOf(': [\n          \'This website is hosted by Vercel'));
   assert.ok(!/Google Drive/.test(text), 'no Drive in the automated privacy text');
   assert.match(text, /downloads from this project\\?'s release on GitHub/);
   assert.match(text, /through Gmail/);
