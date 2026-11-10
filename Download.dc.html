@@ -238,7 +238,7 @@ class Component extends DCLogic {
     this.setState({ busy: '', toast: r && r.mock ? `MOCK — the real site redirects to ${platform === 'mac' ? 'a short-lived signed URL for the ' + arch + ' .dmg' : 'the Google Play page'}.` : '' });
   }
   renderVals() {
-    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.1', mac: { builds: { arm64: {} } }, android: { storeUrl: null } };
+    const C = window.SK_CONFIG || {}, R = window.SK_RELEASES || { version: '2.0.2', mac: { builds: { arm64: {} } }, android: { storeUrl: null } };
     const mocks = !!C.mocksEnabled;
     const pv = mocks ? (this.props.previewState ?? 'auto') : 'auto'; // preview states are design review only
     const sess = window.SK_API ? window.SK_API.session() : null;

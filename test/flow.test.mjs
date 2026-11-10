@@ -129,7 +129,7 @@ test('download: needs email session AND approved; 302 to the storage URL; nothin
   assert.equal(r.status, 302);
   const loc = new URL(r.headers.get('location'));
   assert.equal(loc.origin, 'https://files.example.test', 'Location comes from the storage adapter');
-  assert.equal(loc.pathname, '/Sidekick-2.0.1-arm64.dmg');
+  assert.equal(loc.pathname, '/Sidekick-2.0.2-arm64.dmg');
   assert.equal(r.headers.get('cache-control'), 'no-store');
   assert.equal(h.repo.debugCount('downloads'), 0, 'no per-person download row (launch log Part 14)');
   assert.equal(h.storage.check(loc.href), true);

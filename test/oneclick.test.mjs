@@ -10,7 +10,7 @@ import releasesJson from '../data/releases.json' with { type: 'json' };
 
 const DAY = 86400000;
 const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
-const DIRECT = 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.1/Sidekick-2.0.1-arm64.dmg';
+const DIRECT = 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.2/Sidekick-2.0.2-arm64.dmg';
 const DRIVE = releasesJson.mac.betaDriveUrl;
 
 const fill = async (h, n = 3, madeAt, days = 45) => {
@@ -44,8 +44,8 @@ test('config: SIGNUP_DAILY_CAP defaults to 60, ANDROID_ACCESS to manual-batch, S
 
 test('releases: mac.directUrl is null or the GitHub Release asset for the same file; it never reaches the public copy', () => {
   assert.deepEqual(releaseProblems(withDirect()), []);
-  for (const bad of ['https://evil.example/Sidekick-2.0.1-arm64.dmg', 'http://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.1/Sidekick-2.0.1-arm64.dmg',
-    'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.1/Other.dmg', DIRECT + '?x=1']) {
+  for (const bad of ['https://evil.example/Sidekick-2.0.2-arm64.dmg', 'http://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.2/Sidekick-2.0.2-arm64.dmg',
+    'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.2/Other.dmg', DIRECT + '?x=1']) {
     const r = withDirect(); r.mac.directUrl = bad;
     assert.ok(releaseProblems(r).some(p => p.startsWith('mac.directUrl')), bad);
   }
@@ -78,7 +78,7 @@ test('signup with a ready token: "You\'re in" at once, the token shown once, no 
   assert.equal(b.stage, 'in');
   assert.equal(b.firstName, 'Asha');
   assert.equal(b.token, oldest, 'the oldest ready token is handed out first');
-  assert.deepEqual(b.download, { url: '/download/mac', auto: false, file: 'Sidekick-2.0.1-arm64.dmg', bytes: 121668061, sha256: releasesJson.mac.builds.arm64.sha256 });
+  assert.deepEqual(b.download, { url: '/download/mac', auto: false, file: 'Sidekick-2.0.2-arm64.dmg', bytes: 121677045, sha256: releasesJson.mac.builds.arm64.sha256 });
   assert.equal(b.android, null);
   assert.ok(cookieOf(res), 'a session for "Email me a copy"');
   assert.equal((await status(h)).ready, 4);
