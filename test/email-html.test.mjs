@@ -160,3 +160,28 @@ test('the preview token is a dummy: never token-shaped, so it can never pass for
   const { html } = renderEmail({ kind: 'x', subject: 'S', text: `Hi.\n\nYOUR BETA TOKEN\n\n${DUMMY_TOKEN}\n\n— Sidekick\n\nYou got this email because.` });
   assert.ok(html.includes('data-sk="token"'), 'still shown in a token card when given one');
 });
+
+// Update emails may carry a picture and small print (2026-11-11, docs/launch/). Neither shape appears in any other email.
+test('announce: a [Picture: …] paragraph becomes an image with alt, width and height; small print stays muted', () => {
+  const body = 'Headline here\n\nFirst paragraph.\n\n[Picture: A Mac and a phone]\nhttps://sidekickapp.in/email/hero-1200x600.png\n\n(A small note.)';
+  const { html, text } = renderEmail(emails.announce({ subject: 'S', body, unsubscribeUrl: SITE + '/x?t=4' }));
+  assert.match(html, /<img src="https:\/\/sidekickapp\.in\/email\/hero-1200x600\.png" width="520" height="260" alt="A Mac and a phone"/);
+  assert.ok(!html.includes('[Picture:'), 'the marker line is not shown in the HTML');
+  assert.match(html, /data-sk="aside">A small note\.<\/p>/);
+  assert.match(text, /\[Picture: A Mac and a phone\]\nhttps:\/\/sidekickapp\.in\/email\/hero-1200x600\.png/, 'plain text keeps alt and link');
+});
+
+test('a picture outside /email/ or without its size in the name stays plain text', () => {
+  for (const url of ['https://evil.example/hero-1200x600.png', 'https://sidekickapp.in/email/hero.png']) {
+    const { html } = renderEmail(emails.announce({ subject: 'S', body: `Head\n\nPara.\n\n[Picture: x y z]\n${url}`, unsubscribeUrl: SITE + '/x' }));
+    assert.ok(!/<img src="[^"]*hero/.test(html), url);
+  }
+});
+
+test('no existing email has a picture or small print', () => {
+  for (const m of all()) {
+    const { html } = renderEmail(m);
+    assert.ok(!html.includes('data-sk="aside"'), m.kind);
+    assert.equal((html.match(/<img /g) || []).length, 1, `${m.kind}: the logo only`);
+  }
+});

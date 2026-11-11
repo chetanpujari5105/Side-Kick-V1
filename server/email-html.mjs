@@ -25,6 +25,13 @@ const URL_ANY = /https:\/\/[^\s<>"]+/g;
 const LABEL = /^(?=.*[A-Z])[A-Z0-9 '’&:,-]{3,40}$/;
 const STEP = /^\d+\. \S/;
 const HINT = /^Select and copy the whole line/;
+// A picture (update emails, 2026-11-11): "[Picture: alt text]" on a line above a lone https link to a PNG or JPEG in
+// the site's /email/ folder whose name ends in its size, e.g. …/email/hero-1200x600.jpg. Plain-text readers see the
+// alt text and the link; the HTML shows the image 520 px wide with that alt text and the height the size gives.
+const PICTURE = /^\[Picture: ([^\]]{3,200})\]$/;
+const PICTURE_URL = /^https:\/\/[^\s<>"]+\/email\/[A-Za-z0-9._-]+-(\d{2,4})x(\d{2,4})\.(?:png|jpe?g)$/;
+// Small print (update emails, 2026-11-11): a paragraph wrapped in parentheses, from its first character to its last.
+const ASIDE = /^\([\s\S]*\)$/;
 
 // The text → blocks. Everything after the line "— Sidekick" is the footer.
 export function parseEmail(text) {
@@ -39,6 +46,11 @@ export function parseEmail(text) {
     if (lines.length === 1 && LABEL.test(p)) return { type: 'label', text: p };
     if (lines.length === 2 && /:$/.test(lines[0]) && lines[0].length <= 48 && !/https?:/.test(lines[0]) && URL_LINE.test(lines[1])) return { type: 'button', label: lines[0].slice(0, -1), url: lines[1] };
     if (lines.every(l => STEP.test(l))) return { type: 'steps', items: lines.map(l => l.replace(/^\d+\. /, '')) };
+    if (lines.length === 2 && PICTURE.test(lines[0]) && PICTURE_URL.test(lines[1])) {
+      const [, w, h] = lines[1].match(PICTURE_URL);
+      return { type: 'picture', alt: lines[0].match(PICTURE)[1], url: lines[1], ratio: Number(h) / Number(w) };
+    }
+    if (ASIDE.test(p)) { const l = p.slice(1, -1).trim().split('\n'); return { type: 'aside', lines: l }; }
     return { type: 'para', lines };
   });
   return { blocks, signed: at >= 0, footer: foot ? foot.split(/\n{2,}/).map(p => p.split('\n')) : [] };
@@ -70,6 +82,10 @@ const steps = (items) => `${T(' width="100%" style="margin:0 0 26px;border-colla
   items.map((s, i) => `<tr data-sk="step"><td width="32" valign="top" style="width:32px;padding:0 14px 14px 0;">${T(' style="border-collapse:separate;"')}<tr><td width="32" height="32" align="center" valign="middle" bgcolor="${C.ink}" style="width:32px;height:32px;border-radius:16px;background-color:${C.ink};font-family:${SANS};font-size:15px;line-height:32px;font-weight:700;color:${C.lime};text-align:center;" data-sk="badge">${i + 1}</td></tr></table></td>` +
     `<td valign="top" class="sk-text" style="padding:4px 0 14px;font-family:${SANS};font-size:16px;line-height:24px;color:${C.ink};">${linkify(s, C.violet)}</td></tr>`).join('') + '</table></td></tr></table>';
 
+const picture = ({ alt, url, ratio }) => `${T(' width="100%" style="margin:4px 0 26px;"')}<tr><td align="center">` +
+  `<img src="${esc(url)}" width="520" height="${Math.round(520 * ratio)}" alt="${esc(alt)}" style="display:block;width:100%;max-width:520px;height:auto;border:0;outline:none;text-decoration:none;border-radius:16px;"></td></tr></table>`;
+const aside = (lines) => `<p class="sk-muted" style="margin:0 0 12px;font-family:${SANS};font-size:14px;line-height:21px;color:${C.muted};" data-sk="aside">${lines.map(l => linkify(l, C.muted)).join('<br>')}</p>`;
+
 const preheaderOf = (blocks) => {
   const p = blocks.find(b => b.type === 'para');
   const s = p ? p.lines.join(' ').replace(URL_ANY, '').replace(/SIDEKICK-TRIAL-1\.\S+/g, '').replace(/\s+/g, ' ').trim() : '';
@@ -93,6 +109,8 @@ export function renderEmail({ subject, text }, { site = SITE } = {}) {
     }
     else if (b.type === 'button') out.push(button(b, buttons++ === 0));
     else if (b.type === 'steps') out.push(steps(b.items));
+    else if (b.type === 'picture') out.push(picture(b));
+    else if (b.type === 'aside') out.push(aside(b.lines));
     else out.push(P(b.lines.map(l => linkify(l, C.violet)).join('<br>')));
   }
   if (signed) out.push(`<p class="sk-text" style="margin:8px 0 0;font-family:${SANS};font-size:16px;line-height:24px;font-weight:600;color:${C.ink};">— Sidekick</p>`);
