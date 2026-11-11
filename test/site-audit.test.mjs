@@ -67,12 +67,13 @@ test('public automated pages have a meta description', () => {
   for (const f of ['Home.dc.html', 'Get Sidekick.dc.html', 'Roadmap.dc.html', 'Support.dc.html']) assert.match(automated(f), /<meta name="description" content="[^"]{40,}">/, f);
 });
 
-test('claims match the one-click flow in automated mode (Android by Play test invitation; token on the page)', () => {
+test('claims match the one-click flow in automated mode (Android by Play test invitation; Home says nothing of a token)', () => {
   const home = automated('Home.dc.html'), sup = automated('Support.dc.html');
   assert.ok(!home.includes('If you were invited, the person who invited you sends you a private download link and your beta token.'), 'Home call to action');
   const ANDROID = 'by invitation through Google Play testing';
   assert.ok(home.includes(ANDROID) && sup.includes(ANDROID), 'Android wording');
-  for (const s of ['(!manual && "No. There\'s nothing to sign in to in either app. For the beta you fill in a short form: the Mac app downloads right away and your beta token is on the page.', "(!manual && 'The Mac app asks for a beta token the first time it opens. It is on the page right after the Get Sidekick form",
+  assert.ok(!/beta token|asks for a token/i.test(home), 'Home: Mac 2.0.2 asks for no token');
+  for (const s of ['(!manual && "No. There\'s nothing to sign in to in either app. For the beta you fill in a short form: the Mac app downloads right away. Android',
     "(!invite && '— the Mac app from the Get Sidekick form (it downloads right away). ' + androidLine)", "(!invite && '— it is on the page right after the Get Sidekick form.')", "(!invite && 'Use the token shown on the page right after the Get Sidekick form"])
     assert.ok(home.includes(s) || sup.includes(s), s);
   assert.ok(!/\b(25|50) (people|places|testers|spots)\b/.test(home + sup), 'no beta size number');

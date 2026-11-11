@@ -112,10 +112,10 @@ test('Play gate (default): confirmed → approved → play-added → token issue
   assert.equal((await h.repo.getSignup(id)).state, 'issued');
   const ob = await (await h.admin('/api/admin/outbox', {}, { key: 'signer' })).json();
   const kinds = ob.messages.filter(m => m.to === 'alex@example.com').map(m => m.kind);
-  assert.ok(kinds.includes('invite') && kinds.includes('token'), kinds.join());
+  assert.deepEqual(kinds.filter(k => k !== 'confirm'), ['invite'], 'one email at the token step, the invitation: the token is stored and not emailed (Mac 2.0.2 asks for none)');
+  assert.equal((await h.repo.getSignup(id)).token, token, 'the issued token is still stored');
+  assert.equal((await h.repo.getSignup(id)).state, 'issued', 'not delivered until the invitation is sent');
   for (const m of ob.messages.filter(m => m.kind === 'invite')) await h.admin('/api/admin/outbox-ack', { id: m.id, ok: true }, { key: 'signer' });
-  assert.equal((await h.repo.getSignup(id)).state, 'issued', 'not delivered until both emails are sent');
-  for (const m of ob.messages.filter(m => m.kind !== 'invite')) await h.admin('/api/admin/outbox-ack', { id: m.id, ok: true }, { key: 'signer' });
   assert.equal((await h.repo.getSignup(id)).state, 'delivered');
   const st = await (await h.admin('/api/admin/stats')).json();
   assert.equal(st.signups.delivered, 1);
@@ -151,7 +151,7 @@ async function delivered(h) {
   const token = fakeToken();
   await h.admin('/api/admin/token', { signupId: id, token }, { key: 'signer' });
   const out = h.repo.debugOutbox().filter(m => m.toEmail === 'alex@example.com');
-  return { id, token, invite: out.find(m => m.kind === 'invite'), tokenMail: out.find(m => m.kind === 'token') };
+  return { id, token, out, invite: out.find(m => m.kind === 'invite') };
 }
 
 test('invitation email: /download/mac, three install steps, Play link and whose account it works with, contact, removal; no Drive, no checksum, never the token', async () => {
@@ -174,21 +174,15 @@ test('invitation email: /download/mac, three install steps, Play link and whose 
   assert.ok(!/[\r]/.test(invite.subject + t) && !/\n/.test(invite.subject));
 });
 
-test('token email: the token alone on its own line, how to paste it, 45 days (Mac docs), contact, removal; no download link', async () => {
+test('the token from the signer is stored and emailed to nobody: no email names it or asks for one (Mac 2.0.2)', async () => {
   const h = setup({ env: { PLAY_GATE: 'on', STORAGE_PROVIDER: 'static' } });
-  const { tokenMail, token } = await delivered(h);
-  const lines = tokenMail.text.split('\n');
-  const i = lines.indexOf(token);
-  assert.ok(i > 0, 'the token is a line by itself');
-  assert.equal(lines[i - 1], ''); assert.equal(lines[i + 1], '', 'with a blank line either side');
-  assert.equal(tokenMail.text.split(token).length, 2, 'exactly once');
-  assert.match(tokenMail.text, /Paste token/);
-  assert.match(tokenMail.text, /Settings › About › Beta access/);
-  assert.match(tokenMail.text, /45 days/);
-  assert.ok(!/https?:\/\//.test(tokenMail.text), 'no link of any kind: the token travels apart from the download');
-  assert.ok(!/checksum|SHA-256/i.test(tokenMail.text), 'short content (launch log Part 11): no checksum talk');
-  assert.ok(tokenMail.text.includes('chetanpujari.sitit@gmail.com'));
-  assert.match(tokenMail.text, /remove/i);
+  const { id, token, out } = await delivered(h);
+  assert.equal((await h.repo.getSignup(id)).token, token, 'stored, as before');
+  assert.deepEqual(out.map(m => m.kind).filter(k => k !== 'confirm'), ['invite'], 'only the invitation is queued at the token step');
+  for (const m of h.repo.debugOutbox()) {
+    assert.ok(!m.text.includes(token) && !m.text.includes('SIDEKICK-TRIAL-1'), `${m.kind}: no token`);
+    assert.ok(!/beta token|paste token/i.test(m.text), `${m.kind}: no token wording`);
+  }
 });
 
 test('static storage: the download button sends an approved person to the Beta page', async () => {

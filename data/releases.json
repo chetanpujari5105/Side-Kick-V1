@@ -1,24 +1,23 @@
 {
   "_comment": "The one source of release facts. bytes and sha256 stay null until the staged files exist; fill them with: node scripts/data-sync.mjs --from-dmg <path>. Never type them by hand. Android is a Google Play URL (storeUrl) or null for 'not available yet'; this site never serves an APK. betaDriveUrl (mac) is the owner's Google Drive folder for the invited beta and playTestUrl (android) is the Play internal-test opt-in link; both are shown only on the unlisted Beta page. mac.directUrl is the direct download (the GitHub Release asset of this file) that GET /download/mac redirects to; null until it is verified, and then betaDriveUrl is the fallback. Set it only with: node scripts/data-sync.mjs --verify-direct-url <url> (it downloads the file, checks bytes and sha256, and deletes the copy). It is server-only: it is left out of data/releases.js. mac.installSteps are the Mac install steps shown on the Beta page and in the invitation email; they assume an un-notarized build (edit them when the app is notarized).",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "mac": {
     "minOS": "macOS 11.0 (Big Sur) or later",
     "betaDriveUrl": "https://drive.google.com/drive/folders/1dKfJlOaXiSCCwgYlXflQ8HTDWv8lIbhL",
-    "directUrl": "https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/sidekick-mac-2.0.1/Sidekick-2.0.1-arm64.dmg",
+    "directUrl": "https://github.com/chetanpujari5105/SIDEkick-website/releases/download/v2.0.2/Sidekick-2.0.2-arm64.dmg",
     "builds": {
       "arm64": {
         "label": "Apple silicon",
-        "file": "Sidekick-2.0.1-arm64.dmg",
-        "bytes": 121668061,
-        "sha256": "a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284"
+        "file": "Sidekick-2.0.2-arm64.dmg",
+        "bytes": 121677045,
+        "sha256": "a7de5d28b56be39d92d9d2e55ed1976171772bd6470081649b9690911d4fb5b2"
       }
     },
     "installSteps": [
-      "Open Sidekick-2.0.1-arm64.dmg and drag Sidekick into Applications.",
+      "Open Sidekick-2.0.2-arm64.dmg and drag Sidekick into Applications.",
       "Open Sidekick from Applications. macOS says it could not verify the app, because this beta isn't notarized by Apple yet. Choose Done.",
       "Open System Settings › Privacy & Security, scroll to the message about Sidekick, click Open Anyway and enter your Mac password, then click Open Anyway again in the dialog that follows. You only do this once. Never turn off Gatekeeper: nothing here needs it.",
       "Sidekick shows a short note that macOS may ask for your Mac password. Click Continue. If macOS then asks to use “Sidekick Safe Storage” in your keychain, enter your password and click Always Allow. That is where Sidekick keeps the key your phone knows this Mac by.",
-      "Sidekick asks for your beta token. Copy it and press Paste token, or press Open token file… and choose the file ending in .sidekick-token.",
       "If macOS asks whether Sidekick may find devices on your local network, click Allow. Sidekick then shows a code for your phone to scan."
     ]
   },
@@ -28,6 +27,17 @@
     "playTestUrl": "https://play.google.com/apps/internaltest/4700743324703460563"
   },
   "changelog": [
+    {
+      "version": "2.0.2",
+      "date": "11 November 2026",
+      "items": [
+        "The Mac app no longer asks for a beta token. It opens and pairs with nothing to enter.",
+        "A phone address typed on the Mac with its port, the way the phone shows it, now connects.",
+        "When the Mac can't reach the phone, the pairing screen says what happened and what to do next, instead of only “no answer”.",
+        "The pairing screen points to macOS's Local Network setting and has a button that opens it.",
+        "The pairing code names the Mac's Wi-Fi or Ethernet address rather than a VPN's."
+      ]
+    },
     {
       "version": "2.0.1",
       "date": "14 October 2026",

@@ -129,7 +129,7 @@ test('download: needs email session AND approved; 302 to the storage URL; nothin
   assert.equal(r.status, 302);
   const loc = new URL(r.headers.get('location'));
   assert.equal(loc.origin, 'https://files.example.test', 'Location comes from the storage adapter');
-  assert.equal(loc.pathname, '/Sidekick-2.0.1-arm64.dmg');
+  assert.equal(loc.pathname, '/Sidekick-2.0.2-arm64.dmg');
   assert.equal(r.headers.get('cache-control'), 'no-store');
   assert.equal(h.repo.debugCount('downloads'), 0, 'no per-person download row (launch log Part 14)');
   assert.equal(h.storage.check(loc.href), true);
@@ -206,7 +206,7 @@ test('emails per address are capped, silently', async () => {
   assert.equal(h.repo.debugOutbox().filter(m => m.toEmail === 'alex@example.com').length, 2);
 });
 
-test('the whole pipeline: signup → confirm → signer token → token email → download', async () => {
+test('the whole pipeline: signup → confirm → signer token (stored, not emailed) → invitation → download', async () => {
   const h = setup();
   await h.signup();
   await h.confirm();
@@ -220,17 +220,16 @@ test('the whole pipeline: signup → confirm → signer token → token email �
   assert.equal((await h.admin('/api/admin/token', { signupId: list[0].signupId, token: fakeToken() }, { key: 'signer' })).status, 409, 'one token per person');
   assert.equal((await (await h.admin('/api/admin/pending', {}, { key: 'signer' })).json()).pending.length, 0);
   const ob = await (await h.admin('/api/admin/outbox', {}, { key: 'signer' })).json();
-  const mail = ob.messages.find(m => m.kind === 'token');
+  assert.equal(ob.messages.find(m => m.kind === 'token'), undefined, 'no token email: Mac 2.0.2 asks for no token');
+  for (const m of ob.messages) assert.ok(!m.text.includes(token), `${m.kind}: the token is in no email`);
+  assert.equal((await h.repo.getSignupByEmail('alex@example.com')).token, token, 'the token is stored');
   const invite = ob.messages.find(m => m.kind === 'invite');
-  assert.ok(mail.text.includes(token), 'the token is in the email');
-  assert.ok(!mail.text.includes('/api/access'), 'the token email carries no download link');
-  assert.ok(invite.text.includes(ORIGIN + '/download/mac') && !invite.text.includes(token), 'the invitation links to the download, without the token');
-  assert.equal((await h.admin('/api/admin/outbox-ack', { id: mail.id, ok: true }, { key: 'signer' })).status, 200);
-  assert.equal((await h.repo.getSignupByEmail('alex@example.com')).state, 'issued', 'delivered only once both emails are sent');
+  assert.ok(invite.text.includes(ORIGIN + '/download/mac'), 'the invitation links to the download');
+  assert.equal((await h.repo.getSignupByEmail('alex@example.com')).state, 'issued', 'delivered only once the invitation is sent');
   assert.equal((await h.admin('/api/admin/outbox-ack', { id: invite.id, ok: true }, { key: 'signer' })).status, 200);
   const row = await h.repo.getSignupByEmail('alex@example.com');
   assert.equal(row.state, 'delivered');
-  assert.equal(h.repo.debugOutbox().find(m => m.id === mail.id).text, '', 'sent email text is erased');
+  assert.equal(h.repo.debugOutbox().find(m => m.id === invite.id).text, '', 'sent email text is erased');
   assert.equal((await h.call('GET', '/download/mac')).status, 302, 'the public download route');
 });
 

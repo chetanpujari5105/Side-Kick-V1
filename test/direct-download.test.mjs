@@ -12,7 +12,7 @@ import releasesJson from '../data/releases.json' with { type: 'json' };
 
 const read = (f) => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 const CAP = 'XXXX.DUMMY.TOKEN.XXXX';
-const DIRECT = 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.1/Sidekick-2.0.1-arm64.dmg';
+const DIRECT = 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/v2.0.2/Sidekick-2.0.2-arm64.dmg';
 const DRIVE = releasesJson.mac.betaDriveUrl;
 const withDirect = () => { const r = JSON.parse(JSON.stringify(releasesJson)); r.mac.directUrl = DIRECT; return r; };
 const noDirect = () => { const r = JSON.parse(JSON.stringify(releasesJson)); r.mac.directUrl = null; return r; };
@@ -120,7 +120,7 @@ test('(f) every email that offers the Mac app links /download/mac; none names th
   const all = [
     emails.confirm({ name: 'Asha', confirmUrl: ORIGIN + '/c', downloadUrl }),
     emails.access({ name: 'Asha', downloadUrl }),
-    emails.copy({ name: 'Asha', token: 'SIDEKICK-TRIAL-1.x.y', downloadUrl, release }),
+    emails.copy({ name: 'Asha', downloadUrl, release }),
     emails.invite({ name: 'Asha', downloadUrl, release, googleEmail: 'a@gmail.com' }),
     emails.invite({ name: 'Asha', downloadUrl, release })
   ];
@@ -128,21 +128,21 @@ test('(f) every email that offers the Mac app links /download/mac; none names th
     assert.ok(m.text.includes('\n' + downloadUrl + '\n'), `${m.kind}: /download/mac on its own line`);
     assert.ok(!m.text.includes(DRIVE) && !/Google Drive/.test(m.text), `${m.kind}: no Drive`);
   }
-  for (const k of ['token', 'updates', 'android', 'waitlist']) assert.ok(!(emails[k].toString().includes('betaDriveUrl')), `${k}: no Drive`);
+  for (const k of ['updates', 'android', 'waitlist']) assert.ok(!(emails[k].toString().includes('betaDriveUrl')), `${k}: no Drive`);
 });
 
 test('(d) the release tag is v<version> or sidekick-mac-<version> of this version; nothing else', async () => {
   const { releaseProblems } = await import('../server/releases.mjs');
   const base = 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/';
-  const at = (tag, file = 'Sidekick-2.0.1-arm64.dmg') => { const r = withDirect(); r.mac.directUrl = base + tag + '/' + file; return releaseProblems(r).filter(p => p.startsWith('mac.directUrl')); };
-  assert.deepEqual(at('v2.0.1'), []);
-  assert.deepEqual(at('sidekick-mac-2.0.1'), []);
-  for (const tag of ['v2.0.2', 'sidekick-mac-2.0.2', 'sidekick-mac-v2.0.1', 'latest', 'sidekick-2.0.1', 'untagged-1f371627e9ee170df609']) assert.equal(at(tag).length, 1, tag);
-  assert.equal(at('sidekick-mac-2.0.1', 'Sidekick-2.0.1.dmg').length, 1, 'the arm64 file only');
+  const at = (tag, file = 'Sidekick-2.0.2-arm64.dmg') => { const r = withDirect(); r.mac.directUrl = base + tag + '/' + file; return releaseProblems(r).filter(p => p.startsWith('mac.directUrl')); };
+  assert.deepEqual(at('v2.0.2'), []);
+  assert.deepEqual(at('sidekick-mac-2.0.2'), []);
+  for (const tag of ['v2.0.1', 'sidekick-mac-2.0.1', 'v2.0.3', 'sidekick-mac-v2.0.2', 'latest', 'sidekick-2.0.2', 'untagged-1f371627e9ee170df609']) assert.equal(at(tag).length, 1, tag);
+  assert.equal(at('sidekick-mac-2.0.2', 'Sidekick-2.0.2.dmg').length, 1, 'the arm64 file only');
 });
 
-test('(d) releases.json: mac.directUrl is the verified sidekick-mac-2.0.1 asset (launch log P8R2)', () => {
-  assert.equal(releasesJson.mac.directUrl, 'https://github.com/chetanpujari5105/Side-Kick-V1/releases/download/sidekick-mac-2.0.1/Sidekick-2.0.1-arm64.dmg');
-  assert.equal(releasesJson.mac.builds.arm64.bytes, 121668061);
-  assert.equal(releasesJson.mac.builds.arm64.sha256, 'a03b3390db4a81b1602deefd25825c16d0b72dc654c7a45ba52f9d5834f71284');
+test('(d) releases.json: mac.directUrl is the verified v2.0.2 asset (2026-11-11, checked by data-sync --verify-direct-url)', () => {
+  assert.equal(releasesJson.mac.directUrl, 'https://github.com/chetanpujari5105/SIDEkick-website/releases/download/v2.0.2/Sidekick-2.0.2-arm64.dmg');
+  assert.equal(releasesJson.mac.builds.arm64.bytes, 121677045);
+  assert.equal(releasesJson.mac.builds.arm64.sha256, 'a7de5d28b56be39d92d9d2e55ed1976171772bd6470081649b9690911d4fb5b2');
 });

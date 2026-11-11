@@ -69,7 +69,7 @@ const releases = JSON.parse(fs.readFileSync(P('data/releases.json'), 'utf8'));
 const problems = releaseProblems(releases);
 if (problems.length) { console.error('data/releases.json is invalid: ' + problems.join('; ')); process.exit(1); }
 const pub = publicReleases(releases); // no _comment, no mac.directUrl (server-only)
-const releasesJs = `// GENERATED from data/releases.json by scripts/data-sync.mjs; do not edit by hand.\n// Release facts: 2.0.1, Apple silicon (arm64) only. Size and SHA-256 stay null until the staged DMG exists.\nwindow.SK_RELEASES = ${JSON.stringify(pub, null, 2)};\n`;
+const releasesJs = `// GENERATED from data/releases.json by scripts/data-sync.mjs; do not edit by hand.\n// Release facts: ${pub.version}, Apple silicon (arm64) only. Size and SHA-256 stay null until the staged DMG exists.\nwindow.SK_RELEASES = ${JSON.stringify(pub, null, 2)};\n`;
 
 const sandbox = { window: {} };
 vm.createContext(sandbox);

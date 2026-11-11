@@ -169,7 +169,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   await loc(await call('GET', '/api/download/mac/arm64', { headers: nav }), 'download without a session (browser)');
   const form = new URLSearchParams({ name: 'Lin Kay', email: 'links@example.com', macChip: 'apple', phoneModel: 'Pixel 8', googleEmail: 'lin.kay@gmail.com', privacyAccepted: 'on', marketingOptIn: 'on', 'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX' });
   await loc(await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), 'no-JS signup success');
-  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')) && fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8').includes('After you confirm, we email your beta token, usually within a day.'));
+  ok('redirect', 'check-email.html (the no-JS landing) says emails can take up to a day', /can take up to a day to arrive/.test(fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8')) && fs.readFileSync(path.join(DIST, 'check-email.html'), 'utf8').includes('After you confirm, we email you your beta invitation, usually within a day.'));
   form.set('phoneModel', '07700 900123');
   const pn = await call('POST', '/api/get-sidekick', { headers: { ...nav, 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() });
   ok('server', 'no-JS signup with a phone number → 400 page with the plain message', pn.status === 400 && (await pn.text()).includes(MSG.phoneNumber.replace(/'/g, '&#39;')), `HTTP ${pn.status}`);
@@ -203,7 +203,7 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   if (updatesUrl) await walk('confirm?for=updates', updatesUrl, '/api/confirm-email');
   if (confirmUrl) await walk('confirm', confirmUrl, '/api/confirm-email');
   // The owner adds the Google account to the Play test list (PLAY_GATE=on), then the signer posts a token:
-  // the invitation carries the download link, the token email carries no link at all.
+  // the token is stored, and the invitation (the only email) carries the download link. No email carries the token.
   const adminPost = async (action, payload) => {
     const b = JSON.stringify(payload);
     const hh = signRequest({ keyId: 'admin', secret: env.ADMIN_AUTH_SECRET, method: 'POST', path: '/api/admin/' + action, body: b, now: clock.now() });
@@ -211,12 +211,12 @@ export async function checkLinks({ build = true, mode = 'automated' } = {}) {
   };
   ok('email', 'play-mark-added (admin)', (await adminPost('play-mark-added', { googleEmails: ['lin.kay@gmail.com'] })).status === 200);
   const s = await repo.getSignupByEmail('links@example.com');
-  const body = JSON.stringify({ signupId: s && s.id, token: 'SIDEKICK-TRIAL-1.' + crypto.randomBytes(60).toString('base64url') + '.' + crypto.randomBytes(64).toString('base64url') });
+  const signerToken = 'SIDEKICK-TRIAL-1.' + crypto.randomBytes(60).toString('base64url') + '.' + crypto.randomBytes(64).toString('base64url');
+  const body = JSON.stringify({ signupId: s && s.id, token: signerToken });
   const h = signRequest({ keyId: 'signer', secret: env.ADMIN_AUTH_SIGNER_SECRET, method: 'POST', path: '/api/admin/token', body, now: clock.now() });
   const tr = await call('POST', '/api/admin/token', { headers: { ...h, 'content-type': 'application/json' }, body });
   ok('email', 'signer stores a token (fake)', tr.status === 200, `HTTP ${tr.status}`);
-  const tokenMail = mails().find(m => m.kind === 'token');
-  ok('email', 'token email has no link at all', tokenMail && urlsIn(tokenMail.text).length === 0);
+  ok('email', 'no token email, and no email carries the token (Mac 2.0.2)', !mails().some(m => m.kind === 'token') && !mails().some(m => m.text.includes(signerToken)));
   const inviteMail = mails().find(m => m.kind === 'invite');
   ok('email', 'invitation: the Mac download is /download/mac, no access link any more', inviteMail && urlsIn(inviteMail.text).includes(O + '/download/mac') && !inviteMail.text.includes('/api/access'));
   // An access link from an older email still opens the Download page (the recovery page, launch log Part 7).

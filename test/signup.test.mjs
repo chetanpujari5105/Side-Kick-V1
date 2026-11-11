@@ -187,7 +187,7 @@ test('phone model: the page checks the same rule with the same message, and the 
 // The owner sends the emails from his Mac (the signer), so the site says they can take up to a day (2026-10-16).
 // What happens after confirming, in the same words on the page, the no-JS landing page and the confirm email.
 // The email flow (no token on the page): what happens after confirming (launch log Part 7).
-const NEXT = 'After you confirm, we email your beta token, usually within a day.';
+const NEXT = 'After you confirm, we email you your beta invitation, usually within a day.';
 
 test('timing copy: check-your-email and the invitation flow say emails can take up to a day', async () => {
   const fs = await import('node:fs');
@@ -200,8 +200,8 @@ test('timing copy: check-your-email and the invitation flow say emails can take 
     assert.ok(t.includes(NEXT), `${f}: what happens next`);
     for (const old of ['a few minutes', 'Nothing after an hour']) assert.ok(!t.includes(old), `${f}: still says ${old}`);
   }
-  assert.ok(read('Get Sidekick.dc.html').includes("Right now we can't hand out a beta token on this page, so we'll do it by email."), 'Get Sidekick says so when it falls back');
-  assert.ok(read('Download.dc.html').includes("We email it to you once it\\'s ready, within a day. Nothing to do on the phone."), 'Download token line');
+  assert.ok(read('Get Sidekick.dc.html').includes("Right now we can't finish your sign-up on this page, so we'll do it by email."), 'Get Sidekick says so when it falls back');
+  for (const f of ['check-email.html', 'Download.dc.html', 'Get Sidekick.dc.html']) assert.ok(!/beta token/i.test(read(f)), `${f}: no token line (Mac 2.0.2)`);
   assert.ok(read('Support.dc.html').includes('it arrives within a day of confirming your email.'), 'Support beta token row');
   for (const f of ['Download.dc.html', 'Support.dc.html', 'Get Sidekick.dc.html', 'check-email.html']) assert.ok(!/few hours/.test(read(f)), `${f}: few hours`);
   const { emails } = await import('../server/emails.mjs');

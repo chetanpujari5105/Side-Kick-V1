@@ -56,7 +56,7 @@ const betaBlock = (T, automated = false) => [
   T.fallbackUrl ? P(`If the download doesn't start, <a href="${esc(T.fallbackUrl)}" rel="noopener noreferrer" style="font-weight:600;">open our Google Drive folder</a> and download ${esc(T.file)} there.`) : '',
   T.file ? P(`File: <code>${esc(T.file)}</code>${T.size ? ` · Size: ${esc(T.size)}` : ''}`) : '',
   T.sha ? P(`SHA-256: <code style="word-break:break-all;">${esc(T.sha)}</code>`) : '',
-  T.checkTitle ? H3(T.checkTitle) : '', T.checkTitle ? OL(T.check) : '', H3(T.installTitle), OL(T.install), P(`<strong>${esc(T.tokenTitle)}</strong> ${esc(T.token)}`),
+  T.checkTitle ? H3(T.checkTitle) : '', T.checkTitle ? OL(T.check) : '', H3(T.installTitle), OL(T.install),
   H2(T.androidTitle), P(esc(T.androidNeed)), P(`<strong>${esc(T.playAccess)}</strong>`), A(T.playUrl, T.playLabel), P(esc(T.playText)), P(esc(T.noApk), 'font-weight:600;'),
   H2(T.pairTitle), P(automated ? esc(T.pair) : `${esc(T.pair)} <a href="Support.dc.html#setup" style="font-weight:600;">Full setup guide</a>`), P(esc(T.help))
 ].filter(Boolean).join('\n');

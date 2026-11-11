@@ -239,14 +239,15 @@ try {
   check('play-mark-added', (await adminC('play-mark-added', { googleEmails: ['alex.rivera@gmail.com'] })).marked === 1);
   const r = await runCycle({ cfg, post: makeClient({ base: O, keyId: 'signer', secret: dev.secrets.ADMIN_AUTH_SIGNER_SECRET }), mail: async (m) => sent.push(m), log: () => {} });
   check('signer issued and posted one token, sent the queued emails', r.issued === 1 && r.posted === 1 && r.mailed >= 2, JSON.stringify(r));
-  const tokenMail = sent.find(m => m.kind === 'token');
-  const token = tokenMail.text.match(/SIDEKICK-TRIAL-1\.\S+/)[0];
+  const tokenFiles = fs.readdirSync(cfg.tokensDir).filter(f => f.endsWith('.sidekick-token'));
+  const token = tokenFiles.length === 1 ? fs.readFileSync(path.join(cfg.tokensDir, tokenFiles[0]), 'utf8').trim() : '';
   const [, pl, sg] = token.split('.');
-  check('emailed token verifies with the throwaway public key', crypto.verify(null, Buffer.from(pl), publicKey, Buffer.from(sg, 'base64url')));
+  check('the issued token (kept by the signer) verifies with the throwaway public key', !!sg && crypto.verify(null, Buffer.from(pl), publicKey, Buffer.from(sg, 'base64url')));
+  check('no token email, and no email carries the token (Mac 2.0.2)', !sent.some(m => m.kind === 'token') && !sent.some(m => m.text.includes(token)));
   const inviteMail = sent.find(m => m.kind === 'invite');
   check('invitation sent separately: Play link, /download/mac, no token, no Beta page', !!inviteMail && inviteMail.text.includes(RELEASES.android.playTestUrl) && inviteMail.text.includes(O + '/download/mac') && !inviteMail.text.includes(token) && !inviteMail.text.includes('Beta.dc.html'));
 
-  // 4. A different browser (fresh profile context) opens the access link from the token email.
+  // 4. A different browser (fresh profile context) opens the Download page without a session.
   const { result: { browserContextId } } = await send('Target.createBrowserContext');
   const b = await tab({ context: browserContextId });
   await b.go(O + '/Download.dc.html');
@@ -254,7 +255,7 @@ try {
   // The first browser still has its session: the Download page's button is a plain link to /download/mac.
   await a.go(O + '/Download.dc.html'); await sleep(500);
   txt = await a.text();
-  check('Download page says the token was emailed; the Mac button is a normal /download/mac link', txt.includes('We emailed it to you') && (await a.eval(`document.querySelector('#dl-mac') && document.querySelector('#dl-mac').getAttribute('href')`)) === '/download/mac');
+  check('Download page says nothing of a token; the Mac button is a normal /download/mac link', !/beta token/i.test(txt) && (await a.eval(`document.querySelector('#dl-mac') && document.querySelector('#dl-mac').getAttribute('href')`)) === '/download/mac');
 
   // 4b. Updates: an announcement to a confirmed subscriber, and its one-use unsubscribe link in a browser.
   await fetch(O + '/api/get-sidekick', { method: 'POST', headers: { 'content-type': 'application/json', origin: O }, body: JSON.stringify({ name: 'Una', email: 'una@example.com', macChip: 'apple', phoneModel: 'Pixel 7', googleEmail: 'una@gmail.com', privacyAccepted: true, marketingOptIn: true, captchaToken: 'XXXX.DUMMY.TOKEN.XXXX' }) });

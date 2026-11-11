@@ -16,8 +16,7 @@ const PLAY = release.android.playTestUrl;
 
 // One of every email the signer can send.
 const all = (name = 'chetan pujari') => [
-  emails.copy({ name, token: TOKEN, downloadUrl: DL, release }),
-  emails.copy({ name, token: null, downloadUrl: DL, release }),
+  emails.copy({ name, downloadUrl: DL, release }),
   emails.android({ name, release, googleEmail: 'chetan@gmail.com' }),
   emails.confirm({ name, confirmUrl: SITE + '/c?t=1', updatesUrl: SITE + '/u?t=2', downloadUrl: DL, android: true }),
   emails.updates({ name, updatesUrl: SITE + '/u?t=2' }),
@@ -25,7 +24,6 @@ const all = (name = 'chetan pujari') => [
   emails.waitlist({ name }),
   emails.invite({ name, downloadUrl: DL, release, googleEmail: 'chetan@gmail.com' }),
   emails.invite({ name, downloadUrl: DL, release }),
-  emails.token({ name, token: TOKEN }),
   emails.announce({ subject: 'Sidekick 2.0.2', body: 'A new build is out.\n\nIt fixes pairing.', unsubscribeUrl: SITE + '/x?t=4' })
 ];
 
@@ -57,15 +55,13 @@ test('first names are capitalised everywhere (emails and subjects)', () => {
     assert.ok(m.text.includes('Chetan') && !/\bchetan\b(?!@| pujari)/.test(m.text.replace(/chetan@gmail\.com/g, '').split(PLAY).join('')), `${m.kind}: capitalised in the text`);
     assert.ok(renderEmail(m).html.includes('Chetan'), `${m.kind}: capitalised in the HTML`);
   }
-  assert.equal(emails.copy({ name: 'chetan', token: TOKEN, downloadUrl: DL, release }).subject, "You're in, Chetan: your Sidekick beta");
-  assert.equal(emails.copy({ name: '', token: TOKEN, downloadUrl: DL, release }).subject, 'Your Sidekick beta');
+  assert.equal(emails.copy({ name: 'chetan', downloadUrl: DL, release }).subject, "You're in, Chetan: your Sidekick beta");
+  assert.equal(emails.copy({ name: '', downloadUrl: DL, release }).subject, 'Your Sidekick beta');
 });
 
-test('"Your Sidekick beta": headline, big Download for Mac button, token card, three numbered steps', () => {
-  const m = emails.copy({ name: 'chetan', token: TOKEN, downloadUrl: DL, release });
+test('"Your Sidekick beta": headline, big Download for Mac button, three numbered steps, no token card', () => {
+  const m = emails.copy({ name: 'chetan', downloadUrl: DL, release });
   assert.match(m.text, /^You're in, Chetan\.\n/);
-  assert.ok(m.text.includes(`\n${TOKEN}\n`), 'the token on its own line in the plain text');
-  assert.ok(m.text.includes('Select and copy the whole line'));
   for (const s of SHORT_STEPS(release.mac.builds.arm64.file)) assert.ok(m.text.includes(s), s);
   const { html, text } = renderEmail(m);
   assert.equal(text, m.text, 'the plain-text alternative is the queued text');
@@ -73,19 +69,24 @@ test('"Your Sidekick beta": headline, big Download for Mac button, token card, t
   const btn = html.match(/<td[^>]*bgcolor="#C6FF33"[^>]*>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>/);
   assert.ok(btn, 'a lime table-cell button');
   assert.deepEqual([btn[1], btn[2]], [DL, 'Download for Mac']);
-  const card = html.slice(html.indexOf('data-sk="token"'), html.indexOf('data-sk="token-end"'));
-  assert.ok(card.replace(/<wbr>/g, '').includes(TOKEN), 'the whole token in the card');
-  assert.match(card, /font-family:[^;"]*monospace/);
-  assert.match(card, /word-break:break-all/);
-  assert.match(card, /Select and copy the whole line/);
+  assert.ok(!html.includes('data-sk="token"'), 'no token card: Mac 2.0.2 asks for no token');
   assert.equal((html.match(/data-sk="step"/g) || []).length, 3, 'three step rows');
   for (const n of ['1', '2', '3']) assert.match(html, new RegExp(`data-sk="badge"[^>]*>${n}</td>`));
 });
 
-test('copy without a token (erased after 46 days): no token card, says where it was', () => {
-  const m = emails.copy({ name: 'chetan', token: null, downloadUrl: DL, release });
-  assert.ok(!/SIDEKICK-TRIAL-1\./.test(m.text.replace('from SIDEKICK-TRIAL-1', '')));
-  assert.ok(!renderEmail(m).html.includes('data-sk="token"'));
+test('no email carries a beta token or asks for one (Mac 2.0.2), even when the caller has a token to hand', () => {
+  // Control: the token-shaped string is one the renderer would put in a card, so its absence below means something.
+  assert.ok(renderEmail({ kind: 'x', subject: 'S', text: `Hi.\n\nYOUR BETA TOKEN\n\n${TOKEN}\n\n— Sidekick\n\nYou got this email because.` }).html.includes('data-sk="token"'));
+  const withToken = emails.copy({ name: 'chetan', token: TOKEN, downloadUrl: DL, release });
+  for (const m of [...all(), withToken]) {
+    const { html } = renderEmail(m);
+    for (const body of [m.text, html]) {
+      assert.ok(!body.includes('SIDEKICK-TRIAL-1') && !body.includes(TOKEN), `${m.kind}: no token`);
+      assert.ok(!/beta token|paste token|your token/i.test(body), `${m.kind}: no token wording`);
+    }
+    assert.ok(!html.includes('data-sk="token"'), `${m.kind}: no token card`);
+  }
+  assert.equal(emails.token, undefined, 'the token email is gone');
 });
 
 test('"Sidekick for Android": button to the Play test link, the Google-account line, three steps to install and pair', () => {
@@ -136,14 +137,14 @@ test('template rules: tables with role=presentation, inline styles, preheader, d
 });
 
 test('buttons are bulletproof table cells at least 44 px tall', () => {
-  const { html } = renderEmail(emails.copy({ name: 'chetan', token: TOKEN, downloadUrl: DL, release }));
+  const { html } = renderEmail(emails.copy({ name: 'chetan', downloadUrl: DL, release }));
   const a = html.match(/bgcolor="#C6FF33"[^>]*>\s*<a [^>]*style="([^"]+)"/)[1];
   const pad = Number(a.match(/padding:(\d+)px/)[1]), lh = Number(a.match(/line-height:(\d+)px/)[1]);
   assert.ok(2 * pad + lh >= 44, `button height ${2 * pad + lh}px`);
 });
 
 test('the renderer escapes everything it is given (a name cannot inject HTML)', () => {
-  const m = emails.copy({ name: '<img src=x onerror=alert(1)>', token: TOKEN, downloadUrl: DL, release });
+  const m = emails.copy({ name: '<img src=x onerror=alert(1)>', downloadUrl: DL, release });
   const { html } = renderEmail(m);
   assert.ok(!html.includes('<img src=x'), 'escaped');
   const a = renderEmail(emails.announce({ subject: 'S', body: 'Hi <b>all</b> & "friends"', unsubscribeUrl: SITE + '/x' }));
@@ -155,6 +156,7 @@ test('the preview token is a dummy: never token-shaped, so it can never pass for
   const { isTokenShaped } = await import('../server/validate.mjs');
   assert.equal(DUMMY_TOKEN, 'SIDEKICK-TRIAL-1.PREVIEW-ONLY');
   assert.equal(isTokenShaped(DUMMY_TOKEN), false);
-  const { html } = renderEmail(emails.copy({ name: 'chetan', token: DUMMY_TOKEN, downloadUrl: DL, release }));
-  assert.ok(html.includes('data-sk="token"'), 'still shown in a token card in previews');
+  // The renderer still draws a token card for a lone token line (signer --send-test); no queued email has one now.
+  const { html } = renderEmail({ kind: 'x', subject: 'S', text: `Hi.\n\nYOUR BETA TOKEN\n\n${DUMMY_TOKEN}\n\n— Sidekick\n\nYou got this email because.` });
+  assert.ok(html.includes('data-sk="token"'), 'still shown in a token card when given one');
 });
