@@ -31,20 +31,20 @@ function world() {
   return { h, cfg, post, sent, mail, verify, dir, privateKey };
 }
 
-test('signer round trip: approved person → issuer signs → token stored → token emailed → delivered', async () => {
+test('signer round trip: approved person → issuer signs → token stored → invitation emailed (no token email) → delivered', async () => {
   const w = world();
   await w.h.signup();
   await w.h.confirm();
   const lines = [];
   const r = await runCycle({ cfg: w.cfg, post: w.post, mail: w.mail, log: (l) => lines.push(l) });
-  assert.deepEqual(r, { issued: 1, reused: 0, posted: 1, failed: 0, mailed: 3, mailFailed: 0, deferred: false }, 'confirm email + invitation + token email');
-  const tokenMail = w.sent.find(m => m.kind === 'token');
-  const token = tokenMail.text.match(/SIDEKICK-TRIAL-1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}/)[0];
-  assert.ok(w.verify(token), 'the emailed token verifies with the throwaway public key');
-  assert.equal(tokenMail.to, 'alex@example.com');
+  assert.deepEqual(r, { issued: 1, reused: 0, posted: 1, failed: 0, mailed: 2, mailFailed: 0, deferred: false }, 'confirm email + invitation; the token is not emailed (Mac 2.0.2)');
+  assert.deepEqual(w.sent.map(m => m.kind), ['confirm', 'invite']);
   const s = await w.h.repo.getSignupByEmail('alex@example.com');
   assert.equal(s.state, 'delivered');
-  assert.equal(s.token, token);
+  const token = s.token;
+  assert.match(token, /^SIDEKICK-TRIAL-1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{86}$/, 'the issued token is stored');
+  assert.ok(w.verify(token), 'the stored token verifies with the throwaway public key');
+  for (const m of w.sent) assert.ok(!m.text.includes(token) && !m.text.includes('SIDEKICK-TRIAL-1'), `${m.kind}: no token in any email`);
   const file = path.join(w.cfg.tokensDir, `${s.id}.sidekick-token`);
   assert.equal((fs.statSync(file).mode & 0o777).toString(8), '600');
   assert.equal(JSON.parse(Buffer.from(token.split('.')[1], 'base64url')).label, 'Alex Rivera');
@@ -76,8 +76,8 @@ test('signer keychain mode: the PEM reaches the issuer on fd 3, never on disk', 
   const pem = w.privateKey.export({ type: 'pkcs8', format: 'pem' });
   const r = await runCycle({ cfg, post: w.post, mail: w.mail, pem });
   assert.equal(r.issued, 1);
-  const tok = w.sent.find(m => m.kind === 'token').text.match(/SIDEKICK-TRIAL-1\.\S+/)[0];
-  assert.ok(w.verify(tok));
+  const tok = (await w.h.repo.getSignupByEmail('alex@example.com')).token;
+  assert.ok(w.verify(tok), 'the stored token verifies');
   const files = fs.readdirSync(w.dir, { recursive: true }).map(String);
   assert.ok(!files.some(f => f.endsWith('.pem')), 'no key file anywhere in the work folder');
 });

@@ -133,7 +133,8 @@ test('a repeat sign-up NEVER shows the token again: "already signed up", and the
   assert.equal(mails.length, 1);
   assert.equal(mails[0].kind, 'copy');
   assert.equal(mails[0].toEmail, 'asha@example.com');
-  assert.ok(mails[0].text.includes(t) && mails[0].text.includes(ORIGIN + '/download/mac'));
+  assert.ok(mails[0].text.includes(ORIGIN + '/download/mac'), 'the copy has the download');
+  assert.ok(!mails[0].text.includes(t) && !mails[0].text.includes('SIDEKICK-TRIAL-1'), 'and no token (Mac 2.0.2 asks for none)');
   assert.ok(!/drive\.google\.com/.test(mails[0].text.split('If the download')[0]), 'Drive is only the fallback');
   // The no-JavaScript page says the same and shows no token either.
   const page = await h.call('POST', '/api/get-sidekick', { form: { ...macOnly(), privacyAccepted: 'on', 'cf-turnstile-response': CAP }, headers: { origin: ORIGIN }, ip: '198.51.100.10' });
@@ -188,15 +189,16 @@ test('kill switch: SITE_MODE=manual closes the signup API; nothing is stored', a
   assert.equal((await status(h)).ready, 1);
 });
 
-test('no JavaScript: the form post answers with the result page itself — token, normal download link, three steps, details', async () => {
+test('no JavaScript: the form post answers with the result page itself — normal download link, three steps, details, no token', async () => {
   const h = setup({ releases: withDirect() });
   const [t] = await fill(h, 1);
   const res = await h.call('POST', '/api/get-sidekick', { form: { name: 'Asha Rao', email: 'asha@example.com', privacyAccepted: 'on', android: 'on', phoneModel: 'Pixel 8', googleEmail: 'asha.rao@gmail.com', 'cf-turnstile-response': CAP }, headers: { origin: ORIGIN } });
   assert.equal(res.status, 200);
   const html = (await res.text()).replace(/&#39;/g, "'");
   assert.ok(html.includes("You're in, Asha"));
-  assert.ok(html.includes(t), 'the token, shown once');
-  assert.ok(!html.includes('http-equiv="refresh"'), 'nothing navigates away from the token (launch log Part 8)');
+  assert.ok(!html.includes(t) && !html.includes('SIDEKICK-TRIAL-1') && !/beta token/i.test(html), 'the token is issued but not shown (Mac 2.0.2 asks for none)');
+  assert.equal((await status(h)).ready, 0, 'control: a pool token was issued for this sign-up');
+  assert.ok(!html.includes('http-equiv="refresh"'), 'nothing navigates away from the result (launch log Part 8)');
   assert.match(html, /<a [^>]*href="\/download\/mac" target="_blank" rel="noopener">Download the Mac app<\/a>/, 'a normal link without JavaScript');
   assert.equal((html.match(/<li class="step">/g) || []).length, 3, 'three install steps');
   assert.ok(html.includes('<details>') && html.includes('More details') && html.includes(releasesJson.mac.builds.arm64.sha256));
@@ -250,7 +252,7 @@ test('"Email me a copy" queues ONE email, only for the browser that saw the resu
   assert.equal((await r2.json()).stage, 'already_sent');
   const copies = h.repo.debugOutbox().filter(x => x.kind === 'copy');
   assert.equal(copies.length, 1);
-  assert.ok(copies[0].text.includes(t));
+  assert.ok(copies[0].text.includes(ORIGIN + '/download/mac') && !copies[0].text.includes(t), 'the copy has the download and no token');
   assert.equal((await h.call('POST', '/api/email-copy', { json: {}, cookie, headers: { origin: 'https://evil.example' } })).status, 403);
   const f = await h.call('POST', '/api/email-copy', { form: {}, cookie, headers: { origin: ORIGIN, accept: 'text/html' } });
   assert.equal(f.status, 200, 'the no-JavaScript button gets a page');

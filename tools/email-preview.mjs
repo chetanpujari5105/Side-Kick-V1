@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { renderEmail, DUMMY_TOKEN, SITE } from '../server/email-html.mjs';
+import { renderEmail, SITE } from '../server/email-html.mjs';
 import { buildMime } from './signer/smtp.mjs';
 import { previewSamples } from './signer/previews.mjs';
 import { CONTACT } from '../server/emails.mjs';
@@ -13,8 +13,7 @@ import { CONTACT } from '../server/emails.mjs';
 const dir = process.argv[2] || path.join(os.homedir(), 'Documents/Sidekick-private/email-previews');
 fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 fs.chmodSync(dir, 0o700);
-const longDummy = (DUMMY_TOKEN + '-PREVIEW-ONLY'.repeat(30)).slice(0, 280);
-const samples = previewSamples().concat([['copy-long-token', previewSamples({ token: longDummy })[0][1]]]);
+const samples = previewSamples();
 const write = (f, body) => { const p = path.join(dir, f); fs.writeFileSync(p, body, { mode: 0o600 }); fs.chmodSync(p, 0o600); };
 for (const [name, m] of samples) {
   const { html, text } = renderEmail(m);

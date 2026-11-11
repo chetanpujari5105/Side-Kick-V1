@@ -8,9 +8,9 @@
 import { cleanText } from './validate.mjs';
 
 export const CONTACT = 'chetanpujari.sitit@gmail.com';
-// The token's length, as the Mac app's docs state it: "signed, time-boxed tokens, 45 days"
-// (ConnectSuite docs/trial-licence-summary-2026-10-11.md, "Decided and built"). The signer issues --days 45.
-export const TOKEN_DAYS = 45;
+// No email shows a beta token any more: Mac 2.0.2 asks for none. The server still issues and stores tokens
+// (the pool, the signer's /api/admin/token); they are simply not sent. The privacy text in Support.dc.html still
+// describes them, which stays true while they are made and stored.
 
 // The first word of the name, first letter capitalised ("chetan pujari" → "Chetan"); '' when there is none.
 export const capFirst = (s) => s ? s.charAt(0).toLocaleUpperCase('en') + s.slice(1) : '';
@@ -29,11 +29,9 @@ const button = (label, url) => `${label}:\n${url}`;
 export const SHORT_STEPS = (file) => [
   `Open ${file} and drag Sidekick into Applications.`,
   'Open Sidekick. On the macOS warning choose Done, then open System Settings › Privacy & Security and click Open Anyway.',
-  'Paste your beta token when Sidekick asks for it (press Paste token).'
+  'Sidekick opens with nothing to enter. To pair a phone, scan the code it shows with the Sidekick Android app.'
 ];
 const APPLE_SILICON = 'For Macs with Apple silicon (M1 or later).';
-const COPY_HINT = 'Select and copy the whole line, from SIDEKICK-TRIAL-1 to its last character.';
-const tokenFacts = `It works for ${TOKEN_DAYS} days from the day it was made. It is yours: please don't share it. Sidekick checks it on your Mac and sends it nowhere.`;
 
 // Android: the Play test link as a button, the one line about the Google account, three steps to install and pair.
 const android = (release, googleEmail) => {
@@ -48,35 +46,33 @@ const android = (release, googleEmail) => {
 };
 
 export const emails = {
-  // The email flow, used when no token can be handed out on the page (pool empty, daily cap, beta full).
+  // The email flow, used when no place can be given on the page (pool empty, daily cap, beta full).
   confirm: ({ name, confirmUrl, updatesUrl, downloadUrl, android: wantsAndroid = false }) => ({
     kind: 'confirm',
     subject: 'Confirm your email for the Sidekick beta',
     text: hi(name, n => withName(n, 'Confirm your email')) + '\n\nOne click finishes your sign-up for the Sidekick beta. The link works for 48 hours.' +
       `\n\n${button('Confirm my email', confirmUrl)}` +
-      `\n\nAfter you confirm, we email your beta token, usually within a day.${wantsAndroid ? ' We also add your Google account to the Android test list and email you its Google Play link.' : ''}` +
+      `\n\nAfter you confirm, we email you your beta invitation, usually within a day.${wantsAndroid ? ' We also add your Google account to the Android test list and email you its Google Play link.' : ''}` +
       (downloadUrl ? `\n\nYou can download the Mac app now. ${APPLE_SILICON}\n\n${button('Download for Mac', downloadUrl)}` : '') +
       (updatesUrl ? `\n\nYou also asked for Sidekick updates by email. We'll only send them if you confirm that too.\n\n${button('Yes, send me updates', updatesUrl)}` : '') +
       `\n\nIf you didn't sign up, ignore this email. Unconfirmed sign-ups are deleted after 7 days.${footer(false)}`
   }),
-  // A repeat sign-up whose token is still on its way: the download link (no token here; it has its own email).
+  // A repeat sign-up whose invitation is still on its way: the download link now.
   access: ({ name, downloadUrl }) => ({
     kind: 'access',
     subject: 'Your Sidekick download link',
     text: hi(name, n => withName(n, 'Here is your download link')) + `\n\nYou already signed up for the Sidekick beta. ${APPLE_SILICON}\n\n${button('Download for Mac', downloadUrl)}` +
-      `\n\nYour beta token comes in its own email, "Your Sidekick beta token". If it has already come, use that one. If you didn't ask for this, ignore this email.${footer()}`
+      `\n\nIf you didn't ask for this, ignore this email.${footer()}`
   }),
-  // "Email me a copy" on the result page, or a repeat sign-up of someone who already has a token: what the page
-  // showed, sent only to the address on the sign-up. token is null when it has already been erased (after 46 days).
-  copy: ({ name, token, downloadUrl, release }) => {
+  // "Email me a copy" on the result page, or a repeat sign-up of someone already in: what the page showed (the
+  // download and three steps), sent only to the address on the sign-up.
+  copy: ({ name, downloadUrl, release }) => {
     const n = firstName(name), b = release.mac.builds.arm64;
-    const tok = token ? `YOUR BETA TOKEN\n\n${token}\n\n${COPY_HINT} ${tokenFacts}`
-      : 'YOUR BETA TOKEN\n\nIt was on the page you saw when you signed up, or in our earlier email. If you can\'t find it, reply to this email.';
     return {
       kind: 'copy',
       subject: n ? `You're in, ${n}: your Sidekick beta` : 'Your Sidekick beta',
-      text: withName(n, "You're in") + `\n\nHere is your Sidekick beta: the Mac app, your beta token and three install steps. ${APPLE_SILICON}\n\n` +
-        `${button('Download for Mac', downloadUrl)}\n\n${tok}\n\nINSTALL IN THREE STEPS\n\n${numbered(SHORT_STEPS(b.file))}${footer()}`
+      text: withName(n, "You're in") + `\n\nHere is your Sidekick beta: the Mac app and three install steps. ${APPLE_SILICON}\n\n` +
+        `${button('Download for Mac', downloadUrl)}\n\nINSTALL IN THREE STEPS\n\n${numbered(SHORT_STEPS(b.file))}${footer()}`
     };
   },
   // The updates opt-in of an instant sign-up: still double opt-in, and only when ticked in that submission.
@@ -97,7 +93,7 @@ export const emails = {
     subject: "You're on the Sidekick waitlist",
     text: hi(name, n => withName(n, "You're on the waitlist")) + '\n\nThanks for confirming your email. The beta is full for now. We\'ll email you when a place opens. There\'s nothing else to do.' + footer()
   }),
-  // The invitation of the email flow: where the apps come from. Never the token (that is its own email).
+  // The invitation of the email flow: where the apps come from. The only email the signer's token step sends.
   // downloadUrl is /download/mac (the server falls back to the Drive folder by itself while there is no direct link).
   invite: ({ name, downloadUrl, release, googleEmail }) => {
     const b = release.mac.builds.arm64;
@@ -106,21 +102,10 @@ export const emails = {
     return {
       kind: 'invite',
       subject: 'Your Sidekick beta invitation',
-      text: hi(name, n => withName(n, "You're in")) + `\n\nWelcome to the Sidekick beta. Your beta token comes in a separate email, "Your Sidekick beta token". ${APPLE_SILICON}\n\n` +
+      text: hi(name, n => withName(n, "You're in")) + `\n\nWelcome to the Sidekick beta. ${APPLE_SILICON}\n\n` +
         `${button('Download for Mac', downloadUrl)}\n\nINSTALL IN THREE STEPS\n\n${numbered(SHORT_STEPS(b.file))}\n\n${and}${footer()}`
     };
   },
-  // The token, alone on its own line, with how to enter it. No link of any kind: it travels apart from the download.
-  token: ({ name, token }) => ({
-    kind: 'token',
-    subject: 'Your Sidekick beta token',
-    text: hi(name, n => withName(n, 'Here is your beta token')) + `\n\nYOUR BETA TOKEN\n\n${token}\n\n${COPY_HINT} ${tokenFacts}\n\nHOW TO ENTER IT\n\n` +
-      numbered([
-        'Install Sidekick on your Mac first (the steps are in our other email, "Your Sidekick beta invitation").',
-        'Copy the whole token line above.',
-        'Open Sidekick. The first time, it shows "Enter your beta token": press Paste token. To enter a new token later, use Settings › About › Beta access.'
-      ]) + footer()
-  }),
   // An update, to people who asked for updates and confirmed by email. Each copy has its own one-use link.
   announce: ({ subject, body, unsubscribeUrl }) => ({
     kind: 'announce',

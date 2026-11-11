@@ -80,12 +80,11 @@ try {
   const { renderEmail } = await import('../server/email-html.mjs');
   const inviteHtml = renderEmail(invite).html;
   step('invitation (HTML): a Download for Mac button, three numbered steps, under 60 KB', /bgcolor="#C6FF33"[^>]*>\s*<a href="[^"]+\/download\/mac"[^>]*>Download for Mac</.test(inviteHtml) && (inviteHtml.match(/data-sk="step"/g) || []).length >= 3 && Buffer.byteLength(inviteHtml) < 61440);
-  const tokenMail = inbox.find(m => m.kind === 'token' && m.to === 'asha@example.com');
-  const tok = tokenMail.text.match(/SIDEKICK-TRIAL-1\.\S+/)[0];
-  step('token email carries a token that verifies (throwaway key)', crypto.verify(null, Buffer.from(tok.split('.')[1]), publicKey, Buffer.from(tok.split('.')[2], 'base64url')));
+  const tok = (await repo.getSignupByEmail('asha@example.com')).token;
+  step('the issued token is stored and verifies (throwaway key)', !!tok && crypto.verify(null, Buffer.from(tok.split('.')[1]), publicKey, Buffer.from(tok.split('.')[2], 'base64url')));
   step('waitlist email sent, no token for the waitlisted person', inbox.some(m => m.kind === 'waitlist' && m.to === 'cleo@example.com') && !inbox.some(m => m.kind === 'token' && m.to === 'cleo@example.com'));
 
-  step('token email: the token on its own line, no link', tokenMail.text.split('\n').includes(tok) && !/https?:/.test(tokenMail.text));
+  step('no token email, and no email carries the token (Mac 2.0.2 asks for none)', !inbox.some(m => m.kind === 'token') && !inbox.some(m => m.text.includes(tok)));
   r = await call('GET', '/download/mac');
   step('invitation: the Mac download is /download/mac (302), no access link', invite.text.includes(O + '/download/mac') && !invite.text.includes('/api/access') && r.status === 302, r.headers.get('location') || '');
   // An access link from an older email (the recovery page) still opens a session.

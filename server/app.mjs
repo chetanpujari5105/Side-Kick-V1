@@ -118,8 +118,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     await queueMail(emails.android({ name: s.name, release: releases, googleEmail: s.googleEmail }), { to: s.emailNorm, signupId: s.id, capped: false });
   }
   async function copyMail(s, capped = true) {
-    const token = (await repo.poolTokenFor(s.id)) || s.token || null;
-    await queueMail(emails.copy({ name: s.name, token, downloadUrl, release: releases }), { to: s.emailNorm, signupId: s.id, capped });
+    await queueMail(emails.copy({ name: s.name, downloadUrl, release: releases }), { to: s.emailNorm, signupId: s.id, capped });
   }
 
   // ── signup ─────────────────────────────────────────────────────────────────
@@ -164,7 +163,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         outcome = 'already';
         await copyMail(s);
       } else if (ALLOWED.includes(s.state)) {
-        outcome = 'already'; // in, token still on its way: the download link now, the token in its own email
+        outcome = 'already'; // in, invitation still on its way: the download link now
         await queueMail(emails.access({ name: s.name, downloadUrl }), { to: s.emailNorm, signupId: s.id });
       } else {
         await queueMail(emails.waitlist({ name: s.name }), { to: s.emailNorm, signupId: s.id }); // waitlisted and denied read the same
@@ -177,7 +176,7 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
     if (outcome === 'in') {
       const cookie = setSession({ k: 'in', sid: s.id });
       const android = s.googleEmail ? config.androidAccess : null;
-      if (asPage) return html(200, resultPage({ nonce, firstName: firstName(s.name), token, download: downloadInfo(), release: releases, android }), nonce, { 'set-cookie': cookie });
+      if (asPage) return html(200, resultPage({ nonce, firstName: firstName(s.name), download: downloadInfo(), release: releases, android }), nonce, { 'set-cookie': cookie });
       return json(200, { ok: true, stage: 'in', firstName: firstName(s.name), token, download: downloadInfo(), android }, { 'set-cookie': cookie });
     }
     if (outcome === 'already') return asPage ? html(200, alreadyPage({ nonce }), nonce) : json(200, { ok: true, stage: 'already' });
@@ -401,9 +400,9 @@ export function createApp({ config, repo, botCheck, storage, mailer = null, cloc
         if (r === 'not_found') return json(404, { ok: false, error: 'NOT_FOUND' });
         if (r === 'conflict') return json(409, { ok: false, error: 'ALREADY_ISSUED' });
         const s = await repo.getSignup(data.signupId);
-        // Two emails: the invitation (where the apps come from: /download/mac) and the token on its own.
+        // One email: the invitation (where the apps come from: /download/mac). The token is stored above and no longer
+        // emailed, since Mac 2.0.2 asks for none; the sign-up becomes 'delivered' once the invitation is sent.
         await queueMail(emails.invite({ name: s.name, downloadUrl, release: releases, googleEmail: s.googleEmail }), { to: s.emailNorm, signupId: s.id, capped: false });
-        await queueMail(emails.token({ name: s.name, token: data.token }), { to: s.emailNorm, signupId: s.id, capped: false });
         log.info('token.stored', { signupId: s.id });
         return json(200, { ok: true });
       }

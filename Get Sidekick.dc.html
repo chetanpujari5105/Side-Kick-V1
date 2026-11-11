@@ -63,7 +63,7 @@ a:hover{color:#3A22B8;}
       <div role="status" style="display:flex;flex-direction:column;gap:18px;align-items:flex-start;padding:24px 0;">
         <span style="width:56px;height:56px;border-radius:50%;background:#C6FF33;border:1.5px solid #17142E;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:30px;">check</span>
         <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:36px;line-height:1;font-weight:800;letter-spacing:-0.035em;">Saved. One more step by email.</h2>
-        <p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">Right now we can't hand out a beta token on this page, so we'll do it by email. If nothing happens, <a href="Download.dc.html" style="color:#5B3DF5;font-weight:600;">open the next step</a>.</p>
+        <p style="margin:0;font-size:17px;line-height:1.55;color:#55526B;">Right now we can't finish your sign-up on this page, so we'll do it by email. If nothing happens, <a href="Download.dc.html" style="color:#5B3DF5;font-weight:600;">open the next step</a>.</p>
       </div>
     </sc-if>
     <sc-if value="{{ isAlready }}">
@@ -81,12 +81,6 @@ a:hover{color:#3A22B8;}
         </div>
         <sc-if value="{{ resAuto }}"><a id="dl-again" href="/download/mac" target="_blank" rel="noopener" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;text-decoration:none;box-sizing:border-box;">Download again</a></sc-if>
         <sc-if value="{{ resManual }}"><a id="dl-again" href="/download/mac" target="_blank" rel="noopener" style="align-self:flex-start;min-height:56px;padding:0 30px;border-radius:999px;background:#C6FF33;border:1.5px solid #17142E;color:#17142E;font:600 17px Inter,sans-serif;display:flex;align-items:center;text-decoration:none;box-sizing:border-box;">Download the Mac app</a></sc-if>
-        <section aria-labelledby="tok-h" style="border-radius:20px;background:#17142E;color:#F6F3EC;padding:20px;display:flex;flex-direction:column;gap:12px;">
-          <span id="tok-h" style="font:500 13px 'JetBrains Mono',monospace;color:#C6FF33;">YOUR BETA TOKEN</span>
-          <code id="res-token" style="font:13.5px/1.5 'JetBrains Mono',monospace;word-break:break-all;background:#0A0A0A;border-radius:12px;padding:12px 14px;user-select:all;">{{ resToken }}</code>
-          <button type="button" id="copy-token" onClick="{{ copyToken }}" style="align-self:flex-start;min-height:44px;padding:0 18px;border-radius:999px;border:1.5px solid #C6FF33;background:transparent;color:#C6FF33;font:600 15px Inter,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;"><span style="font-family:'Material Symbols Rounded';font-size:18px;">{{ copyIcon }}</span>{{ copyLabel }}</button>
-          <span style="font-size:15px;line-height:1.5;color:#C9C6DA;">Paste it in Sidekick the first time you open it. It is shown only here, so copy it now.</span>
-        </section>
         <section aria-labelledby="inst-h" style="display:flex;flex-direction:column;gap:10px;">
           <h3 id="inst-h" style="margin:0;font-size:19px;">Install</h3>
           <ol style="margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:16px;line-height:1.5;">
@@ -97,7 +91,7 @@ a:hover{color:#3A22B8;}
             <ol style="margin:0 0 10px;padding-left:22px;display:flex;flex-direction:column;gap:6px;">
               <sc-for list="{{ resAllSteps }}" as="st" hint-placeholder-count="6"><li>{{ st }}</li></sc-for>
             </ol>
-            <p style="margin:0 0 10px;">SHA-256 of {{ resFile }} (to check the download; not your token):<br><code style="font:13px/1.5 'JetBrains Mono',monospace;word-break:break-all;">{{ resSha }}</code></p>
+            <p style="margin:0 0 10px;">SHA-256 of {{ resFile }} (to check the download):<br><code style="font:13px/1.5 'JetBrains Mono',monospace;word-break:break-all;">{{ resSha }}</code></p>
           </details>
         </section>
         <sc-if value="{{ resAndroid }}"><p id="res-android" style="margin:0;border-radius:16px;background:#E8E2FF;padding:14px 16px;font-size:15.5px;line-height:1.5;">{{ resAndroid }}</p></sc-if>
@@ -223,7 +217,7 @@ a:hover{color:#3A22B8;}
 class Component extends DCLogic {
   state = { w: typeof window !== 'undefined' ? window.innerWidth : 1440,
     v: { name: '', email: '', android: false, phone: '', google: '', privacy: false, updates: false },
-    touched: {}, submitted: false, status: 'idle', serverErr: {}, review: 'live', result: null, copied: '', copyMail: 'idle' };
+    touched: {}, submitted: false, status: 'idle', serverErr: {}, review: 'live', result: null, copyMail: 'idle' };
   spinRef = React.createRef();
   botRef = React.createRef();
   sendRef = React.createRef();
@@ -237,7 +231,7 @@ class Component extends DCLogic {
   static STEPS = (file) => [
     `Open ${file} and drag Sidekick into Applications.`,
     'Open Sidekick. On the macOS warning choose Done, then open System Settings › Privacy & Security and click Open Anyway.',
-    'Paste your beta token when Sidekick asks for it (press Paste token).'
+    'Sidekick opens with nothing to enter. To pair a phone, scan the code it shows with the Sidekick Android app.'
   ];
   static ANDROID = {
     'manual-batch': "Android: we're adding your Google account to the test list. Your Google Play link comes by email, usually within a day.",
@@ -330,8 +324,9 @@ class Component extends DCLogic {
       const r = await window.SK_API.getSidekick({ name: v.name.trim(), email: v.email.trim(), android, phoneModel: android ? v.phone.trim() : '', googleEmail: android ? v.google.trim() : '', privacyAccepted: v.privacy === true, marketingOptIn: v.updates === true && !!(this.updRef.current && this.updRef.current.checked), captchaToken });
       if (window.SK_BOT) window.SK_BOT.reset(this.bot);
       if (r && r.ok && r.status === 200 && r.stage === 'in' && r.token) {
-        // You're in: the token is shown here, once. The download starts by itself only when it is the file itself
-        // (a verified direct link), in a hidden frame; the Drive fallback would replace this page and the token with it.
+        // You're in. The server still issues a token (r.token) but this page no longer shows it: Mac 2.0.2 asks for
+        // none. The download starts by itself only when it is the file itself (a verified direct link), in a hidden
+        // frame; the Drive fallback would replace this page with it.
         this.setState({ status: 'in', result: r }, () => { const el = document.getElementById('res-h'); el && el.focus && el.focus(); });
         if (r.download && r.download.auto) this.dlTimer = setTimeout(() => Component.AUTO_DOWNLOAD(r.download.url, document), 1500);
       } else if (r && r.ok && r.status === 200 && r.stage === 'already') {
@@ -345,11 +340,6 @@ class Component extends DCLogic {
       else if (r && r.status === 400 && r.fieldErrors) { const m = { phoneModel: 'phone', googleEmail: 'google', privacyAccepted: 'privacy' }; const se = {}; for (const k in r.fieldErrors) se[m[k] || k] = r.fieldErrors[k]; this.setState({ status: 'idle', serverErr: se }); }
       else this.setState({ status: 'server_error' });
     } catch (err) { this.setState({ status: 'server_error' }); }
-  }
-  copyToken() {
-    const t = this.state.result && this.state.result.token;
-    const sel = () => { const el = document.getElementById('res-token'); if (el) { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } this.setState({ copied: 'selected' }); };
-    try { navigator.clipboard.writeText(t).then(() => this.setState({ copied: 'copied' }), sel); } catch (e) { sel(); }
   }
   async emailCopy() {
     if (this.state.copyMail === 'sending' || this.state.copyMail === 'sent') return;
@@ -377,8 +367,8 @@ class Component extends DCLogic {
     const file = dl.file || (R.mac.builds.arm64 || {}).file || 'the .dmg';
     return {
       cols: wide ? 'minmax(0,5fr) minmax(0,7fr)' : 'minmax(0,1fr)', leftPad: wide ? '40px' : '0', pairCols: this.state.w >= 640 ? '1fr 1fr' : '1fr',
-      reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', mocks ? 'Your beta token comes from the person who invited you. They send it to you privately.' : 'Your beta token is on the next page, with three install steps.'],
-      intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link and your beta token.' : 'For Macs with Apple silicon (M1 or later). Your name, your email and one tick: the Mac app downloads right away.',
+      reassure: ['No account to create — in this form or in the apps.', 'The phone-to-Mac connection never goes through us.', mocks ? 'The person who invited you sends you a private download link.' : 'The next page has the download and three install steps.'],
+      intro: mocks ? 'Sidekick is in a small invited beta. If you were invited, the person who invited you sends you a private download link.' : 'For Macs with Apple silicon (M1 or later). Your name, your email and one tick: the Mac app downloads right away.',
       purpose: mocks ? 'Sidekick is in a small invited test, and this form isn\'t open yet.' : '',
       purpose2: mocks ? 'Nothing is collected yet. This form doesn\'t send or store anything you type.' : 'We use these details only to run the beta. Ask us any time and we\'ll delete them.',
       v, on: { name: set('name'), email: set('email'), android: set('android'), phone: set('phone'), google: set('google'), privacy: set('privacy'), updates: set('updates') },
@@ -390,14 +380,13 @@ class Component extends DCLogic {
       busy: busy ? 'true' : 'false', busyBool: busy, btnDisabled: busy || mocks, cursor: busy ? 'progress' : 'pointer', btnOpacity: busy ? 0.85 : 1,
       btnLabel: mocks ? 'Not open yet' : (busy ? 'Getting it…' : 'Get the Mac app'),
       isSuccess: success, isAlready: already, isIn, showForm: !success && !already && !isIn,
-      resName: Component.cap(res.firstName || ''), resToken: res.token || '', resAuto: isIn && !!dl.auto, resManual: isIn && !dl.auto,
+      resName: Component.cap(res.firstName || ''), resAuto: isIn && !!dl.auto, resManual: isIn && !dl.auto,
       resDlLine: dl.auto ? 'Your download starts in a moment. Then follow the three steps below.' : 'Download the Mac app, then follow the three steps below.',
       resSteps: Component.STEPS(file), resAllSteps: R.mac.installSteps || [], resFile: file, resSha: dl.sha256 || (R.mac.builds.arm64 || {}).sha256 || 'not staged yet',
       resAndroid: res.android ? Component.ANDROID[res.android] || null : null,
-      copyToken: () => this.copyToken(), copyLabel: this.state.copied === 'copied' ? 'Copied' : this.state.copied === 'selected' ? 'Selected: press Command-C' : 'Copy', copyIcon: this.state.copied === 'copied' ? 'check' : 'content_copy',
       emailCopy: () => this.emailCopy(), copyMailDisabled: this.state.copyMail === 'sending' || this.state.copyMail === 'sent',
       copyMailLabel: this.state.copyMail === 'sent' ? 'Copy on its way' : this.state.copyMail === 'sending' ? 'Sending…' : 'Email me a copy',
-      copyMailNote: this.state.copyMail === 'sent' ? 'It comes from our own mailbox, so it can take a while.' : this.state.copyMail === 'failed' ? 'That didn\'t work. Copy the token above instead.' : '',
+      copyMailNote: this.state.copyMail === 'sent' ? 'It comes from our own mailbox, so it can take a while.' : this.state.copyMail === 'failed' ? 'That didn\'t work. Try again in a minute.' : '',
       bannerServer: status === 'server_error', bannerRate: status === 'rate_limited', bannerClosed: status === 'closed',
       bannerBot: status === 'bot_failed' || status === 'bot_needed', botTitle: status === 'bot_needed' ? 'Complete the human check first.' : 'We couldn\'t confirm you\'re not a bot.', botRef: this.botRef, sendRef: this.sendRef, updRef: this.updRef, andRef: this.andRef,
       hasSummary: summary.length > 0, summary, errCount: summary.length === 1 ? '1 thing' : summary.length + ' things',
