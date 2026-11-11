@@ -73,8 +73,9 @@ test('claims match the one-click flow in automated mode (Android by Play test in
   const ANDROID = 'by invitation through Google Play testing';
   assert.ok(home.includes(ANDROID) && sup.includes(ANDROID), 'Android wording');
   assert.ok(!/beta token|asks for a token/i.test(home), 'Home: Mac 2.0.2 asks for no token');
+  assert.ok(!/Enter your beta token|Paste token|A beta token|S\('5\./.test(sup), 'Support setup: no token step, four steps');
   for (const s of ['(!manual && "No. There\'s nothing to sign in to in either app. For the beta you fill in a short form: the Mac app downloads right away. Android',
-    "(!invite && '— the Mac app from the Get Sidekick form (it downloads right away). ' + androidLine)", "(!invite && '— it is on the page right after the Get Sidekick form.')", "(!invite && 'Use the token shown on the page right after the Get Sidekick form"])
+    "(!invite && '— the Mac app from the Get Sidekick form (it downloads right away). ' + androidLine)", "S('4. Pair your phone'", "Only builds before 2.0.2 do. Download the current build from the Get Sidekick form"])
     assert.ok(home.includes(s) || sup.includes(s), s);
   assert.ok(!/\b(25|50) (people|places|testers|spots)\b/.test(home + sup), 'no beta size number');
 });

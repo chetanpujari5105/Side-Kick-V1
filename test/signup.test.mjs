@@ -202,7 +202,7 @@ test('timing copy: check-your-email and the invitation flow say emails can take 
   }
   assert.ok(read('Get Sidekick.dc.html').includes("Right now we can't finish your sign-up on this page, so we'll do it by email."), 'Get Sidekick says so when it falls back');
   for (const f of ['check-email.html', 'Download.dc.html', 'Get Sidekick.dc.html']) assert.ok(!/beta token/i.test(read(f)), `${f}: no token line (Mac 2.0.2)`);
-  assert.ok(read('Support.dc.html').includes('it arrives within a day of confirming your email.'), 'Support beta token row');
+  assert.ok(read('Support.dc.html').includes("if it hasn\\'t come within a day, check your spam folder"), 'Support: the Android help row says within a day');
   for (const f of ['Download.dc.html', 'Support.dc.html', 'Get Sidekick.dc.html', 'check-email.html']) assert.ok(!/few hours/.test(read(f)), `${f}: few hours`);
   const { emails } = await import('../server/emails.mjs');
   const c = emails.confirm({ name: 'Alex', confirmUrl: 'https://x/c', updatesUrl: null, downloadUrl: 'https://x/download/mac' }).text;
